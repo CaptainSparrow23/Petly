@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "992118540403",
+    "project_id": "petly-4af67",
+    "storage_bucket": "petly-4af67.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:992118540403:android:9be72071d0d84c1e0dc206",
+        "android_client_info": {
+          "package_name": "com.petly"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "992118540403-g05fg5dono9h0mfho4nqn4s9mks1u9me.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9hmAKCZsEDXbNtcTca5UNHGz9U6V6KY4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "992118540403-g05fg5dono9h0mfho4nqn4s9mks1u9me.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "992118540403-mle506j12qb2feirctju62q5ra74qa8n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.petly"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
