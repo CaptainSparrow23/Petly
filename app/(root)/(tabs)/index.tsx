@@ -7,7 +7,7 @@ const Index = () => {
     <View className="flex-1 bg-white">
       <MenuButton />
       
-      <View className="flex-1 justify-center items-center">
+      <View className="flex-1 justify-center items-center font-bold">
         <Text>Timer Screen</Text>
       </View>
     </View>
