@@ -17,9 +17,12 @@ import Animated, {
   useAnimatedProps,
   useSharedValue,
   withTiming,
+  SharedValue,
 } from 'react-native-reanimated'
 import LottieView from 'lottie-react-native'
 import { Animations } from '@/constants/animations'
+import { sessionTracker } from '@/hooks/focus'
+import { useGlobalContext } from '@/lib/global-provider'
 
 const MODE_COLORS = {
   Study: '#0ea5e9',
@@ -89,7 +92,7 @@ const formatTime = (totalSeconds: number) => {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
-const ProgressRing = ({ angle }: { angle: Animated.SharedValue<number> }) => {
+const ProgressRing = ({ angle }: { angle: SharedValue<number> }) => {
   const dashProps = useAnimatedProps(() => {
     const ratio = Math.min(Math.max(angle.value / 360, 0), 1)
     return {
@@ -149,6 +152,8 @@ const ProgressRing = ({ angle }: { angle: Animated.SharedValue<number> }) => {
 }
 
 const FocusTimer = () => {
+  const { user } = useGlobalContext();
+  
   const [selectedMinutes, setSelectedMinutes] =
     useState<number>(INITIAL_MINUTES)
   const [remainingSeconds, setRemainingSeconds] = useState<number>(
@@ -191,7 +196,10 @@ const FocusTimer = () => {
     [isRunning],
   )
 
-  const stopRunningSession = useCallback(() => {
+  const stopRunningSession = useCallback(async () => {
+    // Track session end - left early
+    await sessionTracker.endSession();
+    
     setIsRunning(false)
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
@@ -209,6 +217,11 @@ const FocusTimer = () => {
 
   useEffect(() => {
     return () => {
+      // End any active session on cleanup
+      if (sessionTracker.getCurrentSession()) {
+        sessionTracker.endSession().catch(console.error);
+      }
+      
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
       }
@@ -358,6 +371,10 @@ const FocusTimer = () => {
     setRemainingSeconds(startingSeconds)
     setSessionMinutes(selectedMinutes)
     setIsRunning(true)
+    
+    // Track session start
+    sessionTracker.startSession(user?.$id);
+    
     previousStepRef.current = selectedMinutes / STEP_MINUTES
     if (animationTimeoutRef.current) {
       clearTimeout(animationTimeoutRef.current)
@@ -378,6 +395,10 @@ const FocusTimer = () => {
             clearInterval(intervalRef.current)
             intervalRef.current = null
           }
+          
+          // Track session completion
+          sessionTracker.endSession().catch(console.error);
+          
           setIsRunning(false)
           setSelectedMinutes(0)
           setSessionMinutes(0)
