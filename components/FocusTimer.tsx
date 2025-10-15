@@ -13,9 +13,10 @@ import Animated, {
   Easing,
   useAnimatedProps,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated'
+import LottieView from 'lottie-react-native'
+import { Animations } from '@/constants/animations'
 
 const MAX_MINUTES = 120
 const STEP_MINUTES = 5
@@ -29,15 +30,14 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 const TOTAL_STEPS = MAX_MINUTES / STEP_MINUTES
 const HALF_STEPS = TOTAL_STEPS / 2
 
-const ACTIVE_COLOR = '#10b981'
-const TRACK_COLOR = '#d1d5db'
-const KNOB_COLOR = '#10b981'
-const KNOB_HALO_COLOR = '#10b981'
+const ACTIVE_COLOR = '#3b82f6'
+const TRACK_COLOR = '#dbeafe'
+const KNOB_COLOR = '#3b82f6'
+const KNOB_HALO_COLOR = '#3b82f6'
 const KNOB_HALO_RADIUS = TRACK_WIDTH * 0.9
 const KNOB_RADIUS = TRACK_WIDTH * 0.6
 const SLIDER_SIZE = Math.min(Dimensions.get('window').height / 1.8, 440)
 const PET_CIRCLE_SIZE = SLIDER_SIZE - TRACK_WIDTH * 4
-
 const minutesToSeconds = (minutes: number) => minutes * 60
 
 const clampStep = (step: number) =>
@@ -122,6 +122,7 @@ const FocusTimer = () => {
   const [sessionMinutes, setSessionMinutes] =
     useState<number>(INITIAL_MINUTES)
   const [isRunning, setIsRunning] = useState<boolean>(false)
+  const [heartSource, setHeartSource] = useState<string | null>(null)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const layoutRef = useRef<{ width: number; height: number }>({
@@ -130,11 +131,28 @@ const FocusTimer = () => {
   })
   const previousStepRef = useRef<number>(INITIAL_MINUTES / STEP_MINUTES)
   const angle = useSharedValue((INITIAL_MINUTES / MAX_MINUTES) * 360)
+  const [catSource, setCatSource] = useState(Animations.catIdle)
+  const catAnimationRef = useRef<LottieView>(null)
+  const animationTimeoutRef = useRef<number | null>(null)
+  const heartAnimationRef = useRef<LottieView>(null)
+
+  const scheduleCatReplay = useCallback(() => {
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current)
+    }
+    animationTimeoutRef.current = setTimeout(() => {
+      catAnimationRef.current?.reset()
+      catAnimationRef.current?.play()
+    }, 3000)
+  }, [])
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
+      }
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current)
       }
     }
   }, [])
@@ -192,8 +210,30 @@ const FocusTimer = () => {
       setSelectedMinutes(nextMinutes)
       setRemainingSeconds(minutesToSeconds(nextMinutes))
       setSessionMinutes(nextMinutes)
+      if (!isRunning) {
+        let newHeart: string | null = null
+        if (nextMinutes === 120) {
+          newHeart = Animations.heartsLg
+        } else if (nextMinutes === 90) {
+          newHeart = Animations.heartsMd
+        } else if (nextMinutes === 60) {
+          newHeart = Animations.heartsSm
+        }
+
+        if (newHeart && newHeart !== heartSource) {
+          setHeartSource(newHeart)
+          heartAnimationRef.current?.reset()
+          heartAnimationRef.current?.play()
+          setCatSource(Animations.catIdle)
+          catAnimationRef.current?.reset()
+          catAnimationRef.current?.play()
+          scheduleCatReplay()
+        } else if (!newHeart && heartSource) {
+          setHeartSource(null)
+        }
+      }
     },
-    [isRunning],
+    [heartSource, isRunning, scheduleCatReplay],
   )
 
   const panResponder = useMemo(
@@ -216,6 +256,10 @@ const FocusTimer = () => {
       previousStepRef.current = selectedMinutes / STEP_MINUTES
       setRemainingSeconds(minutesToSeconds(selectedMinutes))
       setSessionMinutes(selectedMinutes)
+      setCatSource(Animations.catIdle)
+      catAnimationRef.current?.reset()
+      catAnimationRef.current?.play()
+      scheduleCatReplay()
       return
     }
 
@@ -226,6 +270,13 @@ const FocusTimer = () => {
     setSessionMinutes(selectedMinutes)
     setIsRunning(true)
     previousStepRef.current = selectedMinutes / STEP_MINUTES
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current)
+    }
+    setCatSource(Animations.catFocus)
+    setHeartSource(null)
+    catAnimationRef.current?.reset()
+    catAnimationRef.current?.play()
 
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
@@ -242,12 +293,16 @@ const FocusTimer = () => {
           setSelectedMinutes(0)
           setSessionMinutes(0)
           previousStepRef.current = 0
+          setCatSource(Animations.catIdle)
+          catAnimationRef.current?.reset()
+          catAnimationRef.current?.play()
+          scheduleCatReplay()
           return 0
         }
         return previous - 1
       })
     }, 1000)
-  }, [isRunning, selectedMinutes])
+  }, [isRunning, selectedMinutes, scheduleCatReplay])
 
   const totalSessionSeconds = sessionMinutes * 60
   const progressMinutes = useMemo(() => {
@@ -284,20 +339,76 @@ const FocusTimer = () => {
           style={{ position: 'absolute', width: SLIDER_SIZE, height: SLIDER_SIZE }}
           onLayout={handleLayout}
           {...panResponder.panHandlers}
+          
         >
           <View style={{ flex: 1 }} />
         </View>
 
         <View
           pointerEvents="none"
-          className="absolute items-center justify-center rounded-full bg-transparent"
+          className="absolute items-center justify-center"
           style={{
             width: PET_CIRCLE_SIZE,
             height: PET_CIRCLE_SIZE,
             borderRadius: PET_CIRCLE_SIZE / 2,
           }}
         >
-          <Text className="text-sm text-slate-500"></Text>
+          <LottieView
+            ref={catAnimationRef}
+            source={catSource}
+            autoPlay
+            loop={false}
+            speed={1}
+            onAnimationFinish={() => {
+              if (animationTimeoutRef.current) {
+                clearTimeout(animationTimeoutRef.current)
+              }
+              if (isRunning) {
+                catAnimationRef.current?.reset()
+                catAnimationRef.current?.play()
+              } else {
+                scheduleCatReplay()
+              }
+            }}
+            style={{
+              width: isRunning
+                ? PET_CIRCLE_SIZE * 0.7
+                : PET_CIRCLE_SIZE * 0.85,
+              height: isRunning
+                ? PET_CIRCLE_SIZE * 0.7
+                : PET_CIRCLE_SIZE * 0.85,
+            }}
+          />
+          {heartSource && (
+            <LottieView
+              ref={heartAnimationRef}
+              source={heartSource}
+              autoPlay
+              loop={false}
+              onAnimationFinish={() => {
+                setHeartSource(null)
+              }}
+              style={{
+                position: 'absolute',
+                width: PET_CIRCLE_SIZE,
+                height: PET_CIRCLE_SIZE,
+                transform: [
+                  {
+                    translateY:
+                      heartSource === Animations.heartsLg
+                        ? -PET_CIRCLE_SIZE * 0.7
+                        : -PET_CIRCLE_SIZE * 0.25,
+                  },
+                  {
+                    translateX:
+                      heartSource === Animations.heartsLg
+                        ? -PET_CIRCLE_SIZE * 0.08
+                        : 0,
+                  },
+                ],
+              }}
+            />
+          )}
         </View>
       </View>
 
@@ -309,11 +420,10 @@ const FocusTimer = () => {
       </Text>
 
       <Pressable
-        className={`min-w-[160px] items-center rounded-full px-10 py-3.5 shadow-lg ${
-          isRunning ? 'bg-emerald-700 shadow-emerald-900/40' : 'bg-emerald-500 shadow-emerald-700/35'
-        }`}
+        className="min-w-[160px] items-center rounded-full px-10 py-3.5 shadow-lg"
         style={{
-          shadowColor: isRunning ? '#064e3b' : '#047857',
+          backgroundColor: isRunning ? '#f59e0b' : KNOB_COLOR,
+          shadowColor: isRunning ? '#92400e' : '#1d4ed8',
           shadowOpacity: 0.35,
           shadowRadius: 12,
           shadowOffset: { width: 0, height: 6 },
