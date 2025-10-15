@@ -49,6 +49,7 @@ const RADIUS = CIRCLE_RADIUS - TRACK_WIDTH
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 const TOTAL_STEPS = MAX_MINUTES / STEP_MINUTES
 const HALF_STEPS = TOTAL_STEPS / 2
+const STEP_DEGREES = 360 / TOTAL_STEPS
 
 const ACTIVE_COLOR = '#3b82f6'
 const TRACK_COLOR = '#dbeafe'
@@ -72,9 +73,9 @@ const CAT_STYLE_MAP: Record<'Idle' | ModeKey, { idleScale: number; runningScale:
 }
 
 const HEART_STYLE_MAP = {
-  heartsSm: { scale: 0.8, offsetY: -0.22 },
-  heartsMd: { scale: 0.9, offsetY: -0.32 },
-  heartsLg: { scale: 1.05, offsetY: -0.48, offsetX: -0.08 },
+  heartsSm: { scale: 0.8, offsetY: -0.25, offsetX: 0 },
+  heartsMd: { scale: 0.9, offsetY: -0.32, offsetX: 0 },
+  heartsLg: { scale: 1.05, offsetY: -0.7, offsetX: -0.15 },
 } as const
 
 const formatTime = (totalSeconds: number) => {
@@ -171,16 +172,23 @@ const FocusTimer = () => {
   const catAnimationRef = useRef<LottieView>(null)
   const animationTimeoutRef = useRef<number | null>(null)
   const heartAnimationRef = useRef<LottieView>(null)
+  const lastHeartTriggerRef = useRef<Record<number, number>>({})
+  const sixtyDelayTimeoutRef = useRef<number | null>(null)
 
-  const scheduleCatReplay = useCallback(() => {
-    if (animationTimeoutRef.current) {
-      clearTimeout(animationTimeoutRef.current)
-    }
-    animationTimeoutRef.current = setTimeout(() => {
-      catAnimationRef.current?.reset()
-      catAnimationRef.current?.play()
-    }, 3000)
-  }, [])
+  const scheduleCatReplay = useCallback(
+    (delay = 8000) => {
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current)
+      }
+      animationTimeoutRef.current = setTimeout(() => {
+        if (!isRunning && catAnimationRef.current) {
+          catAnimationRef.current.reset()
+          catAnimationRef.current.play()
+        }
+      }, delay)
+    },
+    [isRunning],
+  )
 
   useEffect(() => {
     return () => {
@@ -190,8 +198,40 @@ const FocusTimer = () => {
       if (animationTimeoutRef.current) {
         clearTimeout(animationTimeoutRef.current)
       }
+      if (sixtyDelayTimeoutRef.current) {
+        clearTimeout(sixtyDelayTimeoutRef.current)
+        sixtyDelayTimeoutRef.current = null
+      }
     }
   }, [])
+
+  const playHeartAnimation = useCallback(
+    (heart: string, threshold: number, delay = 0) => {
+      const execute = () => {
+        lastHeartTriggerRef.current[threshold] = Date.now()
+        setHeartSource(heart)
+        heartAnimationRef.current?.reset()
+        heartAnimationRef.current?.play()
+        setCatSource(Animations.catIdle)
+        catAnimationRef.current?.reset()
+        catAnimationRef.current?.play()
+        scheduleCatReplay()
+      }
+
+      if (delay > 0) {
+        if (sixtyDelayTimeoutRef.current) {
+          clearTimeout(sixtyDelayTimeoutRef.current)
+        }
+        sixtyDelayTimeoutRef.current = setTimeout(() => {
+          execute()
+          sixtyDelayTimeoutRef.current = null
+        }, delay)
+      } else {
+        execute()
+      }
+    },
+    [scheduleCatReplay],
+  )
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout
@@ -221,18 +261,25 @@ const FocusTimer = () => {
       if (delta < -180) delta += 360
       const movingForward = delta > 0
 
-      if (previousStep === TOTAL_STEPS && movingForward) {
+      if (previousStep === TOTAL_STEPS && movingForward && normalizedAngle < 180) {
         return
       }
 
-      let nextStep = clampStep(
-        Math.round((normalizedAngle / 360) * TOTAL_STEPS),
-      )
+      const rawStep = Math.floor((normalizedAngle + STEP_DEGREES / 2) / STEP_DEGREES)
+      let nextStep = clampStep(rawStep)
+
+      if (nextStep === 0 && normalizedAngle > STEP_DEGREES * 0.75) {
+        nextStep = 1
+      }
+
+      if (nextStep >= TOTAL_STEPS && normalizedAngle < STEP_DEGREES * 2) {
+        nextStep = TOTAL_STEPS
+      }
 
       if (
         previousStep === TOTAL_STEPS &&
         movingForward &&
-        normalizedAngle < 180
+        normalizedAngle > 180
       ) {
         nextStep = HALF_STEPS
       }
@@ -257,19 +304,19 @@ const FocusTimer = () => {
         }
 
         if (newHeart && newHeart !== heartSource) {
-          setHeartSource(newHeart)
-          heartAnimationRef.current?.reset()
-          heartAnimationRef.current?.play()
-          setCatSource(Animations.catIdle)
-          catAnimationRef.current?.reset()
-          catAnimationRef.current?.play()
-          scheduleCatReplay()
+          const threshold = nextMinutes
+          const now = Date.now()
+          const lastTriggered = lastHeartTriggerRef.current[threshold] ?? 0
+          if (now - lastTriggered >= 2000) {
+            const delay = threshold === 60 ? 200 : 0
+            playHeartAnimation(newHeart, threshold, delay)
+          }
         } else if (!newHeart && heartSource) {
           setHeartSource(null)
         }
       }
     },
-    [heartSource, isRunning, scheduleCatReplay],
+    [heartSource, isRunning, playHeartAnimation],
   )
 
   const panResponder = useMemo(
@@ -398,7 +445,7 @@ const FocusTimer = () => {
 
   return (
     <View className="items-center gap-3 py-16 top-12">
-      <Text className="text-base text-slate-600 top-5">Start focusing with your pet</Text>
+      <Text className="text-base font-medium text-slate-600 top-5">Start focusing with your pet</Text>
 
       <View className="items-center justify-center mt-10">
         <View style={{ width: SLIDER_SIZE, height: SLIDER_SIZE }} pointerEvents="none">
@@ -428,10 +475,10 @@ const FocusTimer = () => {
             source={catSource}
             autoPlay
             loop={false}
-            speed={1}
             onAnimationFinish={() => {
               if (animationTimeoutRef.current) {
                 clearTimeout(animationTimeoutRef.current)
+                animationTimeoutRef.current = null
               }
               if (isRunning) {
                 catAnimationRef.current?.reset()
