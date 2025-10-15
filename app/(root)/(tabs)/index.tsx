@@ -1,15 +1,14 @@
+import FocusTimer from '@/components/FocusTimer';
 import { MenuButton } from '@/components/MenuButton';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View, Text} from 'react-native';
 
+    
 const Index = () => {
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 items-center justify-center bg-white">
       <MenuButton />
-      
-      <View className="flex-1 justify-center items-center font-bold">
-        <Text>Timer Screen</Text>
-      </View>
+       <FocusTimer />
     </View>
   );
 };
