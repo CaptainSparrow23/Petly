@@ -160,6 +160,7 @@ const FocusTimer = () => {
   const [heartSource, setHeartSource] = useState<string | null>(null)
   const [mode, setMode] = useState<ModeKey>('Study')
   const [modePickerVisible, setModePickerVisible] = useState(false)
+  const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const layoutRef = useRef<{ width: number; height: number }>({
@@ -189,6 +190,22 @@ const FocusTimer = () => {
     },
     [isRunning],
   )
+
+  const stopRunningSession = useCallback(() => {
+    setIsRunning(false)
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+    previousStepRef.current = selectedMinutes / STEP_MINUTES
+    const currentSeconds = minutesToSeconds(selectedMinutes)
+    setRemainingSeconds(currentSeconds)
+    setSessionMinutes(selectedMinutes)
+    setCatSource(Animations.catIdle)
+    catAnimationRef.current?.reset()
+    catAnimationRef.current?.play()
+    scheduleCatReplay()
+  }, [scheduleCatReplay, selectedMinutes])
 
   useEffect(() => {
     return () => {
@@ -331,30 +348,7 @@ const FocusTimer = () => {
 
   const handleControlPress = useCallback(() => {
     if (isRunning) {
-      Alert.alert('Are you sure?', 'If you leave now the session will end', [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Leave',
-          style: 'destructive',
-          onPress: () => {
-            setIsRunning(false)
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current)
-              intervalRef.current = null
-            }
-            previousStepRef.current = selectedMinutes / STEP_MINUTES
-            setRemainingSeconds(minutesToSeconds(selectedMinutes))
-            setSessionMinutes(selectedMinutes)
-            setCatSource(Animations.catIdle)
-            catAnimationRef.current?.reset()
-            catAnimationRef.current?.play()
-            scheduleCatReplay()
-          },
-        },
-      ])
+      setLeaveConfirmVisible(true)
       return
     }
 
@@ -555,6 +549,47 @@ const FocusTimer = () => {
           {isRunning ? 'Leave' : 'Start'}
         </Text>
       </Pressable>
+
+      <Modal
+        transparent
+        visible={leaveConfirmVisible}
+        animationType="fade"
+        onRequestClose={() => setLeaveConfirmVisible(false)}
+      >
+        <Pressable
+          className="flex-1 items-center justify-center bg-black/40"
+          onPress={() => setLeaveConfirmVisible(false)}
+        >
+          <Pressable
+            className="w-72 rounded-3xl bg-white px-6 py-6 shadow-2xl"
+            onPress={(event) => event.stopPropagation()}
+          >
+            <Text className="mb-4 text-center text-lg font-semibold text-slate-800">
+              Are you sure?
+            </Text>
+            <Text className="mb-6 text-center text-sm text-slate-500">
+              If you leave now the session will end.
+            </Text>
+            <View className="flex-row justify-between gap-4">
+              <Pressable
+                className="flex-1 items-center rounded-full border border-slate-200 px-4 py-2"
+                onPress={() => setLeaveConfirmVisible(false)}
+              >
+                <Text className="font-medium text-slate-600">Cancel</Text>
+              </Pressable>
+              <Pressable
+                className="flex-1 items-center rounded-full bg-red-500 px-4 py-2 shadow"
+                onPress={() => {
+                  setLeaveConfirmVisible(false)
+                  stopRunningSession()
+                }}
+              >
+                <Text className="font-medium text-white">Leave</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         transparent
