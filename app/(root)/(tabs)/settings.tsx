@@ -55,7 +55,10 @@ const Settings = () => {
 
   return (
     <SafeAreaView className="h-full bg-white">
-      <MenuButton />
+      <View className="w-full flex-row items-center justify-between px-6 pt-4">
+        <MenuButton />
+        <View className="w-12" />
+      </View>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ flexGrow: 1 }}

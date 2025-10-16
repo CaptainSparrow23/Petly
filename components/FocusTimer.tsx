@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Dimensions,
   FlatList,
@@ -11,6 +11,7 @@ import {
   View,
   Alert,
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
 import Animated, {
   Easing,
@@ -20,8 +21,10 @@ import Animated, {
   SharedValue,
 } from 'react-native-reanimated'
 import LottieView from 'lottie-react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Animations } from '@/constants/animations'
 import { sessionTracker } from '@/hooks/focus'
+import { useWeeklyFocusData } from '@/hooks/account'
 import { useGlobalContext } from '@/lib/global-provider'
 
 const MODE_COLORS = {
@@ -92,7 +95,19 @@ const formatTime = (totalSeconds: number) => {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
-const ProgressRing = ({ angle }: { angle: SharedValue<number> }) => {
+type TimerMode = 'countdown' | 'stopwatch'
+
+type FocusTimerProps = {
+  headerLeft?: ReactNode
+}
+
+const ProgressRing = ({
+  angle,
+  showProgress = true,
+}: {
+  angle: SharedValue<number>
+  showProgress?: boolean
+}) => {
   const dashProps = useAnimatedProps(() => {
     const ratio = Math.min(Math.max(angle.value / 360, 0), 1)
     return {
@@ -125,40 +140,59 @@ const ProgressRing = ({ angle }: { angle: SharedValue<number> }) => {
         strokeWidth={TRACK_WIDTH}
         fill="none"
       />
-      <AnimatedCircle
-        cx={center}
-        cy={center}
-        r={RADIUS}
-        stroke={ACTIVE_COLOR}
-        strokeWidth={TRACK_WIDTH}
-        strokeLinecap="round"
-        fill="none"
-        strokeDasharray={`${CIRCUMFERENCE} ${CIRCUMFERENCE}`}
-        transform={`rotate(-90 ${center} ${center})`}
-        animatedProps={dashProps}
-      />
-      <AnimatedCircle
-        r={KNOB_HALO_RADIUS}
-        fill={KNOB_HALO_COLOR}
-        animatedProps={knobProps}
-      />
-      <AnimatedCircle
-        r={KNOB_RADIUS}
-        fill={KNOB_COLOR}
-        animatedProps={knobProps}
-      />
+      {showProgress && (
+        <>
+          <AnimatedCircle
+            cx={center}
+            cy={center}
+            r={RADIUS}
+            stroke={ACTIVE_COLOR}
+            strokeWidth={TRACK_WIDTH}
+            strokeLinecap="round"
+            fill="none"
+            strokeDasharray={`${CIRCUMFERENCE} ${CIRCUMFERENCE}`}
+            transform={`rotate(-90 ${center} ${center})`}
+            animatedProps={dashProps}
+          />
+          <AnimatedCircle
+            r={KNOB_HALO_RADIUS}
+            fill={KNOB_HALO_COLOR}
+            animatedProps={knobProps}
+          />
+          <AnimatedCircle
+            r={KNOB_RADIUS}
+            fill={KNOB_COLOR}
+            animatedProps={knobProps}
+          />
+        </>
+      )}
     </Svg>
   )
 }
 
-const FocusTimer = () => {
-  const { user } = useGlobalContext();
-  
+const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
+  const { user } = useGlobalContext()
+  const { weeklyData, refetch: refetchWeeklyFocusData } = useWeeklyFocusData()
+  const [timerMode, setTimerMode] = useState<TimerMode>('countdown')
+  const todayDateKey = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const todayFocusEntry = useMemo(
+    () => weeklyData.find((entry) => entry.date === todayDateKey),
+    [weeklyData, todayDateKey],
+  )
+  const focusStatusText = useMemo(() => {
+    if (todayFocusEntry && todayFocusEntry.totalMinutes > 0) {
+      const minutesLabel = todayFocusEntry.totalMinutes === 1 ? 'min' : 'mins'
+      return `Focused for ${todayFocusEntry.totalMinutes} ${minutesLabel} today`
+    }
+    return 'Start focusing with your pet'
+  }, [todayFocusEntry])
+
   const [selectedMinutes, setSelectedMinutes] =
     useState<number>(INITIAL_MINUTES)
   const [remainingSeconds, setRemainingSeconds] = useState<number>(
     minutesToSeconds(INITIAL_MINUTES),
   )
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
   const [sessionMinutes, setSessionMinutes] =
     useState<number>(INITIAL_MINUTES)
   const [isRunning, setIsRunning] = useState<boolean>(false)
@@ -180,6 +214,42 @@ const FocusTimer = () => {
   const heartAnimationRef = useRef<LottieView>(null)
   const lastHeartTriggerRef = useRef<Record<number, number>>({})
   const sixtyDelayTimeoutRef = useRef<number | null>(null)
+  const isStopwatch = timerMode === 'stopwatch'
+
+  const refreshWeeklyFocus = useCallback(async () => {
+    if (!user?.$id) return
+    try {
+      await refetchWeeklyFocusData()
+    } catch (error) {
+      console.error('Failed to refresh weekly focus data:', error)
+    }
+  }, [refetchWeeklyFocusData, user?.$id])
+  const handleTimerModePress = useCallback(
+    (nextMode: TimerMode) => {
+      if (timerMode === nextMode) return
+      if (isRunning) {
+        Alert.alert('Timer running', 'Leave the session to change mode.')
+        return
+      }
+
+      setTimerMode(nextMode)
+
+      if (nextMode === 'countdown') {
+        const defaultSeconds = minutesToSeconds(INITIAL_MINUTES)
+        setSelectedMinutes(INITIAL_MINUTES)
+        setSessionMinutes(INITIAL_MINUTES)
+        setRemainingSeconds(defaultSeconds)
+        previousStepRef.current = INITIAL_MINUTES / STEP_MINUTES
+      } else {
+        setSelectedMinutes(0)
+        setSessionMinutes(0)
+        setRemainingSeconds(0)
+        setElapsedSeconds(0)
+        previousStepRef.current = 0
+      }
+    },
+    [isRunning, setElapsedSeconds, timerMode],
+  )
 
   const scheduleCatReplay = useCallback(
     (delay = 8000) => {
@@ -198,22 +268,34 @@ const FocusTimer = () => {
 
   const stopRunningSession = useCallback(async () => {
     // Track session end - left early
-    await sessionTracker.endSession();
-    
+    try {
+      await sessionTracker.endSession()
+      await refreshWeeklyFocus()
+    } catch (error) {
+      console.error(error)
+    }
+
     setIsRunning(false)
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
     }
-    previousStepRef.current = selectedMinutes / STEP_MINUTES
-    const currentSeconds = minutesToSeconds(selectedMinutes)
-    setRemainingSeconds(currentSeconds)
-    setSessionMinutes(selectedMinutes)
+    if (timerMode === 'countdown') {
+      previousStepRef.current = selectedMinutes / STEP_MINUTES
+      const currentSeconds = minutesToSeconds(selectedMinutes)
+      setRemainingSeconds(currentSeconds)
+      setSessionMinutes(selectedMinutes)
+    } else {
+      previousStepRef.current = 0
+      setElapsedSeconds(0)
+      setRemainingSeconds(0)
+      setSessionMinutes(0)
+    }
     setCatSource(Animations.catIdle)
     catAnimationRef.current?.reset()
     catAnimationRef.current?.play()
     scheduleCatReplay()
-  }, [scheduleCatReplay, selectedMinutes])
+  }, [refreshWeeklyFocus, scheduleCatReplay, selectedMinutes, timerMode])
 
   useEffect(() => {
     return () => {
@@ -270,7 +352,7 @@ const FocusTimer = () => {
 
   const updateFromGesture = useCallback(
     (event: GestureResponderEvent) => {
-      if (isRunning) return
+      if (isRunning || isStopwatch) return
       const { width, height } = layoutRef.current
       if (!width || !height) return
 
@@ -346,17 +428,17 @@ const FocusTimer = () => {
         }
       }
     },
-    [heartSource, isRunning, playHeartAnimation],
+    [heartSource, isRunning, isStopwatch, playHeartAnimation],
   )
 
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => !isRunning,
-        onMoveShouldSetPanResponder: () => !isRunning,
+        onStartShouldSetPanResponder: () => !isRunning && !isStopwatch,
+        onMoveShouldSetPanResponder: () => !isRunning && !isStopwatch,
         onPanResponderMove: updateFromGesture,
       }),
-    [isRunning, updateFromGesture],
+    [isRunning, isStopwatch, updateFromGesture],
   )
 
   const handleControlPress = useCallback(() => {
@@ -365,17 +447,24 @@ const FocusTimer = () => {
       return
     }
 
-    if (selectedMinutes === 0) return
+    if (timerMode === 'countdown') {
+      if (selectedMinutes === 0) return
+      const startingSeconds = minutesToSeconds(selectedMinutes)
+      setRemainingSeconds(startingSeconds)
+      setSessionMinutes(selectedMinutes)
+      previousStepRef.current = selectedMinutes / STEP_MINUTES
+    } else {
+      setElapsedSeconds(0)
+      setSessionMinutes(0)
+      setRemainingSeconds(0)
+      previousStepRef.current = 0
+    }
 
-    const startingSeconds = minutesToSeconds(selectedMinutes)
-    setRemainingSeconds(startingSeconds)
-    setSessionMinutes(selectedMinutes)
     setIsRunning(true)
     
     // Track session start
     sessionTracker.startSession(user?.$id);
     
-    previousStepRef.current = selectedMinutes / STEP_MINUTES
     if (animationTimeoutRef.current) {
       clearTimeout(animationTimeoutRef.current)
     }
@@ -389,30 +478,45 @@ const FocusTimer = () => {
     }
 
     intervalRef.current = setInterval(() => {
-      setRemainingSeconds((previous) => {
-        if (previous <= 1) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current)
-            intervalRef.current = null
+      if (timerMode === 'countdown') {
+        setRemainingSeconds((previous) => {
+          if (previous <= 1) {
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current)
+              intervalRef.current = null
+            }
+            
+            // Track session completion
+            sessionTracker
+              .endSession()
+              .then(refreshWeeklyFocus)
+              .catch(console.error)
+            
+            setIsRunning(false)
+            setSelectedMinutes(0)
+            setSessionMinutes(0)
+            previousStepRef.current = 0
+            setCatSource(Animations.catIdle)
+            catAnimationRef.current?.reset()
+            catAnimationRef.current?.play()
+            scheduleCatReplay()
+            return 0
           }
-          
-          // Track session completion
-          sessionTracker.endSession().catch(console.error);
-          
-          setIsRunning(false)
-          setSelectedMinutes(0)
-          setSessionMinutes(0)
-          previousStepRef.current = 0
-          setCatSource(Animations.catIdle)
-          catAnimationRef.current?.reset()
-          catAnimationRef.current?.play()
-          scheduleCatReplay()
-          return 0
-        }
-        return previous - 1
-      })
+          return previous - 1
+        })
+      } else {
+        setElapsedSeconds((previous) => previous + 1)
+      }
     }, 1000)
-  }, [isRunning, mode, selectedMinutes, scheduleCatReplay])
+  }, [
+    isRunning,
+    mode,
+    refreshWeeklyFocus,
+    scheduleCatReplay,
+    selectedMinutes,
+    timerMode,
+    user?.$id,
+  ])
 
   const totalSessionSeconds = sessionMinutes * 60
   const progressMinutes = useMemo(() => {
@@ -454,27 +558,76 @@ const FocusTimer = () => {
     : []
   const heartScale = heartConfig?.scale ?? 1
 
-  const formattedTime = formatTime(
-    isRunning ? remainingSeconds : minutesToSeconds(selectedMinutes),
-  )
+  const formattedTime = useMemo(() => {
+    if (isStopwatch) {
+      return formatTime(elapsedSeconds)
+    }
+    const displaySeconds = isRunning
+      ? remainingSeconds
+      : minutesToSeconds(selectedMinutes)
+    return formatTime(displaySeconds)
+  }, [elapsedSeconds, isRunning, isStopwatch, remainingSeconds, selectedMinutes])
 
   return (
-    <View className="items-center gap-3 py-16 top-12">
-      <Text className="text-base font-medium text-slate-600 top-5">Start focusing with your pet</Text>
+    <SafeAreaView className="w-full items-center px-6 pt-4 pb-10">
+      <View className="w-full flex-row items-center">
+        <View className="flex-1 items-start justify-center">
+          {headerLeft ?? <View className="w-12 h-12" />}
+        </View>
+        <View className="relative w-24 rounded-full overflow-hidden">
+          <View className="absolute inset-0" style={{ backgroundColor: KNOB_COLOR }} />
+          <View className="absolute inset-0 flex-row">
+            <View className={`flex-1 ${timerMode === 'countdown' ? 'bg-white/20' : 'bg-transparent'}`} />
+            <View className={`flex-1 ${timerMode === 'stopwatch' ? 'bg-white/20' : 'bg-transparent'}`} />
+          </View>
+          <View className="relative z-10 flex-row items-center justify-center">
+            <Pressable
+              className="flex-1 items-center justify-center py-2"
+              onPress={() => handleTimerModePress('countdown')}
+            >
+              <MaterialCommunityIcons
+                name="timer-sand"
+                size={20}
+                color="#fff"
+                style={{ opacity: timerMode === 'countdown' ? 1 : 0.65 }}
+              />
+            </Pressable>
 
-      <View className="items-center justify-center mt-10">
+            <Pressable
+              className="flex-1 items-center justify-center py-2"
+              onPress={() => handleTimerModePress('stopwatch')}
+            >
+              <MaterialCommunityIcons
+                name="timer"
+                size={20}
+                color="#fff"
+                style={{ opacity: timerMode === 'stopwatch' ? 1 : 0.65 }}
+              />
+            </Pressable>
+          </View>
+        </View>
+        <View className="flex-1" />
+      </View>
+      <View className="items-center top-16">
+        <Text className="mt-4 text-base font-medium text-slate-600">
+          {focusStatusText}
+        </Text>
+
+        <View className="items-center justify-center mt-8">
         <View style={{ width: SLIDER_SIZE, height: SLIDER_SIZE }} pointerEvents="none">
-          <ProgressRing angle={angle} />
+          <ProgressRing angle={angle} showProgress={timerMode === 'countdown'} />
         </View>
 
-        <View
-          style={{ position: 'absolute', width: SLIDER_SIZE, height: SLIDER_SIZE }}
-          onLayout={handleLayout}
-          {...panResponder.panHandlers}
-          
-        >
-          <View style={{ flex: 1 }} />
-        </View>
+        {timerMode === 'countdown' && (
+          <View
+            style={{ position: 'absolute', width: SLIDER_SIZE, height: SLIDER_SIZE }}
+            onLayout={handleLayout}
+            {...panResponder.panHandlers}
+            
+          >
+            <View style={{ flex: 1 }} />
+          </View>
+        )}
 
         <View
           pointerEvents="none"
@@ -527,7 +680,7 @@ const FocusTimer = () => {
           )}
         </View>
       </View>
-      <View className="items-center -mt-9 mb-3">
+      <View className="items-center -mt-7 mb-3">
         <Pressable
           className="flex-row items-center gap-2 rounded-full bg-sky-100 px-5 py-2"
           onPress={() => {
@@ -548,14 +701,14 @@ const FocusTimer = () => {
       </View>
 
       <Text
-        className="font-medium text-slate-700"
+        className="font-medium text-slate-700 top-2"
         style={{ fontSize: 85,  }}
       >
         {formattedTime}
       </Text>
 
       <Pressable
-        className="min-w-[180px] items-center rounded-full px-10 py-3.5 shadow-lg mt-3"
+        className="min-w-[180px] items-center rounded-full px-10 py-3.5 shadow-lg mt-3 top-5"
         style={{
           backgroundColor: isRunning ? '#f59e0b' : KNOB_COLOR,
           shadowColor: isRunning ? '#92400e' : '#1d4ed8',
@@ -567,7 +720,7 @@ const FocusTimer = () => {
         onPress={handleControlPress}
       >
         <Text className="text-lg font-semibold text-white">
-          {isRunning ? 'Leave' : 'Start'}
+          {isRunning ? (timerMode === 'stopwatch' ? 'Stop' : 'Leave') : 'Start'}
         </Text>
       </Pressable>
 
@@ -656,8 +809,10 @@ const FocusTimer = () => {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
-  )
+      </View>
+    </SafeAreaView> 
+
+  ) 
 }
 
 export default FocusTimer
