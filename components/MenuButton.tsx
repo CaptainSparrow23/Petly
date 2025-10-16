@@ -8,7 +8,7 @@ export const MenuButton = () => {
 
   return (
     <TouchableOpacity 
-      className="absolute top-[50px] left-5 z-10 p-2.5 bg-white/90 rounded-lg"
+      className="p-2.5 bg-white/90 rounded-lg"
       onPress={() => {
         navigation.dispatch(DrawerActions.toggleDrawer());
       }}

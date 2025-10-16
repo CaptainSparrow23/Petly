@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useGlobalContext } from '@/lib/global-provider';
 
 interface WeeklyFocusData {
@@ -14,13 +14,15 @@ interface WeeklyFocusResponse {
   message?: string;
 }
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+
 export const useWeeklyFocusData = () => {
   const { user } = useGlobalContext();
   const [weeklyData, setWeeklyData] = useState<WeeklyFocusData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchWeeklyFocusData = async () => {
+  const fetchWeeklyFocusData = useCallback(async () => {
     if (!user?.$id) {
       setError('User not authenticated');
       setLoading(false);
@@ -31,7 +33,7 @@ export const useWeeklyFocusData = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`http://localhost:3000/api/account/weekly-focus/${user.$id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/account/weekly-focus/${user.$id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -56,12 +58,12 @@ export const useWeeklyFocusData = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.$id]);
 
   // Auto-fetch when component mounts or user changes
   useEffect(() => {
     fetchWeeklyFocusData();
-  }, [user?.$id]);
+  }, [fetchWeeklyFocusData]);
 
   return {
     weeklyData,
