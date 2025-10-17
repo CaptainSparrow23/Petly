@@ -1,4 +1,4 @@
-import { MenuButton } from "@/components/MenuButton";
+import { MenuButton } from "@/components/other/MenuButton";
 import { useWeeklyFocusData } from "@/hooks/account";
 import React, { useCallback, useMemo } from "react";
 import { ScrollView, Text, TouchableOpacity, View, ActivityIndicator, Image } from "react-native";

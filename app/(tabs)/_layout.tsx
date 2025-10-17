@@ -14,7 +14,7 @@ const CustomDrawerContent = (props: any) => {
     <DrawerContentScrollView {...props}>
       <TouchableOpacity 
         className="py-5 bg-primary-100 items-center"
-        onPress={() => router.push('/(root)/(tabs)/settings')}
+        onPress={() => router.replace('/(tabs)/settings')}
         activeOpacity={0.7}
       >
         <Image 
@@ -36,7 +36,9 @@ const DrawerLayout = () => {
         headerShown: false,
         drawerStyle: {
           width: 250, // Adjust this value to make drawer narrower (default is usually 280-300)
-        }
+        },
+        drawerType: 'front',
+        swipeEnabled: true,
       }}>
       <Drawer.Screen name='index' options={{ 
         title: 'Focus', drawerIcon: ({color, size}) => <Home color={color} size={size} />
