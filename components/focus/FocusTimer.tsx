@@ -1,25 +1,8 @@
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Dimensions,
-  FlatList,
-  GestureResponderEvent,
-  LayoutChangeEvent,
-  Modal,
-  PanResponder,
-  Pressable,
-  Text,
-  View,
-  Alert,
-} from 'react-native'
+import { Dimensions, FlatList, GestureResponderEvent, LayoutChangeEvent, Modal, PanResponder, Pressable, Text, View, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
-import Animated, {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withTiming,
-  SharedValue,
-} from 'react-native-reanimated'
+import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming, SharedValue } from 'react-native-reanimated'
 import LottieView from 'lottie-react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Animations } from '@/constants/animations'
@@ -41,48 +24,28 @@ const MODE_ANIMATIONS = {
   Rest: Animations.catRest,
 } as const
 
-type ModeKey = keyof typeof MODE_COLORS
+
 const MODE_OPTIONS: ModeKey[] = ['Study', 'Work', 'Break', 'Rest']
-
-const MAX_MINUTES = 120
-const STEP_MINUTES = 5
 const INITIAL_MINUTES = 20
-
 const VIEWBOX = 400
 const TRACK_WIDTH = 18
 const CIRCLE_RADIUS = 150
 const RADIUS = CIRCLE_RADIUS - TRACK_WIDTH
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
-const TOTAL_STEPS = MAX_MINUTES / STEP_MINUTES
-const HALF_STEPS = TOTAL_STEPS / 2
-const STEP_DEGREES = 360 / TOTAL_STEPS
-
-const ACTIVE_COLOR = '#3b82f6'
-const TRACK_COLOR = '#dbeafe'
-const KNOB_COLOR = '#3b82f6'
-const KNOB_HALO_COLOR = '#3b82f6'
-const KNOB_HALO_RADIUS = TRACK_WIDTH * 0.9
-const KNOB_RADIUS = TRACK_WIDTH * 0.6
+const TOTAL_STEPS = 24 // 120 minutes / 5 minute steps
+const STEP_DEGREES = 15 // 360 / 24 steps
 const SLIDER_SIZE = Math.min(Dimensions.get('window').height / 1.8, 440)
 const PET_CIRCLE_SIZE = SLIDER_SIZE - TRACK_WIDTH * 4
 const minutesToSeconds = (minutes: number) => minutes * 60
+const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
-const clampStep = (step: number) =>
-  Math.min(Math.max(step, 0), TOTAL_STEPS)
-
-const CAT_STYLE_MAP: Record<'Idle' | ModeKey, { idleScale: number; runningScale: number; offsetX?: number; offsetY?: number }> = {
-  Idle: { idleScale: 1.2  , runningScale: 1, offsetX: -0.02, offsetY: 0},
-  Study: { idleScale: 0.8, runningScale: 0.65, offsetY: -0.02, offsetX: -0.01},
-  Work: { idleScale: 0.82, runningScale: 0.7, offsetX: 0, offsetY: 0},
-  Break: { idleScale: 1.5, runningScale: 0.75, offsetX: 0.01, offsetY: 0.02 },
-  Rest: { idleScale: 0.8, runningScale: 0.8, offsetY: 0.09, offsetX: -0.08 },
+const CAT_STYLE_MAP: Record<'Idle' | ModeKey, { idleScale: number; runningScale: number }> = {
+  Idle: { idleScale: 1.2, runningScale: 1 },
+  Study: { idleScale: 0.8, runningScale: 0.65 },
+  Work: { idleScale: 0.82, runningScale: 0.7 },
+  Break: { idleScale: 1.5, runningScale: 0.75 },
+  Rest: { idleScale: 0.8, runningScale: 0.8 },
 }
-
-const HEART_STYLE_MAP = {
-  heartsSm: { scale: 0.8, offsetY: -0.25, offsetX: 0 },
-  heartsMd: { scale: 0.9, offsetY: -0.32, offsetX: 0 },
-  heartsLg: { scale: 1.05, offsetY: -0.7, offsetX: -0.15 },
-} as const
 
 const formatTime = (totalSeconds: number) => {
   const minutes = Math.floor(totalSeconds / 60)
@@ -93,21 +56,15 @@ const formatTime = (totalSeconds: number) => {
   )}`
 }
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle)
-
+type ModeKey = keyof typeof MODE_COLORS
 type TimerMode = 'countdown' | 'stopwatch'
 
 type FocusTimerProps = {
   headerLeft?: ReactNode
 }
 
-const ProgressRing = ({
-  angle,
-  showProgress = true,
-}: {
-  angle: SharedValue<number>
-  showProgress?: boolean
-}) => {
+const ProgressRing = ({ angle, showProgress = true }: { angle: SharedValue<number>, showProgress?: boolean }) => {
+  
   const dashProps = useAnimatedProps(() => {
     const ratio = Math.min(Math.max(angle.value / 360, 0), 1)
     return {
@@ -136,7 +93,7 @@ const ProgressRing = ({
         cx={center}
         cy={center}
         r={RADIUS}
-        stroke={TRACK_COLOR}
+        stroke="#dbeafe"
         strokeWidth={TRACK_WIDTH}
         fill="none"
       />
@@ -146,7 +103,7 @@ const ProgressRing = ({
             cx={center}
             cy={center}
             r={RADIUS}
-            stroke={ACTIVE_COLOR}
+            stroke="#3b82f6"
             strokeWidth={TRACK_WIDTH}
             strokeLinecap="round"
             fill="none"
@@ -155,13 +112,13 @@ const ProgressRing = ({
             animatedProps={dashProps}
           />
           <AnimatedCircle
-            r={KNOB_HALO_RADIUS}
-            fill={KNOB_HALO_COLOR}
+            r={16.2}
+            fill="#3b82f6"
             animatedProps={knobProps}
           />
           <AnimatedCircle
-            r={KNOB_RADIUS}
-            fill={KNOB_COLOR}
+            r={10.8}
+            fill="#3b82f6"
             animatedProps={knobProps}
           />
         </>
@@ -196,7 +153,6 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
   const [sessionMinutes, setSessionMinutes] =
     useState<number>(INITIAL_MINUTES)
   const [isRunning, setIsRunning] = useState<boolean>(false)
-  const [heartSource, setHeartSource] = useState<string | null>(null)
   const [mode, setMode] = useState<ModeKey>('Study')
   const [modePickerVisible, setModePickerVisible] = useState(false)
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false)
@@ -206,14 +162,11 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
     width: 0,
     height: 0,
   })
-  const previousStepRef = useRef<number>(INITIAL_MINUTES / STEP_MINUTES)
-  const angle = useSharedValue((INITIAL_MINUTES / MAX_MINUTES) * 360)
+  const previousStepRef = useRef<number>(4) // 20 minutes / 5 minute steps
+  const angle = useSharedValue(60) // (20 / 120) * 360
   const [catSource, setCatSource] = useState(Animations.catIdle)
   const catAnimationRef = useRef<LottieView>(null)
   const animationTimeoutRef = useRef<number | null>(null)
-  const heartAnimationRef = useRef<LottieView>(null)
-  const lastHeartTriggerRef = useRef<Record<number, number>>({})
-  const sixtyDelayTimeoutRef = useRef<number | null>(null)
   const isStopwatch = timerMode === 'stopwatch'
 
   const refreshWeeklyFocus = useCallback(async () => {
@@ -239,7 +192,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
         setSelectedMinutes(INITIAL_MINUTES)
         setSessionMinutes(INITIAL_MINUTES)
         setRemainingSeconds(defaultSeconds)
-        previousStepRef.current = INITIAL_MINUTES / STEP_MINUTES
+        previousStepRef.current = 4 // 20 minutes / 5 minute steps
       } else {
         setSelectedMinutes(0)
         setSessionMinutes(0)
@@ -281,7 +234,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
       intervalRef.current = null
     }
     if (timerMode === 'countdown') {
-      previousStepRef.current = selectedMinutes / STEP_MINUTES
+      previousStepRef.current = selectedMinutes / 5
       const currentSeconds = minutesToSeconds(selectedMinutes)
       setRemainingSeconds(currentSeconds)
       setSessionMinutes(selectedMinutes)
@@ -310,40 +263,10 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
       if (animationTimeoutRef.current) {
         clearTimeout(animationTimeoutRef.current)
       }
-      if (sixtyDelayTimeoutRef.current) {
-        clearTimeout(sixtyDelayTimeoutRef.current)
-        sixtyDelayTimeoutRef.current = null
-      }
     }
   }, [])
 
-  const playHeartAnimation = useCallback(
-    (heart: string, threshold: number, delay = 0) => {
-      const execute = () => {
-        lastHeartTriggerRef.current[threshold] = Date.now()
-        setHeartSource(heart)
-        heartAnimationRef.current?.reset()
-        heartAnimationRef.current?.play()
-        setCatSource(Animations.catIdle)
-        catAnimationRef.current?.reset()
-        catAnimationRef.current?.play()
-        scheduleCatReplay()
-      }
 
-      if (delay > 0) {
-        if (sixtyDelayTimeoutRef.current) {
-          clearTimeout(sixtyDelayTimeoutRef.current)
-        }
-        sixtyDelayTimeoutRef.current = setTimeout(() => {
-          execute()
-          sixtyDelayTimeoutRef.current = null
-        }, delay)
-      } else {
-        execute()
-      }
-    },
-    [scheduleCatReplay],
-  )
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout
@@ -366,69 +289,17 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
       if (angleDeg < 0) angleDeg += 360
       const normalizedAngle = angleDeg % 360
 
-      const previousStep = previousStepRef.current
-      const previousAngle = (previousStep / TOTAL_STEPS) * 360
-      let delta = normalizedAngle - previousAngle
-      if (delta > 180) delta -= 360
-      if (delta < -180) delta += 360
-      const movingForward = delta > 0
-
-      if (previousStep === TOTAL_STEPS && movingForward && normalizedAngle < 180) {
-        return
-      }
-
-      const rawStep = Math.floor((normalizedAngle + STEP_DEGREES / 2) / STEP_DEGREES)
-      let nextStep = clampStep(rawStep)
-
-      if (nextStep === 0 && normalizedAngle > STEP_DEGREES * 0.75) {
-        nextStep = 1
-      }
-
-      if (nextStep >= TOTAL_STEPS && normalizedAngle < STEP_DEGREES * 2) {
-        nextStep = TOTAL_STEPS
-      }
-
-      if (
-        previousStep === TOTAL_STEPS &&
-        movingForward &&
-        normalizedAngle > 180
-      ) {
-        nextStep = HALF_STEPS
-      }
-
-      if (previousStep === 0 && !movingForward && normalizedAngle > 180) {
-        nextStep = 0
-      }
+      // Simplified step calculation
+      const rawStep = Math.round(normalizedAngle / STEP_DEGREES)
+      let nextStep = Math.min(Math.max(rawStep, 0), TOTAL_STEPS)
 
       previousStepRef.current = nextStep
-      const nextMinutes = nextStep * STEP_MINUTES
+      const nextMinutes = nextStep * 5
       setSelectedMinutes(nextMinutes)
       setRemainingSeconds(minutesToSeconds(nextMinutes))
       setSessionMinutes(nextMinutes)
-      if (!isRunning) {
-        let newHeart: string | null = null
-        if (nextMinutes === 120) {
-          newHeart = Animations.heartsLg
-        } else if (nextMinutes === 90) {
-          newHeart = Animations.heartsMd
-        } else if (nextMinutes === 60) {
-          newHeart = Animations.heartsSm
-        }
-
-        if (newHeart && newHeart !== heartSource) {
-          const threshold = nextMinutes
-          const now = Date.now()
-          const lastTriggered = lastHeartTriggerRef.current[threshold] ?? 0
-          if (now - lastTriggered >= 2000) {
-            const delay = threshold === 60 ? 200 : 0
-            playHeartAnimation(newHeart, threshold, delay)
-          }
-        } else if (!newHeart && heartSource) {
-          setHeartSource(null)
-        }
-      }
     },
-    [heartSource, isRunning, isStopwatch, playHeartAnimation],
+    [isRunning, isStopwatch],
   )
 
   const panResponder = useMemo(
@@ -452,7 +323,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
       const startingSeconds = minutesToSeconds(selectedMinutes)
       setRemainingSeconds(startingSeconds)
       setSessionMinutes(selectedMinutes)
-      previousStepRef.current = selectedMinutes / STEP_MINUTES
+      previousStepRef.current = selectedMinutes / 5
     } else {
       setElapsedSeconds(0)
       setSessionMinutes(0)
@@ -469,7 +340,6 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
       clearTimeout(animationTimeoutRef.current)
     }
     setCatSource(MODE_ANIMATIONS[mode])
-    setHeartSource(null)
     catAnimationRef.current?.reset()
     catAnimationRef.current?.play()
 
@@ -481,16 +351,13 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
       if (timerMode === 'countdown') {
         setRemainingSeconds((previous) => {
           if (previous <= 1) {
+            // Timer completed - clean up and reset
             if (intervalRef.current) {
               clearInterval(intervalRef.current)
               intervalRef.current = null
             }
             
-            // Track session completion
-            sessionTracker
-              .endSession()
-              .then(refreshWeeklyFocus)
-              .catch(console.error)
+            sessionTracker.endSession().then(refreshWeeklyFocus).catch(console.error)
             
             setIsRunning(false)
             setSelectedMinutes(0)
@@ -526,7 +393,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
     return selectedMinutes
   }, [isRunning, remainingSeconds, selectedMinutes, sessionMinutes, totalSessionSeconds])
 
-  const progressRatio = sessionMinutes === 0 ? 0 : progressMinutes / MAX_MINUTES
+  const progressRatio = sessionMinutes === 0 ? 0 : progressMinutes / 120
   const targetAngle = Math.min(Math.max(progressRatio, 0), 1) * 360
 
   useEffect(() => {
@@ -540,23 +407,8 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
     catSource === Animations.catIdle ? 'Idle' : mode
   const catConfig = CAT_STYLE_MAP[currentCatStyleKey]
   const catScale = isRunning ? catConfig.runningScale : catConfig.idleScale
-  const catTransforms = [
-    { translateY: (catConfig.offsetY ?? 0) * PET_CIRCLE_SIZE },
-    { translateX: (catConfig.offsetX ?? 0) * PET_CIRCLE_SIZE },
-  ]
 
-  let heartConfig: (typeof HEART_STYLE_MAP)[keyof typeof HEART_STYLE_MAP] | null = null
-  if (heartSource === Animations.heartsSm) heartConfig = HEART_STYLE_MAP.heartsSm
-  else if (heartSource === Animations.heartsMd) heartConfig = HEART_STYLE_MAP.heartsMd
-  else if (heartSource === Animations.heartsLg) heartConfig = HEART_STYLE_MAP.heartsLg
 
-  const heartTransforms = heartConfig
-    ? [
-        { translateY: (heartConfig.offsetY ?? 0) * PET_CIRCLE_SIZE },
-        { translateX: (heartConfig.offsetX ?? 0) * PET_CIRCLE_SIZE },
-      ]
-    : []
-  const heartScale = heartConfig?.scale ?? 1
 
   const formattedTime = useMemo(() => {
     if (isStopwatch) {
@@ -575,7 +427,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
           {headerLeft ?? <View className="w-12 h-12" />}
         </View>
         <View className="relative w-32 rounded-full overflow-hidden">
-          <View className="absolute inset-0" style={{ backgroundColor: KNOB_COLOR }} />
+          <View className="absolute inset-0" style={{ backgroundColor: '#3b82f6' }} />
           <View className="absolute inset-0 flex-row">
             <View className={`flex-1 ${timerMode === 'countdown' ? 'bg-white/20' : 'bg-transparent'}`} />
             <View className={`flex-1 ${timerMode === 'stopwatch' ? 'bg-white/20' : 'bg-transparent'}`} />
@@ -656,26 +508,8 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
             style={{
               width: PET_CIRCLE_SIZE * catScale,
               height: PET_CIRCLE_SIZE * catScale,
-              transform: catTransforms,
             }}
           />
-          {heartSource && (
-            <LottieView
-              ref={heartAnimationRef}
-              source={heartSource}
-              autoPlay
-              loop={false}
-              onAnimationFinish={() => {
-                setHeartSource(null)
-              }}
-              style={{
-                position: 'absolute',
-                width: PET_CIRCLE_SIZE * heartScale,
-                height: PET_CIRCLE_SIZE * heartScale,
-                transform: heartTransforms,
-              }}
-            />
-          )}
         </View>
       </View>
       <View className="items-center -mt-7 mb-3">
@@ -708,7 +542,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
       <Pressable
         className="min-w-[180px] items-center rounded-full px-10 py-3.5 shadow-lg mt-3 top-5"
         style={{
-          backgroundColor: isRunning ? '#f59e0b' : KNOB_COLOR,
+          backgroundColor: isRunning ? '#f59e0b' : '#3b82f6',
           shadowColor: isRunning ? '#92400e' : '#1d4ed8',
           shadowOpacity: 0.35,
           shadowRadius: 12,
