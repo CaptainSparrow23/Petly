@@ -13,24 +13,27 @@ interface PetCardItem {
 interface Props {
   item: PetCardItem;
   onPress?: () => void;
+  isSelected?: boolean;
 }
 
 
-export const Card = ({ item: { image, name, type }, onPress }: Props) => {
+export const Card = ({ item: { image, name, type, rating = 0 }, onPress, isSelected }: Props) => {
   const resolvedImage: ImageSourcePropType | undefined =
     typeof image === "string" ? { uri: image } : image;
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="flex-1 px-4 py-3 rounded-2xl bg-white border border-gray-200 flex-row items-center"
+      className={`flex-1 px-4 py-3 rounded-2xl flex-row items-center border ${
+        isSelected ? 'border-primary-300 bg-sky-50' : 'border-gray-200 bg-white'
+      }`}
     >
       {resolvedImage && (
         <Image source={resolvedImage} className="w-16 h-16 rounded-xl mr-4" />
       )}
 
       <View className="flex-1">
-        <Text className="text-lg font-bold text-black-300" numberOfLines={1}>
+        <Text className="text-lg font-bold font-rubik-bold text-black-900" numberOfLines={1}>
           {name}
         </Text>
         <Text className="text-xs font-rubik text-black-200 capitalize">
@@ -38,7 +41,7 @@ export const Card = ({ item: { image, name, type }, onPress }: Props) => {
         </Text>
 
         <View className="flex-row items-center mt-1">
-          {Array.from({ length: 3 }).map((_, index) => (
+          {Array.from({ length: Math.max(0, Math.floor(rating)) }).map((_, index) => (
             <Star
               key={`pet-card-star-${index}`}
               size={16}

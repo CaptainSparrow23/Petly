@@ -15,4 +15,5 @@ export const petData =[
         type: "dog",
         rating: 3,
     }
+  
 ]

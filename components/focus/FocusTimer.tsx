@@ -17,12 +17,25 @@ const MODE_COLORS = {
   Rest: '#a855f7',
 } as const
 
-const MODE_ANIMATIONS = {
-  Study: Animations.catStudy,
-  Work: Animations.catWork,
-  Break: Animations.catBreak,
-  Rest: Animations.catRest,
+const PET_ANIMATIONS = {
+  Skye: {
+    Idle: Animations.skyeIdle,
+    Study: Animations.skyeStudy,
+    Work: Animations.skyeWork,
+    Break: Animations.skyeBreak,
+    Rest: Animations.skyeRest,
+  },
+  Lancelot: {
+    Idle: Animations.lancelotIdle,
+    Study: Animations.lancelotStudy,
+    Work: Animations.lancelotWork,
+    Break: Animations.lancelotBreak,
+    Rest: Animations.lancelotRest,
+  },
 } as const
+
+type PetName = keyof typeof PET_ANIMATIONS
+const DEFAULT_PET: PetName = 'Skye'
 
 
 const MODE_OPTIONS: ModeKey[] = ['Study', 'Work', 'Break', 'Rest']
@@ -32,19 +45,42 @@ const TRACK_WIDTH = 18
 const CIRCLE_RADIUS = 150
 const RADIUS = CIRCLE_RADIUS - TRACK_WIDTH
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
-const TOTAL_STEPS = 24 
-const STEP_DEGREES = 15 
+const TOTAL_STEPS = 24
+const STEP_DEGREES = 360 / TOTAL_STEPS
 const SLIDER_SIZE = Math.min(Dimensions.get('window').height / 1.8, 440)
 const PET_CIRCLE_SIZE = SLIDER_SIZE - TRACK_WIDTH * 4
 const minutesToSeconds = (minutes: number) => minutes * 60
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
-const CAT_STYLE_MAP: Record<'Idle' | ModeKey, { idleScale: number; runningScale: number }> = {
-  Idle: { idleScale: 1.2, runningScale: 1 },
+type PetPoseStyle = {
+  idleScale: number
+  runningScale: number
+  idleOffset?: { x?: number; y?: number }
+  runningOffset?: { x?: number; y?: number }
+}
+
+const DEFAULT_PET_STYLES: Record<'Idle' | ModeKey, PetPoseStyle> = {
+  Idle: { idleScale: 1.2, runningScale: 1, idleOffset: { x: -2 } },
   Study: { idleScale: 0.8, runningScale: 0.65 },
   Work: { idleScale: 0.82, runningScale: 0.7 },
   Break: { idleScale: 1.5, runningScale: 0.75 },
-  Rest: { idleScale: 0.8, runningScale: 0.8 },
+  Rest: {
+    idleScale: 0.8,
+    runningScale: 0.8,
+    idleOffset: { x: -36, y: 38 },
+    runningOffset: { x: -36, y: 38 },
+  },
+}
+
+const PET_ANIMATION_STYLES: Record<PetName, Record<'Idle' | ModeKey, PetPoseStyle>> = {
+  Skye: DEFAULT_PET_STYLES,
+  Lancelot: {
+    Idle: { idleScale: 0.6, runningScale: 0.95, idleOffset: { x: 0, y: 6 }, runningOffset: { x: -4, y: 4 } },
+    Study: { idleScale: 0.85, runningScale: 0.7, idleOffset: { x: -4, y: 8 }, runningOffset: { x: -4, y: 6 } },
+    Work: { idleScale: 0.9, runningScale: 0.72, idleOffset: { x: -6, y: 10 }, runningOffset: { x: -6, y: 8 } },
+    Break: { idleScale: 1.4, runningScale: 1, idleOffset: { x: 5, y: 20 }, runningOffset: { x: 5, y: 16 } },
+    Rest: { idleScale: 0.85, runningScale: 0.6, idleOffset: { x: -30, y: 40 }, runningOffset: { x: -10, y: -90 } },
+  },
 }
 
 const formatTime = (totalSeconds: number) => {
@@ -127,8 +163,11 @@ const ProgressRing = ({ angle, showProgress = true }: { angle: SharedValue<numbe
   )
 }
 
+const isSupportedPet = (name: string | null): name is PetName =>
+  !!name && Object.prototype.hasOwnProperty.call(PET_ANIMATIONS, name)
+
 const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
-  const { user } = useGlobalContext()
+  const { user, selectedPetName } = useGlobalContext()
   const { weeklyData, refetch: refetchWeeklyFocusData } = useWeeklyFocusData()
   const [timerMode, setTimerMode] = useState<TimerMode>('countdown')
   const todayDateKey = useMemo(() => new Date().toISOString().split('T')[0], [])
@@ -143,6 +182,30 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
     }
     return 'Start focusing with your pet'
   }, [todayFocusEntry])
+
+  const hasPetAnimations = useMemo(
+    () => isSupportedPet(selectedPetName),
+    [selectedPetName],
+  )
+  const activePetName = useMemo<PetName>(
+    () =>
+      hasPetAnimations && selectedPetName
+        ? (selectedPetName as PetName)
+        : DEFAULT_PET,
+    [hasPetAnimations, selectedPetName],
+  )
+  const petAnimations = PET_ANIMATIONS[activePetName]
+  const idleAnimation = petAnimations.Idle
+  const modeAnimations = useMemo(
+    () => ({
+      Study: petAnimations.Study,
+      Work: petAnimations.Work,
+      Break: petAnimations.Break,
+      Rest: petAnimations.Rest,
+    }),
+    [petAnimations],
+  )
+  const petStyles = PET_ANIMATION_STYLES[activePetName] ?? DEFAULT_PET_STYLES
 
   const [selectedMinutes, setSelectedMinutes] =
     useState<number>(INITIAL_MINUTES)
@@ -164,9 +227,8 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
   })
   const previousStepRef = useRef<number>(4) // 20 minutes / 5 minute steps
   const angle = useSharedValue(60) // (20 / 120) * 360
-  const [catSource, setCatSource] = useState(Animations.catIdle)
+  const [catSource, setCatSource] = useState(idleAnimation)
   const catAnimationRef = useRef<LottieView>(null)
-  const animationTimeoutRef = useRef<number | null>(null)
   const isStopwatch = timerMode === 'stopwatch'
 
   const refreshWeeklyFocus = useCallback(async () => {
@@ -204,20 +266,30 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
     [isRunning, setElapsedSeconds, timerMode],
   )
 
-  const scheduleCatReplay = useCallback(
-    (delay = 8000) => {
-      if (animationTimeoutRef.current) {
-        clearTimeout(animationTimeoutRef.current)
+  useEffect(() => {
+    if (!hasPetAnimations) {
+      if (catSource !== idleAnimation) {
+        setCatSource(idleAnimation)
       }
-      animationTimeoutRef.current = setTimeout(() => {
-        if (!isRunning && catAnimationRef.current) {
-          catAnimationRef.current.reset()
-          catAnimationRef.current.play()
-        }
-      }, delay)
-    },
-    [isRunning],
-  )
+      return
+    }
+
+    const nextSource = isRunning ? modeAnimations[mode] : idleAnimation
+    if (catSource === nextSource) {
+      return
+    }
+
+    setCatSource(nextSource)
+    catAnimationRef.current?.reset()
+    catAnimationRef.current?.play()
+  }, [
+    catSource,
+    hasPetAnimations,
+    idleAnimation,
+    isRunning,
+    mode,
+    modeAnimations,
+  ])
 
   const stopRunningSession = useCallback(async () => {
     // Track session end - left early
@@ -244,11 +316,10 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
       setRemainingSeconds(0)
       setSessionMinutes(0)
     }
-    setCatSource(Animations.catIdle)
-    catAnimationRef.current?.reset()
-    catAnimationRef.current?.play()
-    scheduleCatReplay()
-  }, [refreshWeeklyFocus, scheduleCatReplay, selectedMinutes, timerMode])
+  setCatSource(idleAnimation)
+  catAnimationRef.current?.reset()
+  catAnimationRef.current?.play()
+}, [idleAnimation, refreshWeeklyFocus, selectedMinutes, timerMode])
 
   useEffect(() => {
     return () => {
@@ -259,9 +330,6 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
       
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
-      }
-      if (animationTimeoutRef.current) {
-        clearTimeout(animationTimeoutRef.current)
       }
     }
   }, [])
@@ -289,9 +357,30 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
       if (angleDeg < 0) angleDeg += 360
       const normalizedAngle = angleDeg % 360
 
-      // Simplified step calculation
-      const rawStep = Math.round(normalizedAngle / STEP_DEGREES)
-      let nextStep = Math.min(Math.max(rawStep, 0), TOTAL_STEPS)
+      const rawStep = normalizedAngle / STEP_DEGREES
+      let nextStep = Math.round(rawStep)
+      nextStep = Math.min(Math.max(nextStep, 0), TOTAL_STEPS)
+
+      const prevStep = previousStepRef.current ?? nextStep
+      const nearStartThreshold = STEP_DEGREES
+      const nearEndThreshold = 360 - STEP_DEGREES
+      const halfwaySteps = TOTAL_STEPS / 2
+
+      if (prevStep <= 1 && normalizedAngle >= nearEndThreshold) {
+        nextStep = 0
+      } else if (prevStep >= TOTAL_STEPS - 1 && normalizedAngle <= nearStartThreshold) {
+        nextStep = TOTAL_STEPS
+      } else if (normalizedAngle >= 360 - STEP_DEGREES / 2) {
+        nextStep = TOTAL_STEPS
+      }
+
+      if (prevStep === TOTAL_STEPS && rawStep < halfwaySteps) {
+        nextStep = TOTAL_STEPS
+      }
+
+      if (prevStep === 0 && rawStep > halfwaySteps) {
+        nextStep = 0
+      }
 
       previousStepRef.current = nextStep
       const nextMinutes = nextStep * 5
@@ -335,11 +424,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
     
     // Track session start
     sessionTracker.startSession(user?.$id);
-    
-    if (animationTimeoutRef.current) {
-      clearTimeout(animationTimeoutRef.current)
-    }
-    setCatSource(MODE_ANIMATIONS[mode])
+    setCatSource(modeAnimations[mode])
     catAnimationRef.current?.reset()
     catAnimationRef.current?.play()
 
@@ -363,10 +448,9 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
             setSelectedMinutes(0)
             setSessionMinutes(0)
             previousStepRef.current = 0
-            setCatSource(Animations.catIdle)
+            setCatSource(idleAnimation)
             catAnimationRef.current?.reset()
             catAnimationRef.current?.play()
-            scheduleCatReplay()
             return 0
           }
           return previous - 1
@@ -379,10 +463,11 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
     isRunning,
     mode,
     refreshWeeklyFocus,
-    scheduleCatReplay,
     selectedMinutes,
     timerMode,
     user?.$id,
+    idleAnimation,
+    modeAnimations,
   ])
 
   const totalSessionSeconds = sessionMinutes * 60
@@ -404,9 +489,10 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
   }, [angle, isRunning, targetAngle])
 
   const currentCatStyleKey: 'Idle' | ModeKey =
-    catSource === Animations.catIdle ? 'Idle' : mode
-  const catConfig = CAT_STYLE_MAP[currentCatStyleKey]
+    catSource === idleAnimation ? 'Idle' : mode
+  const catConfig = petStyles[currentCatStyleKey] ?? DEFAULT_PET_STYLES[currentCatStyleKey]
   const catScale = isRunning ? catConfig.runningScale : catConfig.idleScale
+  const catOffset = isRunning ? catConfig.runningOffset : catConfig.idleOffset
 
 
 
@@ -488,28 +574,35 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
             borderRadius: PET_CIRCLE_SIZE / 2,
           }}
         >
-          <LottieView
-            ref={catAnimationRef}
-            source={catSource}
-            autoPlay
-            loop={false}
-            onAnimationFinish={() => {
-              if (animationTimeoutRef.current) {
-                clearTimeout(animationTimeoutRef.current)
-                animationTimeoutRef.current = null
-              }
-              if (isRunning) {
-                catAnimationRef.current?.reset()
-                catAnimationRef.current?.play()
-              } else {
-                scheduleCatReplay()
-              }
-            }}
-            style={{
-              width: PET_CIRCLE_SIZE * catScale,
-              height: PET_CIRCLE_SIZE * catScale,
-            }}
-          />
+          {hasPetAnimations ? (
+            <LottieView
+              ref={catAnimationRef}
+              source={catSource}
+              autoPlay
+              loop={!isRunning}
+              onAnimationFinish={() => {
+                if (isRunning) {
+                  catAnimationRef.current?.reset()
+                  catAnimationRef.current?.play()
+                }
+              }}
+              style={{
+                width: PET_CIRCLE_SIZE,
+                height: PET_CIRCLE_SIZE,
+                transform: [
+                  { scale: catScale },
+                  { translateX: catOffset?.x ?? 0 },
+                  { translateY: catOffset?.y ?? 0 },
+                ],
+              }}
+            />
+          ) : (
+            <Text className="px-6 text-center text-sm font-rubik text-slate-500">
+              {selectedPetName
+                ? `Animations coming soon for ${selectedPetName}`
+                : 'Select a pet to see their focus animation'}
+            </Text>
+          )}
         </View>
       </View>
       <View className="items-center -mt-7 mb-3">

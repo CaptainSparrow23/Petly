@@ -5,6 +5,6 @@ import lancelot from "@/assets/icons/lancelot_head.png";
 
 export default {
   google,
-  skye,
-  lancelot,
+  skye, 
+  lancelot
 }
