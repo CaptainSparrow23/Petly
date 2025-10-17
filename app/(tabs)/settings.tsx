@@ -1,8 +1,9 @@
-import { MenuButton } from "@/components/MenuButton";
+import { MenuButton } from "@/components/other/MenuButton";
 import { logout } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/global-provider";
 import type { LucideIcon } from "lucide-react-native";
 import { Camera, ChevronRight, LogOut } from "lucide-react-native";
+import { router } from "expo-router";
 import React from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, View, Image} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -45,6 +46,8 @@ const Settings = () => {
     if (result) {
       Alert.alert("Success", "You have been logged out");
       refetch();
+      // Force navigation to auth screen
+      router.replace("/(auth)/sign-in");
     } else {
       Alert.alert(
         "Error",

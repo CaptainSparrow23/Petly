@@ -7,7 +7,13 @@ import "./global.css";
 export default function RootLayout() {
   return (
     <GlobalProvider>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack 
+        screenOptions={{ 
+          headerShown: false,
+          animation: 'none',
+          presentation: 'card',
+        }} 
+      />
     </GlobalProvider>
   );
 }

@@ -1,5 +1,5 @@
-import FocusTimer from '@/components/FocusTimer';
-import { MenuButton } from '@/components/MenuButton';
+import FocusTimer from '@/components/focus/FocusTimer';
+import { MenuButton } from '@/components/other/MenuButton';
 import React from 'react';
 import { View } from 'react-native';
 

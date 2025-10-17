@@ -1,4 +1,4 @@
-import { MenuButton } from '@/components/MenuButton'
+import { MenuButton } from '@/components/other/MenuButton'
 import React from 'react'
 import { Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
