@@ -2,9 +2,9 @@ import { MenuButton } from "@/components/MenuButton";
 import { logout } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/global-provider";
 import type { LucideIcon } from "lucide-react-native";
-import { ChevronRight, LogOut } from "lucide-react-native";
+import { Camera, ChevronRight, LogOut } from "lucide-react-native";
 import React from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, View, Image} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface SettingsItemsProps {
@@ -28,7 +28,7 @@ const SettingsItem = ({
   >
     <View className="flex flex-row items-center gap-3">
       <Icon size={24} color="#000" />
-      <Text className={`text-lg font-rubik-medium text-black-300 ${textStyle}`}>
+      <Text className={`text-xl font-rubik-medium text-black-300 ${textStyle}`}>
         {title}
       </Text>
     </View>
@@ -37,7 +37,7 @@ const SettingsItem = ({
 );
 
 const Settings = () => {
-  const { refetch } = useGlobalContext();
+  const { user, refetch } = useGlobalContext();
 
   const handleLogout = async () => {
     const result = await logout();
@@ -65,15 +65,27 @@ const Settings = () => {
         contentContainerClassName="pb-8 px-7"
         className="w-full px-4"
       >
+        <View className="flex-row justify-center flex mt-5">
+                  <View className="flex flex-col items-center relative">
+                    <Image
+                      source={{ uri: user?.avatar }}
+                      className="size-44 relative rounded-full"
+                    />
+                    <TouchableOpacity className="absolute bottom-11 right-2 bg-white rounded-full p-2 shadow-md">
+                      <Camera size={20} color="#000" />
+                    </TouchableOpacity>
+                    <Text className="text-2xl top-3 font-rubik-bold mt-2">{user?.name}</Text>
+                  </View>
+                </View>
         <View className="flex-1 justify-center items-center">
-          <Text>Settings</Text>
+  
         </View>
 
-        <View className="flex flex-col mt-5 border-t pt-5 border-gray-200 w-full">
+        <View className="flex flex-col items-center mt-5 border-t pt-5 border-gray-200 w-full">
           <SettingsItem
             icon={LogOut}
             title="Log Out"
-            textStyle="text-red-500"
+            textStyle="text-red-500 "
             showArrow={false}
             onPress={handleLogout}
           />

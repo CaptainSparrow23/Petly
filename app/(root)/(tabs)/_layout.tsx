@@ -14,7 +14,7 @@ const CustomDrawerContent = (props: any) => {
     <DrawerContentScrollView {...props}>
       <TouchableOpacity 
         className="py-5 bg-primary-100 items-center"
-        onPress={() => router.push('/(root)/(tabs)/account')}
+        onPress={() => router.push('/(root)/(tabs)/settings')}
         activeOpacity={0.7}
       >
         <Image 

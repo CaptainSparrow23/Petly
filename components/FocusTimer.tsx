@@ -574,7 +574,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
         <View className="flex-1 items-start justify-center">
           {headerLeft ?? <View className="w-12 h-12" />}
         </View>
-        <View className="relative w-24 rounded-full overflow-hidden">
+        <View className="relative w-32 rounded-full overflow-hidden">
           <View className="absolute inset-0" style={{ backgroundColor: KNOB_COLOR }} />
           <View className="absolute inset-0 flex-row">
             <View className={`flex-1 ${timerMode === 'countdown' ? 'bg-white/20' : 'bg-transparent'}`} />
@@ -582,26 +582,24 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
           </View>
           <View className="relative z-10 flex-row items-center justify-center">
             <Pressable
-              className="flex-1 items-center justify-center py-2"
+              className="flex-1 items-center justify-center py-2 pl-1"
               onPress={() => handleTimerModePress('countdown')}
             >
               <MaterialCommunityIcons
-                name="timer-sand"
-                size={20}
-                color="#fff"
-                style={{ opacity: timerMode === 'countdown' ? 1 : 0.65 }}
+                name={timerMode === 'countdown' ? 'timer-sand-full' : 'timer-sand-empty'}
+                size={22}
+                color={timerMode === 'countdown' ? '#fff' : 'rgba(255,255,255,0.65)'}
               />
             </Pressable>
 
             <Pressable
-              className="flex-1 items-center justify-center py-2"
+              className="flex-1 items-center justify-center py-2 pr-1"
               onPress={() => handleTimerModePress('stopwatch')}
             >
               <MaterialCommunityIcons
-                name="timer"
-                size={20}
-                color="#fff"
-                style={{ opacity: timerMode === 'stopwatch' ? 1 : 0.65 }}
+                name={timerMode === 'stopwatch' ? 'timer' : 'timer-outline'}
+                size={22}
+                color={timerMode === 'stopwatch' ? '#fff' : 'rgba(255,255,255,0.65)'}
               />
             </Pressable>
           </View>
