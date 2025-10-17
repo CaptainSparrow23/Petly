@@ -32,8 +32,8 @@ const TRACK_WIDTH = 18
 const CIRCLE_RADIUS = 150
 const RADIUS = CIRCLE_RADIUS - TRACK_WIDTH
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
-const TOTAL_STEPS = 24 // 120 minutes / 5 minute steps
-const STEP_DEGREES = 15 // 360 / 24 steps
+const TOTAL_STEPS = 24 
+const STEP_DEGREES = 15 
 const SLIDER_SIZE = Math.min(Dimensions.get('window').height / 1.8, 440)
 const PET_CIRCLE_SIZE = SLIDER_SIZE - TRACK_WIDTH * 4
 const minutesToSeconds = (minutes: number) => minutes * 60
@@ -64,7 +64,7 @@ type FocusTimerProps = {
 }
 
 const ProgressRing = ({ angle, showProgress = true }: { angle: SharedValue<number>, showProgress?: boolean }) => {
-  
+
   const dashProps = useAnimatedProps(() => {
     const ratio = Math.min(Math.max(angle.value / 360, 0), 1)
     return {

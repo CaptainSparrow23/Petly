@@ -12,8 +12,42 @@ export default function RootLayout() {
           headerShown: false,
           animation: 'none',
           presentation: 'card',
+          gestureEnabled: false,
         }} 
-      />
+      >
+        <Stack.Screen 
+          name="(root)" 
+          options={{
+            animation: 'none',
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen 
+          name="(auth)" 
+          options={{
+            animation: 'none',
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen 
+          name="settings" 
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            fullScreenGestureEnabled: true,
+          }}
+        />
+        <Stack.Screen 
+          name="friends" 
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            fullScreenGestureEnabled: true,
+          }}
+        />
+      </Stack>
     </GlobalProvider>
   );
 }

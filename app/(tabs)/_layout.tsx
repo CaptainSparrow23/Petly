@@ -2,7 +2,7 @@ import { useGlobalContext } from '@/lib/global-provider';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
-import { Cat, Home, Settings, Store, UserRound, UsersRound } from 'lucide-react-native';
+import { Cat, Home, Settings, Store, UserRound, UsersRound, BarChart3 } from 'lucide-react-native';
 import React from 'react';
 import { Image, Text, TouchableOpacity } from 'react-native';
 
@@ -43,8 +43,8 @@ const DrawerLayout = () => {
       <Drawer.Screen name='index' options={{ 
         title: 'Focus', drawerIcon: ({color, size}) => <Home color={color} size={size} />
       }} />
-        <Drawer.Screen name='account' options={{ 
-          title: 'Account', drawerIcon: ({color, size}) => <UserRound color={color} size={size} />
+        <Drawer.Screen name='insights' options={{ 
+          title: 'Insights', drawerIcon: ({color, size}) => <BarChart3 color={color} size={size} />
         }} />
       <Drawer.Screen name='pets' options={{ 
         title: 'My Pets', drawerIcon: ({color, size}) => <Cat color={color} size={size} />
@@ -54,6 +54,9 @@ const DrawerLayout = () => {
       }} />
       <Drawer.Screen name='friends' options={{ 
         title: 'Friends', drawerIcon: ({color, size}) => <UsersRound color={color} size={size} />
+      }} />
+      <Drawer.Screen name='profile' options={{ 
+        title: 'Profile', drawerIcon: ({color, size}) => <UserRound color={color} size={size} />
       }} />
       <Drawer.Screen name='settings' options={{ 
         title: 'Settings', drawerIcon: ({color, size}) => <Settings color={color} size={size} />
