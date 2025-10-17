@@ -2,97 +2,196 @@ import { MenuButton } from "@/components/other/MenuButton";
 import { logout } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/global-provider";
 import type { LucideIcon } from "lucide-react-native";
-import { Camera, ChevronRight, LogOut } from "lucide-react-native";
+import { 
+  ChevronRight, 
+  LogOut, 
+  User, 
+  Bell, 
+  Shield, 
+  HelpCircle, 
+  Info,
+  Settings as SettingsIcon,
+  Moon,
+  Globe
+} from "lucide-react-native";
 import { router } from "expo-router";
 import React from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View, Image} from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface SettingsItemsProps {
+interface SettingsItemProps {
   icon: LucideIcon;
   title: string;
+  subtitle?: string;
   onPress?: () => void;
-  textStyle?: string;
   showArrow?: boolean;
+  textColor?: string;
 }
 
 const SettingsItem = ({
   icon: Icon,
   title,
+  subtitle,
   onPress,
-  textStyle,
   showArrow = true,
-}: SettingsItemsProps) => (
+  textColor = "#1f2937"
+}: SettingsItemProps) => (
   <TouchableOpacity
-    className="flex flex-row justify-between items-center py-3"
+    className="flex flex-row items-center py-4 px-4 bg-gray-50 border-b border-gray-100 last:border-b-0"
     onPress={onPress}
+    activeOpacity={0.7}
   >
-    <View className="flex flex-row items-center gap-3">
-      <Icon size={24} color="#000" />
-      <Text className={`text-xl font-rubik-medium text-black-300 ${textStyle}`}>
+    <View className="mr-3">
+      <Icon size={22} color="#6b7280" />
+    </View>
+    <View className="flex-1">
+      <Text className="text-base font-rubik-medium" style={{ color: textColor }}>
         {title}
       </Text>
+      {subtitle && (
+        <Text className="text-sm font-rubik text-gray-500 mt-1">
+          {subtitle}
+        </Text>
+      )}
     </View>
-    {showArrow && <ChevronRight size={20} color="#666" />}
+    {showArrow && <ChevronRight size={18} color="#9ca3af" />}
   </TouchableOpacity>
 );
 
+interface SettingsSectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+const SettingsSection = ({ title, children }: SettingsSectionProps) => (
+  <View className="mb-8 ">
+    <Text className="text-sm font-rubik-medium text-gray-500 uppercase tracking-wide mb-3 px-4">
+      {title}
+    </Text>
+    <View className="rounded-xl bg-gray-200 overflow-hidden shadow-sm border border-gray-200">
+      {children}
+    </View>
+  </View>
+);
+
 const Settings = () => {
-  const { user, refetch } = useGlobalContext();
+  const { user } = useGlobalContext();
 
   const handleLogout = async () => {
-    const result = await logout();
-
-    if (result) {
+    const success = await logout();
+    if (success) {
       Alert.alert("Success", "You have been logged out");
-      refetch();
-      // Force navigation to auth screen
       router.replace("/(auth)/sign-in");
     } else {
-      Alert.alert(
-        "Error",
-        "An error occurred while logging out, please try again"
-      );
+      Alert.alert("Error", "An error occurred while logging out, please try again");
     }
   };
 
   return (
-    <SafeAreaView className="h-full bg-white">
-      <View className="w-full flex-row items-center justify-between px-6 pt-4">
+    <SafeAreaView className="flex-1 bg-white">
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-4 ">
         <MenuButton />
-        <View className="w-12" />
+        <Text className="text-2xl font-rubik-medium text-gray-900">Settings</Text>
+        <View className="w-6" />
       </View>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ flexGrow: 1 }}
-        contentContainerClassName="pb-8 px-7"
-        className="w-full px-4"
-      >
-        <View className="flex-row justify-center flex mt-5">
-                  <View className="flex flex-col items-center relative">
-                    <Image
-                      source={{ uri: user?.avatar }}
-                      className="size-44 relative rounded-full"
-                    />
-                    <TouchableOpacity className="absolute bottom-11 right-2 bg-white rounded-full p-2 shadow-md">
-                      <Camera size={20} color="#000" />
-                    </TouchableOpacity>
-                    <Text className="text-2xl top-3 font-rubik-bold mt-2">{user?.name}</Text>
-                  </View>
-                </View>
-        <View className="flex-1 justify-center items-center">
-  
-        </View>
 
-        <View className="flex flex-col items-center mt-5 border-t pt-5 border-gray-200 w-full">
+      <ScrollView 
+        className="flex-1" 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ padding: 16 }}
+      >
+        {/* Account Section */}
+        <SettingsSection title="Account">
+          <SettingsItem
+            icon={User}
+            title="Edit Profile"
+            subtitle="Update your profile information"
+            onPress={() => router.push("/settings/editProfile")}
+          />
+          <SettingsItem
+            icon={Bell}
+            title="Notifications"
+            subtitle="Manage your notification preferences"
+            onPress={() => {
+              Alert.alert("Coming Soon", "Notification settings will be available soon");
+            }}
+          />
+        </SettingsSection>
+
+        {/* Privacy & Security Section */}
+        <SettingsSection title="Privacy & Security">
+          <SettingsItem
+            icon={Shield}
+            title="Privacy"
+            subtitle="Control your privacy settings"
+            onPress={() => {
+              Alert.alert("Coming Soon", "Privacy settings will be available soon");
+            }}
+          />
+          <SettingsItem
+            icon={SettingsIcon}
+            title="Account Settings"
+            subtitle="Manage account preferences"
+            onPress={() => {
+              Alert.alert("Coming Soon", "Account settings will be available soon");
+            }}
+          />
+        </SettingsSection>
+
+        {/* Preferences Section */}
+        <SettingsSection title="Preferences">
+          <SettingsItem
+            icon={Moon}
+            title="Dark Mode"
+            subtitle="Currently not available"
+            onPress={() => {
+              Alert.alert("Coming Soon", "Dark mode will be available in a future update");
+            }}
+          />
+          <SettingsItem
+            icon={Globe}
+            title="Language"
+            subtitle="English"
+            onPress={() => {
+              Alert.alert("Coming Soon", "Language settings will be available soon");
+            }}
+          />
+        </SettingsSection>
+
+        {/* Support Section */}
+        <SettingsSection title="Support">
+          <SettingsItem
+            icon={HelpCircle}
+            title="Help & Support"
+            subtitle="Get help and contact support"
+            onPress={() => {
+              Alert.alert("Help & Support", "For support, please contact us at support@petly.com");
+            }}
+          />
+          <SettingsItem
+            icon={Info}
+            title="About"
+            subtitle="App version and information"
+            onPress={() => {
+              Alert.alert("About Petly", "Petly v1.0.0\nA focus companion app with virtual pets");
+            }}
+          />
+        </SettingsSection>
+
+        {/* Logout Section */}
+        <SettingsSection title="">
           <SettingsItem
             icon={LogOut}
             title="Log Out"
-            textStyle="text-red-500 "
-            showArrow={false}
             onPress={handleLogout}
+            showArrow={false}
+            textColor="#ef4444"
           />
-        </View>
+        </SettingsSection>
+
+        {/* Bottom Spacing */}
+        <View className="h-8" />
       </ScrollView>
     </SafeAreaView>
   );
