@@ -1,8 +1,10 @@
 import { MenuButton } from '@/components/other/MenuButton';
 import React from 'react';
-import { Text, View, Image } from 'react-native';
+import { Text, View, ImageBackground, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import room_backgound from '@/assets/images/room_background.png';
+import { Card } from '@/components/other/PetCard';
+import { petData } from '@/constants/petdata';
 
 
 const Profile = () => {
@@ -18,14 +20,41 @@ const Profile = () => {
         <View className="flex-1 items-end" />
       </View>
 
-      <View className="-mt-2 items-start">
-        <Image
-          source={room_backgound}
-          className="w-full"
-          style={{ height: 400 }}
-          resizeMode="contain"
-        />
-      </View>
+      <ImageBackground
+        source={room_backgound}
+        className="-mt-2 w-full"
+        style={{ height: 400 }}
+        resizeMode="contain"
+      >
+        <View className="flex-1" />
+      </ImageBackground>
+
+      <FlatList
+        data={petData}
+        renderItem={({ item, index }) => (
+          <View
+            style={{
+              flex: 1,
+              marginRight: index % 2 === 0 ? 8 : 0,
+              marginLeft: index % 2 === 1 ? 8 : 0,
+            }}
+          >
+            <Card item={item} onPress={() => {}} />
+          </View>
+        )}
+        keyExtractor={(item, index) =>
+          `pet-${item?.name ?? 'unknown'}-${index}`
+        }
+        numColumns={2}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: 10,
+          paddingHorizontal: 20,
+          paddingTop: 0,
+        }}
+        columnWrapperStyle={{ marginBottom: 16 }}
+      />
+
     </SafeAreaView>
   );
 };
