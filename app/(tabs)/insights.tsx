@@ -225,7 +225,7 @@ const Account = () => {
           <MenuButton />
         </View>
         <View className="flex-1 items-center pb-2">
-          <Text className="text-2xl font-rubik-medium text-gray-900">Overview</Text>
+          <Text className="text-2xl font-rubik-medium text-gray-900">Insights</Text>
         </View>
         <View className="flex-1 items-end">
           <TouchableOpacity
