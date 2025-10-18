@@ -19,7 +19,6 @@ interface GlobalContextType {
     refetch: (newParams?: Record<string, string | number>) => Promise<void>;
     selectedPetName: string | null;
     setSelectedPetName: (name: string | null) => Promise<void>;
-
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);

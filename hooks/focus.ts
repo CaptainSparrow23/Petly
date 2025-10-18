@@ -1,6 +1,8 @@
 //this file has all the logic for tracking focus sessions and logging session data
 //you should create a single hook file for every page on the app
 
+import Constants from 'expo-constants';
+
 interface SessionData {
   startTime: number;
   endTime?: number;
@@ -9,7 +11,7 @@ interface SessionData {
 }
 
 // API functions for backend communication
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 async function saveFocusTimeToBackend(userId: string, duration: number): Promise<void> {
   try {

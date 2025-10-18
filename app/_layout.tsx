@@ -16,13 +16,6 @@ export default function RootLayout() {
         }} 
       >
         <Stack.Screen 
-          name="(root)" 
-          options={{
-            animation: 'none',
-            gestureEnabled: false,
-          }}
-        />
-        <Stack.Screen 
           name="(auth)" 
           options={{
             animation: 'none',

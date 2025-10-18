@@ -19,19 +19,11 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen 
-        name="sign-up" 
+        name="set-profile" 
         options={{
-          title: "Sign Up",
+          title: "Set Profile",
           headerShown: false,
-          animation: 'none',
-        }}
-      />
-      <Stack.Screen 
-        name="forgot-password" 
-        options={{
-          title: "Forgot Password",
-          headerShown: false,
-          animation: 'none',
+          animation: 'slide_from_right',
         }}
       />
     </Stack>

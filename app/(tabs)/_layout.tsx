@@ -4,11 +4,11 @@ import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import { Cat, Home, Settings, Store, UserRound, UsersRound, BarChart3 } from 'lucide-react-native';
 import React from 'react';
-import { Image, Text, TouchableOpacity } from 'react-native';
+import { Image, Text, TouchableOpacity, View } from 'react-native';
 
 const CustomDrawerContent = (props: any) => {
   const { user } = useGlobalContext();
-  const firstName = user?.name?.split(' ')[0];
+  const firstName = user?.name;
   
   return (
     <DrawerContentScrollView {...props}>
@@ -21,7 +21,9 @@ const CustomDrawerContent = (props: any) => {
           source={{uri: user?.avatar}} 
           className="w-32 h-32 rounded-full" 
         />
-        <Text className="text-lg mt-5 font-rubik-bold text-black-300">Welcome {firstName}!</Text>
+        <Text className="text-2xl mt-2 font-semibold text-black-300">{firstName}</Text>
+        <Text className="text-m mt-1 font-rubik-bold text-gray-500">@ill_add_username</Text>
+        <View className="h-px bg-gray-200 mt-10 mb-10 w-[90%] align-center" />
       </TouchableOpacity>
       <DrawerItemList {...props} />
     </DrawerContentScrollView>
@@ -54,9 +56,6 @@ const DrawerLayout = () => {
       }} />
       <Drawer.Screen name='friends' options={{ 
         title: 'Friends', drawerIcon: ({color, size}) => <UsersRound color={color} size={size} />
-      }} />
-      <Drawer.Screen name='profile' options={{ 
-        title: 'Profile', drawerIcon: ({color, size}) => <UserRound color={color} size={size} />
       }} />
       <Drawer.Screen name='settings' options={{ 
         title: 'Settings', drawerIcon: ({color, size}) => <Settings color={color} size={size} />

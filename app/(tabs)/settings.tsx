@@ -75,14 +75,19 @@ const SettingsSection = ({ title, children }: SettingsSectionProps) => (
 );
 
 const Settings = () => {
-  const { user } = useGlobalContext();
+  const { user, refetch } = useGlobalContext();
 
   const handleLogout = async () => {
     const success = await logout();
     if (success) {
+      console.log("✅ Logged out successfully");
+      // Refetch to update global state
+      await refetch();
       Alert.alert("Success", "You have been logged out");
+      // Use replace to clear the navigation stack and redirect to sign-in
       router.replace("/(auth)/sign-in");
     } else {
+      console.log("❌ Logout failed");
       Alert.alert("Error", "An error occurred while logging out, please try again");
     }
   };
