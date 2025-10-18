@@ -1,5 +1,4 @@
 import { MenuButton } from "@/components/other/MenuButton";
-import { logout } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/global-provider";
 import type { LucideIcon } from "lucide-react-native";
 import { 
@@ -75,7 +74,7 @@ const SettingsSection = ({ title, children }: SettingsSectionProps) => (
 );
 
 const Settings = () => {
-  const { user } = useGlobalContext();
+  const { user, logout } = useGlobalContext();
 
   const handleLogout = async () => {
     const success = await logout();

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { getCurrentUser } from "./appwrite";
+import { getCurrentUser, logout as appwriteLogout } from "./appwrite";
 import { useAppwrite } from "./useAppWrite";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -19,7 +19,7 @@ interface GlobalContextType {
     refetch: (newParams?: Record<string, string | number>) => Promise<void>;
     selectedPetName: string | null;
     setSelectedPetName: (name: string | null) => Promise<void>;
-
+    logout: () => Promise<boolean>;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -63,6 +63,21 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
         }
     };
 
+    const logout = async () => {
+        try {
+            const success = await appwriteLogout();
+            if (success) {
+                // Clear the user data by refetching (which will return null)
+                await refetch();
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error during logout:', error);
+            return false;
+        }
+    };
+
     const isLoggedIn = !!user;
     //!null = true, !true = false
     //!!null = false, !!true = true
@@ -77,6 +92,7 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
             refetch,
             selectedPetName,
             setSelectedPetName,
+            logout,
         }}>
             {children}
         </GlobalContext.Provider> 

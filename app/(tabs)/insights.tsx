@@ -15,15 +15,8 @@ const CHART_HEIGHT = 200;
 const BAR_MAX_HEIGHT = 120;
 const BAR_MIN_ACTIVE_HEIGHT = 8;
 const BAR_MIN_INACTIVE_HEIGHT = 2;
-const MAX_CHART_HOURS = 8;
-const MAX_CHART_MINUTES = MAX_CHART_HOURS * 60;
 const DAILY_GOAL_MINUTES = 60; // 1 hour goal
 const WEEKLY_GOAL_MINUTES = 300; // 5 hours goal
-const Y_AXIS_STEP_HOURS = 2;
-const Y_AXIS_LABELS = Array.from(
-  { length: MAX_CHART_HOURS / Y_AXIS_STEP_HOURS + 1 },
-  (_, idx) => MAX_CHART_HOURS - idx * Y_AXIS_STEP_HOURS,
-);
 const Y_AXIS_LABEL_WIDTH = 25;
 const DAY_ORDER: string[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -165,6 +158,13 @@ const Account = () => {
   const formattedTotalHours = formatTotalHours(totalFocusedMinutes);
   const bestDayMinutes = orderedWeeklyData.length ? Math.max(...orderedWeeklyData.map(day => day.totalMinutes)) : 0;
   const averagePerDay = orderedWeeklyData.length ? Math.floor(totalFocusedMinutes / orderedWeeklyData.length) : 0;
+  const chartMaxMinutes = Math.max(bestDayMinutes, 60); // At least 1 hour for scaling
+  const chartMaxHours = Math.ceil(chartMaxMinutes / 60);
+  const yAxisStepHours = Math.max(1, Math.ceil(chartMaxHours / 5)); // Always 5 intervals
+  const yAxisLabels = Array.from(
+    { length: 6 }, // 6 labels for 5 intervals (0, 1*step, 2*step, 3*step, 4*step, 5*step)
+    (_, idx) => idx * yAxisStepHours,
+  ).reverse(); // Reverse so 0 is at bottom, max is at top
   const todayShortName = useMemo(
     () => new Date().toLocaleDateString("en-US", { weekday: "short" }),
     [],
@@ -180,11 +180,16 @@ const Account = () => {
     };
   }, [orderedWeeklyData, todayShortName]);
   const streakCount = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     const sortedByDate = [...weeklyData].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
     let count = 0;
     for (const day of sortedByDate) {
+      // Skip today if it has 0 minutes (day not complete yet)
+      if (day.date === today && (day.totalMinutes ?? 0) === 0) {
+        continue;
+      }
       if ((day.totalMinutes ?? 0) > 0) {
         count += 1;
       } else {
@@ -246,7 +251,7 @@ const Account = () => {
         className="w-full px-4"
       >
         <View className="mt-6 flex-row gap-4">
-          <View className="flex-[3] rounded-2xl border border-gray-200 bg-white p-4">
+          <View className="flex-[2.5] rounded-2xl border border-gray-200 bg-white p-4">
             <Text className="text-sm font-rubik-medium text-gray-500">Today&apos;s Focus</Text>
 
             {todayTotalSeconds > 0 ? (
@@ -259,9 +264,10 @@ const Account = () => {
                 </Text>
               </>
             ) : (
-              <Text className="mt-3 text-sm text-gray-500">
-                No focus sessions logged yet today
-              </Text>
+              <><Text className="mt-3 text-3xl font-rubik-bold text-blue-600">
+                  0 mins 0 secs</Text><Text className="mt-3 text-sm text-gray-500">
+                    No focus sessions logged yet today
+                  </Text></>
             )}
           </View>
 
@@ -322,7 +328,7 @@ const Account = () => {
           </Text>
           <Text className="mt-1 text-sm text-gray-600">
             Total focused time:{" "}
-            <Text className="font-rubik-medium" style={{ color: PRIMARY_BLUE }}>
+            <Text style={{ color: PRIMARY_BLUE }}>
               {formattedTotalHours}
             </Text>{" "}
             hours
@@ -355,7 +361,7 @@ const Account = () => {
                       paddingVertical: 12,
                     }}
                   >
-                    {Y_AXIS_LABELS.map((label, index) => (
+                    {yAxisLabels.map((label, index) => (
                       <Text
                         key={`y-label-${label}-${index}`}
                         style={{ fontSize: 12, color: "#94a3b8" }}
@@ -372,7 +378,7 @@ const Account = () => {
                     }}
                   >
                     <View style={{ flex: 1, justifyContent: "space-between" }}>
-                      {Y_AXIS_LABELS.slice(0, -1).map((_, index) => (
+                      {yAxisLabels.slice(0, -1).map((_, index) => (
                         <View
                           key={`grid-line-${index}`}
                           style={{
@@ -403,7 +409,7 @@ const Account = () => {
                       }}
                     >
                       {orderedWeeklyData.map((day) => {
-                        const normalized = Math.min(day.totalMinutes, MAX_CHART_MINUTES) / MAX_CHART_MINUTES;
+                        const normalized = day.totalMinutes / chartMaxMinutes;
                         const barHeight = Math.max(
                           normalized * BAR_MAX_HEIGHT,
                           day.totalMinutes > 0 ? BAR_MIN_ACTIVE_HEIGHT : BAR_MIN_INACTIVE_HEIGHT,
@@ -411,7 +417,7 @@ const Account = () => {
 
                         return (
                           <View key={day.date} style={{ flex: 1, alignItems: "center" }}>
-                            <Text style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>
+                            <Text style={{ fontSize: 11, color: "#64748b", marginBottom: 5 }}>
                               {day.totalMinutes > 0 ? `${day.totalMinutes}m` : ""}
                             </Text>
                             <View
