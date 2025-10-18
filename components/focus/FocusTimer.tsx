@@ -79,7 +79,7 @@ const PET_ANIMATION_STYLES: Record<PetName, Record<'Idle' | ModeKey, PetPoseStyl
     Study: { idleScale: 0.85, runningScale: 0.7, idleOffset: { x: -4, y: 8 }, runningOffset: { x: -4, y: 6 } },
     Work: { idleScale: 0.9, runningScale: 0.72, idleOffset: { x: -6, y: 10 }, runningOffset: { x: -6, y: 8 } },
     Break: { idleScale: 1.4, runningScale: 1, idleOffset: { x: 5, y: 20 }, runningOffset: { x: 5, y: 16 } },
-    Rest: { idleScale: 0.85, runningScale: 0.6, idleOffset: { x: -30, y: 40 }, runningOffset: { x: -10, y: -90 } },
+    Rest: { idleScale: 0.85, runningScale: 0.6, idleOffset: { x: -30, y: 40 }, runningOffset: { x: -10, y: -70 } },
   },
 }
 

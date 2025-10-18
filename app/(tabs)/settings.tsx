@@ -1,5 +1,4 @@
 import { MenuButton } from "@/components/other/MenuButton";
-import { logout } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/global-provider";
 import type { LucideIcon } from "lucide-react-native";
 import { 

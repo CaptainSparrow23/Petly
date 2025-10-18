@@ -12,7 +12,7 @@ import LottieView from 'lottie-react-native';
 
 const Profile = () => {
   const defaultAnimationStyle = useMemo(
-    () => ({ width: '70%', aspectRatio: 1 }),
+    () => ({ width: 280, aspectRatio: 1 }),
     []
   );
 
@@ -25,11 +25,11 @@ const Profile = () => {
     () => ({
       Skye: {
         source: Animations.skyeIdle,
-        style: { width: '70%', aspectRatio: 1 },
+        style: { width: 280, aspectRatio: 1 },
       },
       Lancelot: {
         source: Animations.lancelotIdle,
-        style: { width: '35%', aspectRatio: 1},
+        style: { width: 140, aspectRatio: 1},
       },
     }),
     []
