@@ -5,8 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Crown, Flame, Plus, Trophy, Users } from 'lucide-react-native'
 import { useGlobalContext } from '@/lib/global-provider'
 import { router } from 'expo-router'
+import Constants from 'expo-constants'
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 interface Friend {
   id: string;

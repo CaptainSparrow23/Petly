@@ -1,6 +1,6 @@
 import { useGlobalContext } from "@/lib/global-provider";
 import { Redirect } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Index() {
@@ -14,10 +14,10 @@ export default function Index() {
     );
   }
 
-  // Redirect based on authentication status
+  // Simple: logged in = go to tabs, logged out = go to sign-in
   if (isLoggedIn) {
     return <Redirect href="/(tabs)" />;
-  } else {
-    return <Redirect href="/(auth)/sign-in" />;
   }
+  
+  return <Redirect href="/(auth)/sign-in" />;
 }

@@ -3,7 +3,7 @@ import images from "@/constants/images";
 import { login } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/global-provider";
 import { Redirect } from "expo-router";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,14 +11,84 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
-} from "react-native";
+  View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Constants from "expo-constants";
+
+const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 const SignIn = () => {
-  const { refetch, loading, isLoggedIn } = useGlobalContext();
+  const { refetch, loading, isLoggedIn, user } = useGlobalContext();
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [needsProfileSetup, setNeedsProfileSetup] = useState<boolean | null>(null);
 
-  if (!loading && isLoggedIn) return <Redirect href="/(tabs)" />;
+  // Check if user exists in Firebase (authenticated) when page loads
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      if (isLoggedIn && user?.$id) {
+        setIsCheckingStatus(true);
+        try {
+          console.log(`🔍 Checking if user has username: ${user.$id}`);
+          const response = await fetch(
+            `${API_BASE_URL}/api/auth/check-user-status`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ userId: user.$id }),
+            }
+          );
+          const data = await response.json();
+          
+          console.log("📦 User status response:", JSON.stringify(data, null, 2));
+          
+          if (data.success) {
+            const needsSetup = data.data.needsProfileSetup;
+            console.log(`${needsSetup ? '🆕 User needs to set username' : '✅ User has username - profile complete'}`);
+            setNeedsProfileSetup(needsSetup);
+          } else {
+            console.log("⚠️ Status check failed, assuming needs setup");
+            setNeedsProfileSetup(true);
+          }
+        } catch (error) {
+          console.error("❌ Error checking user status:", error);
+          setNeedsProfileSetup(true);
+        } finally {
+          setIsCheckingStatus(false);
+        }
+      } else if (!isLoggedIn) {
+        // Reset when logged out
+        setNeedsProfileSetup(null);
+      }
+    };
+    checkUserStatus();
+  }, [isLoggedIn, user?.$id]);
+
+  // Redirect logic
+  if (!loading && isLoggedIn) {
+    // If we're still checking status, show loading
+    if (needsProfileSetup === null || isCheckingStatus) {
+      return (
+        <SafeAreaView className="bg-white h-full items-center justify-center">
+          <ActivityIndicator size="large" color="#0066FF" />
+          <Text className="mt-4 text-base font-rubik text-gray-600">
+            Checking your profile...
+          </Text>
+        </SafeAreaView>
+      );
+    }
+    
+    // If user needs profile setup (no username in Firebase)
+    if (needsProfileSetup) {
+      console.log("🔄 Redirecting to set-profile (user needs username)");
+      return <Redirect href="/(auth)/set-profile" />;
+    }
+    
+    // If user has username in Firebase, go to main app
+    console.log("✅ Redirecting to main app (user has username)");
+    return <Redirect href="/(tabs)" />;
+  }
 
   const handleLogin = async () => {
     const result = await login();

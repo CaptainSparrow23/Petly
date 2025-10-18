@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useGlobalContext } from '@/lib/global-provider';
+import Constants from 'expo-constants';
 
 interface WeeklyFocusData {
   date: string; // YYYY-MM-DD format
@@ -14,7 +15,7 @@ interface WeeklyFocusResponse {
   message?: string;
 }
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 export const useWeeklyFocusData = () => {
   const { user } = useGlobalContext();

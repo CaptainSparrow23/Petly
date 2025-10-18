@@ -4,8 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useGlobalContext } from "@/lib/global-provider";
 import { ChevronLeft } from "lucide-react-native";
 import { router } from "expo-router";
+import Constants from 'expo-constants';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 interface UserProfile {
   username: string | null;

@@ -13,8 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Search, UserPlus, Users } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useGlobalContext } from '@/lib/global-provider';
+import Constants from 'expo-constants';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 interface SearchUser {
   id: string;
