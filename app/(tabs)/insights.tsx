@@ -921,45 +921,59 @@ const Account = () => {
                         }}
                       />
                     )}
-                    {chartRange === "today" ? (
-                      <>
-                        <VictoryLine
-                          data={chartVictoryData}
-                          interpolation="monotoneX"
-                          style={{
-                            data: {
-                              stroke: PRIMARY_BLUE,
-                              strokeWidth: 3,
-                            },
-                          }}
-                        />
-                        <VictoryScatter
-                          data={chartVictoryData}
-                          size={4}
-                          style={{
-                            data: { fill: PRIMARY_BLUE },
-                          }}
-                          labels={({ datum }) =>
-                            datum.actualMinutes > 0 ? `${datum.actualMinutes}m` : ""
-                          }
-                          labelComponent={
-                            <VictoryLabel
-                              dy={-8}
+                    {chartRange === "today"
+                      ? (() => {
+                          const pointsWithData = chartVictoryData.filter(
+                            (datum) => datum.actualMinutes > 0
+                          );
+                          const components = [
+                            <VictoryScatter
+                              key="today-scatter"
+                              data={pointsWithData}
+                              size={4}
                               style={{
-                                fill: "#64748b",
-                                fontSize: 11,
-                                fontFamily: "Rubik-Medium",
+                                data: { fill: PRIMARY_BLUE },
                               }}
-                            />
+                              labels={({ datum }) =>
+                                datum.actualMinutes > 0
+                                  ? `${datum.actualMinutes}m`
+                                  : ""
+                              }
+                              labelComponent={
+                                <VictoryLabel
+                                  dy={-8}
+                                  style={{
+                                    fill: "#64748b",
+                                    fontSize: 11,
+                                    fontFamily: "Rubik-Medium",
+                                  }}
+                                />
+                              }
+                            />,
+                          ];
+                          if (pointsWithData.length > 1) {
+                            components.unshift(
+                              <VictoryLine
+                                key="today-line"
+                                data={pointsWithData}
+                                interpolation="monotoneX"
+                                style={{
+                                  data: {
+                                    stroke: PRIMARY_BLUE,
+                                    strokeWidth: 3,
+                                  },
+                                }}
+                              />
+                            );
                           }
-                        />
-                      </>
-                    ) : (
-                      <VictoryBar
-                        data={chartVictoryData}
-                        barWidth={16}
-                        cornerRadius={{ top: 8, bottom: 0 }}
-                        labels={({ datum }) =>
+                          return components;
+                        })()
+                      : (
+                        <VictoryBar
+                          data={chartVictoryData}
+                          barWidth={16}
+                          cornerRadius={{ top: 8, bottom: 0 }}
+                          labels={({ datum }) =>
                           datum.actualMinutes > 0 ? `${datum.actualMinutes}m` : ""
                         }
                         labelComponent={
