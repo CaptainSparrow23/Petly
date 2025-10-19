@@ -167,7 +167,8 @@ const EditProfile = () => {
             <View className="py-4 px-4 border-b border-gray-100">
               <Text className="text-lg font-rubik-medium text-gray-900 mb-2">Username</Text>
               <TextInput
-                className="text-lg font-rubik text-gray-700 bg-white rounded-lg px-3 py-3 border border-gray-200"
+                className="text-lg font-rubik text-gray-700 bg-white rounded-xl border border-gray-200"
+                style={{ height: 52, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10 }}
                 placeholder="Enter your username"
                 value={username}
                 onChangeText={setUsername}
@@ -176,7 +177,7 @@ const EditProfile = () => {
                 autoCorrect={false}
                 placeholderTextColor="#9ca3af"
               />
-              <Text className="text-base font-rubik text-gray-500 mt-2">
+              <Text className="text-base font-rubik text-gray-500 mt-2.5">
                 This is how others will see you on Petly
               </Text>
             </View>

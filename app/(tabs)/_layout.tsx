@@ -9,6 +9,7 @@ import { Image, Text, TouchableOpacity, View } from 'react-native';
 const CustomDrawerContent = (props: any) => {
   const { user } = useGlobalContext();
   const firstName = user?.name;
+  const username = user?.username;
   
   return (
     <DrawerContentScrollView {...props}>
@@ -22,8 +23,10 @@ const CustomDrawerContent = (props: any) => {
           className="w-32 h-32 rounded-full" 
         />
         <Text className="text-2xl mt-2 font-semibold text-black-300">{firstName}</Text>
-        <Text className="text-m mt-1 font-rubik-bold text-gray-500">@ill_add_username</Text>
-        <View className="h-px bg-gray-200 mt-10 mb-10 w-[90%] align-center" />
+        <Text className="text-m mt-1 font-rubik-bold text-gray-500">
+          {username ? `@${username}` : 'No username set'}
+        </Text>
+        <View className="h-px bg-gray-200 mt-6 -mb-2 w-[90%] align-center" />
       </TouchableOpacity>
       <DrawerItemList {...props} />
     </DrawerContentScrollView>

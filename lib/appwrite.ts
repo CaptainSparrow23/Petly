@@ -70,7 +70,28 @@ export async function getCurrentUser() {
         const response = await account.get();
         if (response.$id) {
             const avatarUrl = `${config.endpoint}/avatars/initials?name=${encodeURIComponent(response.name)}&width=400&height=400`;
-            return { ...response, avatar: avatarUrl };
+            let username: string | null = null;
+            try {
+                const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+                const statusResponse = await fetch(`${API_BASE_URL}/api/auth/check-user-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId: response.$id }),
+                });
+
+                if (statusResponse.ok) {
+                    const statusResult = await statusResponse.json();
+                    username = statusResult?.data?.username ?? null;
+                } else {
+                    console.warn('Failed to fetch user status:', statusResponse.status, statusResponse.statusText);
+                }
+            } catch (statusError) {
+                console.error('Error fetching user status:', statusError);
+            }
+
+            return { ...response, avatar: avatarUrl, username };
         }
         return null;
     } catch (error) {

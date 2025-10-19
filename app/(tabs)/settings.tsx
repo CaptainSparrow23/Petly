@@ -74,7 +74,7 @@ const SettingsSection = ({ title, children }: SettingsSectionProps) => (
 );
 
 const Settings = () => {
-  const { user, refetch } = useGlobalContext();
+  const { user, refetch, logout } = useGlobalContext();
 
   const handleLogout = async () => {
     const success = await logout();
@@ -94,7 +94,7 @@ const Settings = () => {
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-4 ">
+      <View className="flex-row items-center justify-between px-4 py-2 ">
         <MenuButton />
         <Text className="text-2xl font-rubik-medium text-gray-900">Settings</Text>
         <View className="w-6" />
@@ -103,7 +103,7 @@ const Settings = () => {
       <ScrollView 
         className="flex-1" 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
       >
         {/* Account Section */}
         <SettingsSection title="Account">

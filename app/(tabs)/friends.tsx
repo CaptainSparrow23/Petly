@@ -232,11 +232,11 @@ const Friends = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <View className="w-full flex-row items-center justify-between px-6 pt-4 bg-white">
-          <MenuButton />
-          <Text className="text-xl font-rubik-bold text-gray-900">Friends</Text>
-          <View className="w-10 h-10" />
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <View className="w-full flex-row items-center justify-between px-6 pt-4 bg-white">
+        <MenuButton />
+        <Text className="text-xl font-rubik-bold text-gray-900">Friends</Text>
+        <View className="w-10 h-10" />
         </View>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#3b82f6" />
@@ -252,10 +252,10 @@ const Friends = () => {
         <MenuButton />
         <Text className="text-xl font-rubik-bold text-gray-900">Friends</Text>
         <Pressable 
-          className="w-10 h-10 bg-blue-500 rounded-full items-center justify-center"
+          className="w-10 h-10 items-center justify-center"
           onPress={handleAddFriend}
         >
-          <Plus size={20} color="white" />
+          <Plus size={24} color="#3b82f6" />
         </Pressable>
       </View>
 
@@ -295,17 +295,6 @@ const Friends = () => {
       {/* Content */}
       {activeTab === 'friends' ? (
         <ScrollView className="flex-1 px-6">
-          <View className="bg-blue-500 rounded-2xl p-4 mb-6">
-            <Text className="text-white font-rubik-bold text-lg">Weekly Challenge</Text>
-            <Text className="text-blue-100 mt-1">Focus for 300+ minutes this week</Text>
-            <View className="flex-row items-center mt-3">
-              <View className="flex-1 rounded-full h-2 mr-3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}>
-                <View className="bg-white rounded-full h-2" style={{ width: '68%' }} />
-              </View>
-              <Text className="text-white font-rubik-medium">204/300m</Text>
-            </View>
-          </View>
-
           <View className="flex-row items-center justify-between mb-2">
             <Text className="font-rubik-bold text-gray-900 text-lg">Your Friends</Text>
             <Text className="text-blue-600 font-rubik-medium">{friends.length} friends</Text>

@@ -636,7 +636,7 @@ const Account = () => {
 
   return (
     <SafeAreaView className="h-full bg-white">
-      <View className="w-full flex-row items-center px-6 pt-4">
+      <View className="w-full flex-row items-center px-6 pt-2">
         <View className="flex-1">
           <MenuButton />
         </View>

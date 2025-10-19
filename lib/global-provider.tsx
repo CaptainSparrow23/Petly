@@ -9,6 +9,7 @@ interface User {
     name: string;
     email: string;
     avatar: string;
+    username?: string | null;
 }
 
 
@@ -19,6 +20,7 @@ interface GlobalContextType {
     refetch: (newParams?: Record<string, string | number>) => Promise<void>;
     selectedPetName: string | null;
     setSelectedPetName: (name: string | null) => Promise<void>;
+    logout: () => Promise<boolean>;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
