@@ -8,19 +8,26 @@ interface SessionData {
   endTime?: number;
   duration?: number;
   userId?: string;
+  mode?: string;
 }
 
 // API functions for backend communication
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
-async function saveFocusTimeToBackend(userId: string, duration: number): Promise<void> {
+async function saveFocusTimeToBackend(
+  userId: string,
+  duration: number,
+  mode: string | undefined,
+  startTime?: number,
+  endTime?: number,
+): Promise<void> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/focus/session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ userId, duration }),
+      body: JSON.stringify({ userId, duration, mode, startTime, endTime }),
     });
 
     if (!response.ok) {
@@ -39,11 +46,12 @@ async function saveFocusTimeToBackend(userId: string, duration: number): Promise
 class SessionTracker {
   private currentSession: SessionData | null = null;
 
-  startSession(userId?: string): void {
+  startSession(userId?: string, mode?: string): void {
     const startTime = Date.now();
     this.currentSession = {
       startTime,
       userId,
+      mode,
     };
     
     console.log(`📚 Focus session started`);
@@ -77,7 +85,13 @@ class SessionTracker {
     if (this.currentSession.userId) {
       try {
         console.log(`💾 Saving focus time to database...`);
-        await saveFocusTimeToBackend(this.currentSession.userId, duration);
+        await saveFocusTimeToBackend(
+          this.currentSession.userId,
+          duration,
+          this.currentSession.mode,
+          this.currentSession.startTime,
+          endTime,
+        );
       } catch (error) {
         console.error('❌ Failed to save focus time:', error);
         // Continue execution even if backend save fails

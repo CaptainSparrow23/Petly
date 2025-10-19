@@ -170,18 +170,23 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
   const { user, selectedPetName } = useGlobalContext()
   const { weeklyData, refetch: refetchWeeklyFocusData } = useWeeklyFocusData()
   const [timerMode, setTimerMode] = useState<TimerMode>('countdown')
+  const [isRunning, setIsRunning] = useState<boolean>(false)
   const todayDateKey = useMemo(() => new Date().toISOString().split('T')[0], [])
   const todayFocusEntry = useMemo(
     () => weeklyData.find((entry) => entry.date === todayDateKey),
     [weeklyData, todayDateKey],
   )
   const focusStatusText = useMemo(() => {
+    if (isRunning) {
+      return 'Stay focused and get off your phone!'
+    }
+
     if (todayFocusEntry && todayFocusEntry.totalMinutes > 0) {
       const minutesLabel = todayFocusEntry.totalMinutes === 1 ? 'min' : 'mins'
       return `Focused for ${todayFocusEntry.totalMinutes} ${minutesLabel} today`
     }
     return 'Start focusing with your pet'
-  }, [todayFocusEntry])
+  }, [isRunning, todayFocusEntry])
 
   const hasPetAnimations = useMemo(
     () => isSupportedPet(selectedPetName),
@@ -215,7 +220,6 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
   const [sessionMinutes, setSessionMinutes] =
     useState<number>(INITIAL_MINUTES)
-  const [isRunning, setIsRunning] = useState<boolean>(false)
   const [mode, setMode] = useState<ModeKey>('Study')
   const [modePickerVisible, setModePickerVisible] = useState(false)
   const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false)
@@ -423,7 +427,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
     setIsRunning(true)
     
     // Track session start
-    sessionTracker.startSession(user?.$id);
+    sessionTracker.startSession(user?.$id, mode);
     setCatSource(modeAnimations[mode])
     catAnimationRef.current?.reset()
     catAnimationRef.current?.play()
@@ -667,7 +671,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
               Are you sure?
             </Text>
             <Text className="mb-6 text-center text-sm text-slate-500">
-              If you leave now the session will end.
+              If you leave now your pet will be disappointed.
             </Text>
             <View className="flex-row justify-between gap-4">
               <Pressable
