@@ -20,12 +20,12 @@ const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 // 6 default profile picture colors
 const DEFAULT_AVATARS = [
-  { id: 1, color: "#FF6B6B", name: "Coral" },
-  { id: 2, color: "#4ECDC4", name: "Turquoise" },
-  { id: 3, color: "#45B7D1", name: "Sky" },
-  { id: 4, color: "#FFA07A", name: "Salmon" },
-  { id: 5, color: "#98D8C8", name: "Mint" },
-  { id: 6, color: "#A78BFA", name: "Purple" },
+  { id: 1, color: "#FF6B6B"},
+  { id: 2, color: "#4ECDC4"  },
+  { id: 3, color: "#45B7D1" },
+  { id: 4, color: "#FFA07A" },
+  { id: 5, color: "#98D8C8" },
+  { id: 6, color: "#A78BFA"},
 ];
 
 export default function SetProfile() {
@@ -104,7 +104,7 @@ export default function SetProfile() {
         <View className="flex-1">
           {/* Header */}
           <View className="px-6 pt-8 pb-6">
-            <Text className="text-4xl font-rubik-bold text-gray-900 text-center">
+            <Text className="text-3xl font-rubik-bold text-gray-900 text-center">
               Set Up Your Profile
             </Text>
           </View>
@@ -121,9 +121,6 @@ export default function SetProfile() {
                 className="w-32 h-32 rounded-full items-center justify-center shadow-lg"
                 style={{ backgroundColor: selectedAvatar?.color }}
               >
-                <Text className="text-5xl font-rubik-bold text-white">
-                  {username.slice(0, 2).toUpperCase() || "?"}
-                </Text>
               </View>
             </View>
 
@@ -135,6 +132,7 @@ export default function SetProfile() {
               <View className="bg-gray-50 rounded-2xl border-2 border-gray-200 px-5 py-4">
                 <TextInput
                   className="text-lg font-rubik text-gray-900"
+                  style={{ paddingVertical: 2, includeFontPadding: false }}
                   placeholder="Choose a username"
                   placeholderTextColor="#9ca3af"
                   value={username}
@@ -161,10 +159,10 @@ export default function SetProfile() {
                     onPress={() => setSelectedAvatarId(avatar.id)}
                     disabled={isLoading}
                     className="mb-6 items-center"
-                    style={{ width: "30%" }}
+                    style={{ width: "33%" }}
                   >
                     <View
-                      className={`w-20 h-20 rounded-full items-center justify-center relative ${
+                      className={`w-32 h-32 rounded-full items-center justify-center relative ${
                         selectedAvatarId === avatar.id
                           ? "border-4 border-blue-500"
                           : "border-2 border-gray-200"
@@ -179,11 +177,6 @@ export default function SetProfile() {
                         </View>
                       )}
                     </View>
-                    <Text className={`mt-2 text-xs font-rubik-medium ${
-                      selectedAvatarId === avatar.id ? "text-blue-500" : "text-gray-600"
-                    }`}>
-                      {avatar.name}
-                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -195,7 +188,7 @@ export default function SetProfile() {
             <TouchableOpacity
               onPress={handleSubmit}
               disabled={isLoading || !username.trim()}
-              className={`py-4 rounded-2xl items-center justify-center shadow-lg ${
+              className={`py-4 rounded-2xl items-center justify-center shadow-lg mb-7 ${
                 isLoading || !username.trim()
                   ? "bg-gray-300"
                   : "bg-blue-500"
