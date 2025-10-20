@@ -2,7 +2,7 @@ import icons from "@/constants/icons";
 import images from "@/constants/images";
 import { login } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/global-provider";
-import { Redirect } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
@@ -14,13 +14,23 @@ import {
   View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Constants from "expo-constants";
+import { Banner } from "@/components/other/Banner";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 const SignIn = () => {
   const { refetch, loading, isLoggedIn, user } = useGlobalContext();
+  const { loggedOut } = useLocalSearchParams();
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [needsProfileSetup, setNeedsProfileSetup] = useState<boolean | null>(null);
+  const [showBanner, setShowBanner] = useState(false);
+
+  // Show banner if user just logged out
+  useEffect(() => {
+    if (loggedOut === "true") {
+      setShowBanner(true);
+    }
+  }, [loggedOut]);
 
   // Check if user exists in Firebase (authenticated) when page loads
   useEffect(() => {
@@ -87,7 +97,7 @@ const SignIn = () => {
     
     // If user has username in Firebase, go to main app
     console.log("✅ Redirecting to main app (user has username)");
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href={{ pathname: "/(tabs)", params: { loggedIn: "true" } }} />;
   }
 
   const handleLogin = async () => {
@@ -102,6 +112,13 @@ const SignIn = () => {
 
   return (
     <SafeAreaView className="bg-white h-full">
+      <Banner
+        message="You have been logged out successfully"
+        type="success"
+        visible={showBanner}
+        onHide={() => setShowBanner(false)}
+        duration={3000}
+      />
       <ScrollView contentContainerClassName="h-full">
         <Image
           source={images.catFamily}
