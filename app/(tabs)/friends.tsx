@@ -147,25 +147,25 @@ const LeaderboardItem = ({
 };
 
 const Friends = () => {
-  const { user } = useGlobalContext();
+  const { userProfile } = useGlobalContext();
   const [activeTab, setActiveTab] = useState<'friends' | 'leaderboard'>('friends');
   const [friends, setFriends] = useState<Friend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchFriends = async () => {
-    if (!user?.$id) {
+    if (!userProfile?.userId) {
       console.log('❌ No user ID available for fetching friends');
       setIsLoading(false);
       setIsRefreshing(false);
       return;
     }
     
-    console.log('🔄 Fetching friends for user:', user.$id);
-    console.log('🌐 API URL:', `${API_BASE_URL}/api/friends/list/${user.$id}`);
+    console.log('🔄 Fetching friends for user:', userProfile.userId);
+    console.log('🌐 API URL:', `${API_BASE_URL}/api/friends/list/${userProfile.userId}`);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/friends/list/${user.$id}`);
+      const response = await fetch(`${API_BASE_URL}/api/friends/list/${userProfile.userId}`);
       console.log('📡 Response status:', response.status);
       console.log('📡 Response ok:', response.ok);
       
@@ -196,7 +196,7 @@ const Friends = () => {
   };
 
   const handleRemoveFriend = async (friendId: string) => {
-    if (!user?.$id) return;
+    if (!userProfile?.userId) return;
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/friends/remove`, {
@@ -205,7 +205,7 @@ const Friends = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: user.$id,
+          userId: userProfile.userId,
           friendId: friendId,
         }),
       });
@@ -225,39 +225,22 @@ const Friends = () => {
   };
 
   useEffect(() => {
-    console.log('👤 User context in friends:', user);
-    console.log('🆔 User ID:', user?.$id);
+    console.log('👤 User Profile in friends:', userProfile);
+    console.log('🆔 User ID:', userProfile?.userId);
     fetchFriends();
-  }, [user?.$id]);
+  }, [userProfile?.userId]);
 
   if (isLoading) {
     return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="w-full flex-row items-center justify-between px-6 pt-4 bg-white">
-        <MenuButton />
-        <Text className="text-xl font-rubik-bold text-gray-900">Friends</Text>
-        <View className="w-10 h-10" />
-        </View>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text className="mt-4 text-gray-600 font-rubik">Loading friends...</Text>
-        </View>
-      </SafeAreaView>
+      <View className="flex-1 bg-gray-50 items-center justify-center">
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text className="mt-4 text-gray-600 font-rubik">Loading friends...</Text>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="w-full flex-row items-center justify-between px-6 pt-4 bg-white">
-        <MenuButton />
-        <Text className="text-xl font-rubik-bold text-gray-900">Friends</Text>
-        <Pressable 
-          className="w-10 h-10 items-center justify-center"
-          onPress={handleAddFriend}
-        >
-          <Plus size={24} color="#3b82f6" />
-        </Pressable>
-      </View>
+    <View className="flex-1 bg-gray-50">
 
       {/* Tab Navigation */}
       <View className="bg-white px-6 pb-4">
@@ -368,7 +351,7 @@ const Friends = () => {
           <View className="h-6" />
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   )
 }
 

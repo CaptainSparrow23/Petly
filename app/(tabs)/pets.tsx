@@ -60,17 +60,7 @@ const Profile = () => {
   }, [setSelectedPetName]);
 
   return (
-    <SafeAreaView className="h-full bg-white">
-      <View className="w-full flex-row items-center px-6 pt-2">
-        <View className="flex-1">
-          <MenuButton />
-        </View>
-        <View className="flex-1 items-center">
-          <Text className="text-2xl font-rubik-medium text-gray-900">My Pets</Text>
-        </View>
-        <View className="flex-1 items-end" />
-      </View>
-
+    <View className="flex-1 bg-white">
       <ImageBackground
         source={room_backgound}
         className="mt-2 w-full border-b border-gray-200"
@@ -128,7 +118,7 @@ const Profile = () => {
         columnWrapperStyle={{ marginBottom: 16 }}
       />
 
-    </SafeAreaView>
+    </View>
   );
 };
 

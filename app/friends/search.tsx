@@ -76,7 +76,7 @@ const UserCard = ({
 );
 
 const SearchFriends = () => {
-  const { user } = useGlobalContext();
+  const { userProfile } = useGlobalContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -84,7 +84,7 @@ const SearchFriends = () => {
   const [searchPerformed, setSearchPerformed] = useState(false);
 
   const searchUsers = async (query: string) => {
-    if (!user?.$id || query.trim().length < 2) {
+    if (!userProfile?.userId || query.trim().length < 2) {
       setSearchResults([]);
       setSearchPerformed(false);
       return;
@@ -95,7 +95,7 @@ const SearchFriends = () => {
     
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/friends/search/${user.$id}?query=${encodeURIComponent(query.trim())}`
+        `${API_BASE_URL}/api/friends/search/${userProfile.userId}?query=${encodeURIComponent(query.trim())}`
       );
       
       if (response.ok) {
@@ -114,7 +114,7 @@ const SearchFriends = () => {
   };
 
   const handleAddFriend = async (friendId: string) => {
-    if (!user?.$id) return;
+    if (!userProfile?.userId) return;
 
     setAddingUserId(friendId);
     
@@ -125,7 +125,7 @@ const SearchFriends = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: user.$id,
+          userId: userProfile.userId,
           friendId: friendId,
         }),
       });
@@ -165,7 +165,7 @@ const SearchFriends = () => {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, user?.$id]);
+  }, [searchQuery, userProfile?.userId]);
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">

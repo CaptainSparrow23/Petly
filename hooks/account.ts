@@ -61,7 +61,7 @@ interface MonthlyFocusResponse {
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 export const useWeeklyFocusData = () => {
-  const { user } = useGlobalContext();
+  const { userProfile } = useGlobalContext();
   const [weeklyData, setWeeklyData] = useState<WeeklyFocusData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +82,7 @@ export const useWeeklyFocusData = () => {
   }));
 
   const fetchWeeklyFocusData = useCallback(async () => {
-    if (!user?.$id) {
+    if (!userProfile?.userId) {
       setError('User not authenticated');
       setLoading(false);
       return;
@@ -92,7 +92,7 @@ export const useWeeklyFocusData = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/account/weekly-focus/${user.$id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/account/weekly-focus/${userProfile.userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ export const useWeeklyFocusData = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.$id]);
+  }, [userProfile?.userId]);
 
   // Auto-fetch when component mounts or user changes
   useEffect(() => {
@@ -176,14 +176,14 @@ export const useWeeklyFocusData = () => {
 };
 
 export const useMonthlyFocusSummary = () => {
-  const { user } = useGlobalContext();
+  const { userProfile } = useGlobalContext();
   const [monthlyData, setMonthlyData] = useState<MonthlyFocusEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState(false);
 
   const fetchMonthlySummary = useCallback(async () => {
-    if (!user?.$id) {
+    if (!userProfile?.userId) {
       setError('User not authenticated');
       setLoading(false);
       return;
@@ -193,7 +193,7 @@ export const useMonthlyFocusSummary = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/focus/monthly-summary/${user.$id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/focus/monthly-summary/${userProfile.userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -225,7 +225,7 @@ export const useMonthlyFocusSummary = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.$id]);
+  }, [userProfile?.userId]);
 
   return {
     monthlyData,

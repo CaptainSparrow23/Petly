@@ -1,42 +1,93 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { getCurrentUser, logout as appwriteLogout } from "./appwrite";
-import { useAppwrite } from "./useAppWrite";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from "expo-constants";
+import { Banner } from "@/components/other/Banner";
 
+const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
-interface User {
-    $id:string;
-    name: string;
-    email: string;
-    avatar: string;
-    username?: string | null;
+interface UserProfile {
+    userId: string;
+    username: string | null;
+    displayName: string | null;
+    email: string | null;
+    profileId: number | null;
 }
 
+type BannerType = 'success' | 'error' | 'info' | 'warning';
 
 interface GlobalContextType {
     isLoggedIn: boolean;
-    user: User | null;
+    userProfile: UserProfile | null;
     loading: boolean
-    refetch: (newParams?: Record<string, string | number>) => Promise<void>;
+    refetch: () => Promise<void>;
     selectedPetName: string | null;
     setSelectedPetName: (name: string | null) => Promise<void>;
     logout: () => Promise<boolean>;
+    showBanner: (message: string, type?: BannerType) => void;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
 const GlobalProvider = ({children}: {children: React.ReactNode}) => {
     const [selectedPetName, setSelectedPetNameState] = useState<string | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [isCheckingAuth, setIsCheckingAuth] = useState(false);
+    
+    // Banner state
+    const [bannerVisible, setBannerVisible] = useState(false);
+    const [bannerMessage, setBannerMessage] = useState('');
+    const [bannerType, setBannerType] = useState<BannerType>('info');
 
-    const { data: user, loading,refetch}= useAppwrite ({
-        fn: getCurrentUser,
+    // Fetch user profile from backend - this also serves as our auth check
+    const fetchUserProfile = async () => {
+        try {
+            // First check if user is authenticated with Appwrite
+            const currentUser = await getCurrentUser();
+            
+            if (!currentUser?.$id) {
+                setUserProfile(null);
+                setLoading(false);
+                return;
+            }
 
+            // User is authenticated, fetch their full profile
+            const response = await fetch(`${API_BASE_URL}/api/user/profile/${currentUser.$id}`);
+            const data = await response.json();
 
-    })
+            if (data.success) {
+                setUserProfile(data.data);
+                console.log('✅ User profile loaded:', data.data);
+            } else {
+                console.warn('⚠️ Failed to load user profile:', data.error);
+                setUserProfile(null);
+            }
+        } catch (error) {
+            console.error('❌ Error fetching user profile:', error);
+            setUserProfile(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Refetch user profile
+    const refetch = async () => {
+        setLoading(true);
+        await fetchUserProfile();
+    };
+
+    // Check auth and load profile on mount
+    useEffect(() => {
+        if (!isCheckingAuth) {
+            setIsCheckingAuth(true);
+            fetchUserProfile();
+        }
+    }, []);
 
     // Sync pet preference to backend (non-blocking)
     const syncPetPreferenceToBackend = async (petName: string | null) => {
-        if (!user?.$id || !petName) return;
+        if (!userProfile?.userId || !petName) return;
 
         try {
             const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
@@ -46,7 +97,7 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: user.$id,
+                    userId: userProfile.userId,
                     selectedPet: petName
                 })
             });
@@ -60,11 +111,11 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
 
     // Load pet preference from backend on app start
     const loadPetPreferenceFromBackend = async () => {
-        if (!user?.$id) return;
+        if (!userProfile?.userId) return;
 
         try {
             const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-            const response = await fetch(`${API_BASE_URL}/api/account/pet-preference/${user.$id}`);
+            const response = await fetch(`${API_BASE_URL}/api/account/pet-preference/${userProfile.userId}`);
             const data = await response.json();
 
             if (data.success && data.selectedPet) {
@@ -109,13 +160,13 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
         loadSelectedPet();
     }, []);
 
-    // Sync with backend when user logs in
+    // Sync with backend when userProfile is loaded
     useEffect(() => {
-        if (user?.$id) {
+        if (userProfile?.userId) {
             loadPetPreferenceFromBackend();
             retryPendingSyncs();
         }
-    }, [user?.$id]);
+    }, [userProfile?.userId]);
 
     const setSelectedPetName = async (name: string | null) => {
         setSelectedPetNameState(name);
@@ -136,8 +187,8 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
         try {
             const success = await appwriteLogout();
             if (success) {
-                // Clear the user data by refetching (which will return null)
-                await refetch();
+                // Clear the user profile
+                setUserProfile(null);
                 return true;
             }
             return false;
@@ -147,24 +198,34 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
         }
     };
 
-    const isLoggedIn = !!user;
-    //!null = true, !true = false
-    //!!null = false, !!true = true
+    const showBanner = (message: string, type: BannerType = 'info') => {
+        setBannerMessage(message);
+        setBannerType(type);
+        setBannerVisible(true);
+    };
 
-    console.log(JSON.stringify(user, null, 2));
+    const isLoggedIn = !!userProfile;
 
     return(
         <GlobalContext.Provider value={{
             isLoggedIn,
-            user,
+            userProfile,
             loading,
             refetch,
             selectedPetName,
             setSelectedPetName,
             logout,
+            showBanner,
         }}>
+            <Banner
+                message={bannerMessage}
+                type={bannerType}
+                visible={bannerVisible}
+                onHide={() => setBannerVisible(false)}
+                duration={3000}
+            />
             {children}
-        </GlobalContext.Provider> 
+        </GlobalContext.Provider>
     )
 }
 
