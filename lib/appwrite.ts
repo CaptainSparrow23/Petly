@@ -70,34 +70,17 @@ export async function getCurrentUser() {
         const response = await account.get();
         if (response.$id) {
             const avatarUrl = `${config.endpoint}/avatars/initials?name=${encodeURIComponent(response.name)}&width=400&height=400`;
-            let username: string | null = null;
-            try {
-                const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-                const statusResponse = await fetch(`${API_BASE_URL}/api/auth/check-user-status`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ userId: response.$id }),
-                });
-
-                if (statusResponse.ok) {
-                    const statusResult = await statusResponse.json();
-                    username = statusResult?.data?.username ?? null;
-                } else {
-                    console.warn('Failed to fetch user status:', statusResponse.status, statusResponse.statusText);
-                }
-            } catch (statusError) {
-                console.error('Error fetching user status:', statusError);
-            }
-
-            return { ...response, avatar: avatarUrl, username };
+            
+            // Return basic user info - username will be fetched via userProfile in global provider
+            return { ...response, avatar: avatarUrl, username: null };
         }
         return null;
     } catch (error) {
-        console.log(error);
+        // Don't log error if user is simply not authenticated (expected behavior)
+        // Only log if it's an unexpected error
+        if (error && typeof error === 'object' && 'type' in error && error.type !== 'general_unauthorized_scope') {
+            console.error('Unexpected error in getCurrentUser:', error);
+        }
         return null;
     }
-
-
 }

@@ -1,4 +1,4 @@
-import { MenuButton } from "@/components/other/MenuButton";
+import { ProfilePicture } from "@/components/other/ProfilePicture";
 import { useMonthlyFocusSummary, useWeeklyFocusData } from "@/hooks/account";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { useGlobalContext } from "@/lib/global-provider";
 import { useRouter } from "expo-router";
@@ -291,7 +290,7 @@ const ModeBreakdownDonut = ({
 };
 
 const Account = () => {
-  const { user } = useGlobalContext();
+  const { userProfile } = useGlobalContext();
   const { weeklyData, loading, error, refetch, summary } = useWeeklyFocusData();
   const {
     monthlyData,
@@ -634,26 +633,20 @@ const Account = () => {
     }, [refetch])
   );
 
-  return (
-    <SafeAreaView className="h-full bg-white">
-      <View className="w-full flex-row items-center px-6 pt-2">
-        <View className="flex-1">
-          <MenuButton />
-        </View>
-        <View className="flex-1 items-center pb-2">
-          <Text className="text-2xl font-rubik-medium text-gray-900">
-            Insights
-          </Text>
-        </View>
-        <View className="flex-1 items-end">
-          <TouchableOpacity activeOpacity={0.8} onPress={() => {}}>
-            <Image
-              source={{ uri: user?.avatar }}
-              className="h-12 w-12 rounded-full border border-white bottom-0.5"
-            />
-          </TouchableOpacity>
-        </View>
+  // Show loading state for the entire page
+  if (loading) {
+    return (
+      <View className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color={PRIMARY_BLUE} />
+        <Text className="mt-4 text-base font-rubik text-gray-600">
+          Loading insights...
+        </Text>
       </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-white">
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ flexGrow: 1 }}
@@ -1140,7 +1133,7 @@ const Account = () => {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

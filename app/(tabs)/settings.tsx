@@ -1,4 +1,4 @@
-import { MenuButton } from "@/components/other/MenuButton";
+import { ProfilePicture } from "@/components/other/ProfilePicture";
 import { useGlobalContext } from "@/lib/global-provider";
 import type { LucideIcon } from "lucide-react-native";
 import { 
@@ -16,7 +16,6 @@ import {
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View, Alert, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 interface SettingsItemProps {
   icon: LucideIcon;
@@ -83,7 +82,7 @@ const SettingsSection = ({ title, children }: SettingsSectionProps) => (
 );
 
 const Settings = () => {
-  const { user, refetch, logout } = useGlobalContext();
+  const { userProfile, refetch, logout } = useGlobalContext();
   const [isLogoutConfirm, setIsLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -119,20 +118,13 @@ const Settings = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-2 ">
-        <MenuButton />
-        <Text className="text-2xl font-rubik-medium text-gray-900">Settings</Text>
-        <View className="w-6" />
-      </View>
-
+    <View className="flex-1 bg-white">
       <ScrollView 
         className="flex-1" 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 24 }}
       >
-        {/* Account Section */}
+
         <SettingsSection title="Account">
           <SettingsItem
             icon={User}
@@ -226,7 +218,7 @@ const Settings = () => {
         {/* Bottom Spacing */}
         <View className="h-8" />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

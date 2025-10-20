@@ -1,6 +1,5 @@
-import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Dimensions, FlatList, GestureResponderEvent, LayoutChangeEvent, Modal, PanResponder, Pressable, Text, View, Alert } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Dimensions, FlatList, GestureResponderEvent, LayoutChangeEvent, Modal, PanResponder, Pressable, Text, View } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
 import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming, SharedValue } from 'react-native-reanimated'
 import LottieView from 'lottie-react-native'
@@ -95,10 +94,6 @@ const formatTime = (totalSeconds: number) => {
 type ModeKey = keyof typeof MODE_COLORS
 type TimerMode = 'countdown' | 'stopwatch'
 
-type FocusTimerProps = {
-  headerLeft?: ReactNode
-}
-
 const ProgressRing = ({ angle, showProgress = true }: { angle: SharedValue<number>, showProgress?: boolean }) => {
 
   const dashProps = useAnimatedProps(() => {
@@ -166,8 +161,8 @@ const ProgressRing = ({ angle, showProgress = true }: { angle: SharedValue<numbe
 const isSupportedPet = (name: string | null): name is PetName =>
   !!name && Object.prototype.hasOwnProperty.call(PET_ANIMATIONS, name)
 
-const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
-  const { user, selectedPetName } = useGlobalContext()
+const FocusTimer = () => {
+  const { userProfile, selectedPetName, showBanner } = useGlobalContext()
   const { weeklyData, refetch: refetchWeeklyFocusData } = useWeeklyFocusData()
   const [timerMode, setTimerMode] = useState<TimerMode>('countdown')
   const [isRunning, setIsRunning] = useState<boolean>(false)
@@ -236,18 +231,19 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
   const isStopwatch = timerMode === 'stopwatch'
 
   const refreshWeeklyFocus = useCallback(async () => {
-    if (!user?.$id) return
+    if (!userProfile?.userId) return
     try {
       await refetchWeeklyFocusData()
     } catch (error) {
       console.error('Failed to refresh weekly focus data:', error)
     }
-  }, [refetchWeeklyFocusData, user?.$id])
+  }, [refetchWeeklyFocusData, userProfile?.userId])
+
   const handleTimerModePress = useCallback(
     (nextMode: TimerMode) => {
       if (timerMode === nextMode) return
       if (isRunning) {
-        Alert.alert('Timer running', 'Leave the session to change mode.')
+        showBanner('Leave the session to change mode', 'warning')
         return
       }
 
@@ -258,7 +254,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
         setSelectedMinutes(INITIAL_MINUTES)
         setSessionMinutes(INITIAL_MINUTES)
         setRemainingSeconds(defaultSeconds)
-        previousStepRef.current = 4 // 20 minutes / 5 minute steps
+        previousStepRef.current = 4
       } else {
         setSelectedMinutes(0)
         setSessionMinutes(0)
@@ -267,7 +263,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
         previousStepRef.current = 0
       }
     },
-    [isRunning, setElapsedSeconds, timerMode],
+    [isRunning, timerMode],
   )
 
   useEffect(() => {
@@ -427,7 +423,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
     setIsRunning(true)
     
     // Track session start
-    sessionTracker.startSession(user?.$id, mode);
+    sessionTracker.startSession(userProfile?.userId, mode);
     setCatSource(modeAnimations[mode])
     catAnimationRef.current?.reset()
     catAnimationRef.current?.play()
@@ -469,7 +465,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
     refreshWeeklyFocus,
     selectedMinutes,
     timerMode,
-    user?.$id,
+    userProfile?.userId,
     idleAnimation,
     modeAnimations,
   ])
@@ -511,147 +507,144 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
   }, [elapsedSeconds, isRunning, isStopwatch, remainingSeconds, selectedMinutes])
 
   return (
-    <SafeAreaView className="w-full items-center px-6 pt-4 pb-10">
-      <View className="w-full flex-row items-center">
-        <View className="flex-1 items-start justify-center">
-          {headerLeft ?? <View className="w-12 h-12" />}
+    <View className="flex-1 bg-white px-6">
+      {/* Timer Mode Toggle - Positioned Absolutely at Top Center */}
+      <View className="absolute top-[-35] left-0 right-0 z-10 items-center" style={{ pointerEvents: 'box-none' }}>
+        <View className="flex-row items-center" style={{ pointerEvents: 'auto' }}>
+          <Pressable
+            className={`items-center justify-center px-4 py-3 rounded-l-full ${timerMode === 'countdown' ? 'bg-blue-500' : 'bg-blue-300'}`}
+            onPress={() => handleTimerModePress('countdown')}
+          >
+            <MaterialCommunityIcons
+              name={timerMode === 'countdown' ? 'timer-sand-full' : 'timer-sand-empty'}
+              size={20}
+              color='#fff'
+            />
+          </Pressable>
+          
+          <Pressable
+            className={`items-center justify-center px-4 py-3 rounded-r-full ${timerMode === 'stopwatch' ? 'bg-blue-500' : 'bg-blue-300'}`}
+            onPress={() => handleTimerModePress('stopwatch')}
+          >
+            <MaterialCommunityIcons
+              name={timerMode === 'stopwatch' ? 'timer' : 'timer-outline'}
+              size={20}
+              color='#fff'
+            />
+          </Pressable>
         </View>
-        <View className="relative w-32 rounded-full overflow-hidden">
-          <View className="absolute inset-0" style={{ backgroundColor: '#3b82f6' }} />
-          <View className="absolute inset-0 flex-row">
-            <View className={`flex-1 ${timerMode === 'countdown' ? 'bg-white/20' : 'bg-transparent'}`} />
-            <View className={`flex-1 ${timerMode === 'stopwatch' ? 'bg-white/20' : 'bg-transparent'}`} />
-          </View>
-          <View className="relative z-10 flex-row items-center justify-center">
-            <Pressable
-              className="flex-1 items-center justify-center py-2 pl-1"
-              onPress={() => handleTimerModePress('countdown')}
-            >
-              <MaterialCommunityIcons
-                name={timerMode === 'countdown' ? 'timer-sand-full' : 'timer-sand-empty'}
-                size={22}
-                color={timerMode === 'countdown' ? '#fff' : 'rgba(255,255,255,0.65)'}
-              />
-            </Pressable>
-
-            <Pressable
-              className="flex-1 items-center justify-center py-2 pr-1"
-              onPress={() => handleTimerModePress('stopwatch')}
-            >
-              <MaterialCommunityIcons
-                name={timerMode === 'stopwatch' ? 'timer' : 'timer-outline'}
-                size={22}
-                color={timerMode === 'stopwatch' ? '#fff' : 'rgba(255,255,255,0.65)'}
-              />
-            </Pressable>
-          </View>
-        </View>
-        <View className="flex-1" />
       </View>
-      <View className="items-center top-16">
-        <Text className="mt-4 text-base font-medium text-slate-600">
+
+      {/* Status text - Positioned Absolutely at Top */}
+      <View className="absolute top-24 left-0 right-0 z-5 items-center" style={{ pointerEvents: 'none' }}>
+        <Text className="text-base font-medium text-slate-600">
           {focusStatusText}
         </Text>
-
-        <View className="items-center justify-center mt-8">
-        <View style={{ width: SLIDER_SIZE, height: SLIDER_SIZE }} pointerEvents="none">
-          <ProgressRing angle={angle} showProgress={timerMode === 'countdown'} />
-        </View>
-
-        {timerMode === 'countdown' && (
-          <View
-            style={{ position: 'absolute', width: SLIDER_SIZE, height: SLIDER_SIZE }}
-            onLayout={handleLayout}
-            {...panResponder.panHandlers}
-            
-          >
-            <View style={{ flex: 1 }} />
-          </View>
-        )}
-
-        <View
-          pointerEvents="none"
-          className="absolute items-center justify-center"
-          style={{
-            width: PET_CIRCLE_SIZE,
-            height: PET_CIRCLE_SIZE,
-            borderRadius: PET_CIRCLE_SIZE / 2,
-          }}
-        >
-          {hasPetAnimations ? (
-            <LottieView
-              ref={catAnimationRef}
-              source={catSource}
-              autoPlay
-              loop={!isRunning}
-              onAnimationFinish={() => {
-                if (isRunning) {
-                  catAnimationRef.current?.reset()
-                  catAnimationRef.current?.play()
-                }
-              }}
-              style={{
-                width: PET_CIRCLE_SIZE,
-                height: PET_CIRCLE_SIZE,
-                transform: [
-                  { scale: catScale },
-                  { translateX: catOffset?.x ?? 0 },
-                  { translateY: catOffset?.y ?? 0 },
-                ],
-              }}
-            />
-          ) : (
-            <Text className="px-6 text-center text-sm font-rubik text-slate-500">
-              {selectedPetName
-                ? `Animations coming soon for ${selectedPetName}`
-                : 'Select a pet to see their focus animation'}
-            </Text>
-          )}
-        </View>
       </View>
-      <View className="items-center -mt-7 mb-3">
-        <Pressable
-          className="flex-row items-center gap-2 rounded-full bg-sky-100 px-5 py-2"
-          onPress={() => {
-            if (isRunning) {
-              Alert.alert('Timer running', 'Leave the session to change mode.')
-              return
-            }
-            setModePickerVisible(true)
-          }}
-          style={{ elevation: 2 }}
-        >
+
+      {/* Bottom content - Everything grouped at bottom */}
+      <View className="flex-1 items-center justify-end pb-16">
+        <View className="items-center justify-center ">
+          <View style={{ width: SLIDER_SIZE, height: SLIDER_SIZE }} pointerEvents="none">
+            <ProgressRing angle={angle} showProgress={timerMode === 'countdown'} />
+          </View>
+
+          {timerMode === 'countdown' && (
+            <View
+              style={{ position: 'absolute', width: SLIDER_SIZE, height: SLIDER_SIZE }}
+              onLayout={handleLayout}
+              {...panResponder.panHandlers}
+              
+            >
+              <View style={{ flex: 1 }} />
+            </View>
+          )}
+
           <View
-            className="h-3 w-3 rounded-full"
-            style={{ backgroundColor: MODE_COLORS[mode] }}
-          />
-          <Text className="font-medium text-sky-800">{mode}</Text>
+            pointerEvents="none"
+            className="absolute items-center justify-center"
+            style={{
+              width: PET_CIRCLE_SIZE,
+              height: PET_CIRCLE_SIZE,
+              borderRadius: PET_CIRCLE_SIZE / 2,
+            }}
+          >
+            {hasPetAnimations ? (
+              <LottieView
+                ref={catAnimationRef}
+                source={catSource}
+                autoPlay
+                loop={!isRunning}
+                onAnimationFinish={() => {
+                  if (isRunning) {
+                    catAnimationRef.current?.reset()
+                    catAnimationRef.current?.play()
+                  }
+                }}
+                style={{
+                  width: PET_CIRCLE_SIZE,
+                  height: PET_CIRCLE_SIZE,
+                  transform: [
+                    { scale: catScale },
+                    { translateX: catOffset?.x ?? 0 },
+                    { translateY: catOffset?.y ?? 0 },
+                  ],
+                }}
+              />
+            ) : (
+              <Text className="px-6 text-center text-sm font-rubik text-slate-500">
+                {selectedPetName
+                  ? `Animations coming soon for ${selectedPetName}`
+                  : 'Select a pet to see their focus animation'}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        <View className="items-center -mt-12">
+          <Pressable
+            className="flex-row items-center gap-2 rounded-full bg-sky-100 px-5 py-2"
+            onPress={() => {
+              if (isRunning) {
+                showBanner('Leave the session to change mode', 'warning')
+                return
+              }
+              setModePickerVisible(true)
+            }}
+            style={{ elevation: 2 }}
+          >
+            <View
+              className="h-3 w-3 rounded-full"
+              style={{ backgroundColor: MODE_COLORS[mode] }}
+            />
+            <Text className="font-medium text-sky-800">{mode}</Text>
+          </Pressable>
+        </View>
+
+        <Text
+          className="font-medium text-slate-700 text-center mt-12 mb-8"
+          style={{ fontSize: 85 }}
+        >
+          {formattedTime}
+        </Text>
+
+        <Pressable
+          className="min-w-[180px] items-center rounded-full px-10 py-3.5 shadow-lg mt-8"
+          style={{
+            backgroundColor: isRunning ? '#f59e0b' : '#3b82f6',
+            shadowColor: isRunning ? '#92400e' : '#1d4ed8',
+            shadowOpacity: 0.35,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 8,
+          }}
+          onPress={handleControlPress}
+        >
+          <Text className="text-lg font-semibold text-white">
+            {isRunning ? (timerMode === 'stopwatch' ? 'Stop' : 'Leave') : 'Start'}
+          </Text>
         </Pressable>
       </View>
-
-      <Text
-        className="font-medium text-slate-700 top-2"
-        style={{ fontSize: 85,  }}
-      >
-        {formattedTime}
-      </Text>
-
-      <Pressable
-        className="min-w-[180px] items-center rounded-full px-10 py-3.5 shadow-lg mt-3 top-5"
-        style={{
-          backgroundColor: isRunning ? '#f59e0b' : '#3b82f6',
-          shadowColor: isRunning ? '#92400e' : '#1d4ed8',
-          shadowOpacity: 0.35,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 8,
-        }}
-        onPress={handleControlPress}
-      >
-        <Text className="text-lg font-semibold text-white">
-          {isRunning ? (timerMode === 'stopwatch' ? 'Stop' : 'Leave') : 'Start'}
-        </Text>
-      </Pressable>
 
       <Modal
         transparent
@@ -715,13 +708,13 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
               data={MODE_OPTIONS}
               keyExtractor={(item) => item}
               numColumns={2}
-              columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 10 }}
+              columnWrapperStyle={{ gap: 10, marginBottom: 10 }}
               renderItem={({ item }) => (
                 <Pressable
                   className={`items-center rounded-2xl border ${
                     mode === item ? 'border-sky-400 bg-sky-50' : 'border-slate-200'
                   }`}
-                  style={{ flex: 1, marginHorizontal: 2, paddingVertical: 8, paddingHorizontal: 6 }}
+                  style={{ flex: 1, paddingVertical: 18 }}
                   onPress={() => {
                     setMode(item)
                     setModePickerVisible(false)
@@ -738,9 +731,7 @@ const FocusTimer = ({ headerLeft }: FocusTimerProps) => {
           </Pressable>
         </Pressable>
       </Modal>
-      </View>
-    </SafeAreaView> 
-
+    </View>
   ) 
 }
 

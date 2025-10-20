@@ -1,6 +1,6 @@
 import { useGlobalContext } from "@/lib/global-provider";
 import { Redirect } from "expo-router";
-import { ActivityIndicator } from "react-native";
+import { ActivityIndicator, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Index() {
@@ -10,14 +10,20 @@ export default function Index() {
     return (
       <SafeAreaView className="bg-white h-full flex justify-center items-center">
         <ActivityIndicator size="large" color="#2563eb" />
+        <Text className="mt-4 text-base font-rubik text-gray-600">
+          Loading...
+        </Text>
       </SafeAreaView>
     );
   }
 
-  // Simple: logged in = go to tabs, logged out = go to sign-in
+  // If authenticated: go to tabs (profile will be fetched automatically by global provider)
+  // If not authenticated: go to sign-in page
   if (isLoggedIn) {
+    console.log("✅ User authenticated - redirecting to tabs");
     return <Redirect href="/(tabs)" />;
   }
   
+  console.log("🔐 User not authenticated - redirecting to sign-in");
   return <Redirect href="/(auth)/sign-in" />;
 }

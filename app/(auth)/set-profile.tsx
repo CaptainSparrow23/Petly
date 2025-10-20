@@ -9,28 +9,26 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useGlobalContext } from "@/lib/global-provider";
 import Constants from "expo-constants";
 import { Check } from "lucide-react-native";
+import images from "@/constants/images";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
-// 6 default profile picture colors
+// Profile picture options
 const DEFAULT_AVATARS = [
-  { id: 1, color: "#FF6B6B"},
-  { id: 2, color: "#4ECDC4"  },
-  { id: 3, color: "#45B7D1" },
-  { id: 4, color: "#FFA07A" },
-  { id: 5, color: "#98D8C8" },
-  { id: 6, color: "#A78BFA"},
+  { id: 1, image: images.profile1, name: "profile1" },
+  { id: 2, image: images.profile2, name: "profile2" },
 ];
 
 export default function SetProfile() {
   const router = useRouter();
-  const { user, refetch } = useGlobalContext();
+  const { userProfile, refetch } = useGlobalContext();
   const [username, setUsername] = useState("");
   const [selectedAvatarId, setSelectedAvatarId] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +46,7 @@ export default function SetProfile() {
       return;
     }
 
-    if (!user?.$id) {
+    if (!userProfile?.userId) {
       Alert.alert("Error", "User not found. Please try again.");
       return;
     }
@@ -65,9 +63,9 @@ export default function SetProfile() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ 
-            userId: user.$id,
+            userId: userProfile.userId,
             username: username.trim(),
-            profilePicture: selectedAvatar?.color || "#FF6B6B"
+            profileId: selectedAvatar?.id || 1
           }),
         }
       );
@@ -83,8 +81,11 @@ export default function SetProfile() {
       // Refetch user data to update global state
       await refetch();
 
-      // Redirect to main app
-      router.replace("/(tabs)");
+      // Redirect to main app with loggedIn flag to show welcome banner
+      router.replace({
+        pathname: "/(tabs)",
+        params: { loggedIn: "true" }
+      });
     } catch (error) {
       console.error("❌ Error setting profile:", error);
       const errorMessage =
@@ -117,10 +118,12 @@ export default function SetProfile() {
           >
             {/* Avatar Preview */}
             <View className="items-center mb-8 mt-4">
-              <View
-                className="w-32 h-32 rounded-full items-center justify-center shadow-lg"
-                style={{ backgroundColor: selectedAvatar?.color }}
-              >
+              <View className="w-32 h-32 rounded-full overflow-hidden shadow-lg border-2 border-gray-200">
+                <Image
+                  source={selectedAvatar?.image}
+                  className="w-full h-full"
+                  resizeMode="cover"
+                />
               </View>
             </View>
 
@@ -129,10 +132,8 @@ export default function SetProfile() {
               <Text className="text-lg font-rubik-semibold text-gray-900 mb-3">
                 Username
               </Text>
-              <View className="bg-gray-50 rounded-2xl border-2 border-gray-200 px-5 py-4">
                 <TextInput
-                  className="text-lg font-rubik text-gray-900"
-                  style={{ paddingVertical: 2, includeFontPadding: false }}
+                  className="text-lg font-rubik text-gray-900 bg-gray-50 rounded-2xl border-2 border-gray-200 px-5 py-4"
                   placeholder="Choose a username"
                   placeholderTextColor="#9ca3af"
                   value={username}
@@ -142,41 +143,42 @@ export default function SetProfile() {
                   autoCorrect={false}
                   editable={!isLoading}
                 />
-              </View>
             </View>
 
             {/* Avatar Selection Section */}
             <View className="mb-6">
               <Text className="text-lg font-rubik-semibold text-gray-900 mb-4">
-                Choose Avatar Color
+                Choose Profile Picture
               </Text>
 
               {/* Avatar Grid - 3 columns */}
-              <View className="flex-row flex-wrap justify-between">
+              <View className="flex-row flex-wrap">
                 {DEFAULT_AVATARS.map((avatar) => (
                   <TouchableOpacity
                     key={avatar.id}
                     onPress={() => setSelectedAvatarId(avatar.id)}
                     disabled={isLoading}
-                    className="mb-6 items-center"
+                    className="mb-6 items-center relative"
                     style={{ width: "33%" }}
                   >
                     <View
-                      className={`w-32 h-32 rounded-full items-center justify-center relative ${
+                      className={`w-32 h-32 rounded-full overflow-hidden ${
                         selectedAvatarId === avatar.id
                           ? "border-4 border-blue-500"
                           : "border-2 border-gray-200"
                       }`}
-                      style={{
-                        backgroundColor: avatar.color,
-                      }}
                     >
-                      {selectedAvatarId === avatar.id && (
-                        <View className="absolute -top-1 -right-1 bg-blue-500 rounded-full p-1.5 shadow-md">
-                          <Check size={18} color="white" strokeWidth={3} />
-                        </View>
-                      )}
+                      <Image
+                        source={avatar.image}
+                        className="w-full h-full"
+                        resizeMode="cover"
+                      />
                     </View>
+                    {selectedAvatarId === avatar.id && (
+                      <View className="absolute top-3 right-3 bg-blue-500 rounded-full p-1.5 shadow-md" style={{ transform: [{ translateX: 4 }, { translateY: -4 }] }}>
+                        <Check size={18} color="white" strokeWidth={3} />
+                      </View>
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>

@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, Text, TouchableOpacity, View, TextInput, Alert, ActivityIndicator, Image } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View, TextInput, Alert, ActivityIndicator, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useGlobalContext } from "@/lib/global-provider";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Edit2, Check } from "lucide-react-native";
 import { router } from "expo-router";
 import Constants from 'expo-constants';
+import { ProfilePicture } from "@/components/other/ProfilePicture";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
+
+// Profile picture options
+const PROFILE_OPTIONS = [
+  { id: 1, name: "Profile 1" },
+  { id: 2, name: "Profile 2" },
+];
 
 interface UserProfile {
   username: string | null;
@@ -14,42 +21,37 @@ interface UserProfile {
 }
 
 const EditProfile = () => {
-  const { user } = useGlobalContext();
+  const { userProfile, refetch } = useGlobalContext();
   const [username, setUsername] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedProfileId, setSelectedProfileId] = useState<number>(1);
+  const [showProfilePicker, setShowProfilePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [originalUsername, setOriginalUsername] = useState<string | null>(null);
+  const [originalProfileId, setOriginalProfileId] = useState<number>(1);
 
-  const fetchUserProfile = async () => {
-    if (!user?.$id) return;
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/user/profile/${user.$id}`);
-      if (response.ok) {
-        const result = await response.json();
-        const currentUsername = result.data?.username || "";
-        setUsername(currentUsername);
-        setOriginalUsername(currentUsername);
-      }
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Initialize state from global userProfile
   useEffect(() => {
-    fetchUserProfile();
-  }, [user?.$id]);
+    if (userProfile) {
+      const currentUsername = userProfile.username || "";
+      const currentProfileId = userProfile.profileId || 1;
+      setUsername(currentUsername);
+      setOriginalUsername(currentUsername);
+      setSelectedProfileId(currentProfileId);
+      setOriginalProfileId(currentProfileId);
+    }
+  }, [userProfile]);
 
   const handleSave = async () => {
-    if (!user?.$id) {
+    if (!userProfile?.userId) {
       Alert.alert("Error", "User not found. Please try again.");
       return;
     }
 
-    // Check if username has changed
-    if (username.trim() === originalUsername) {
+    // Check if anything has changed
+    const usernameChanged = username.trim() !== originalUsername;
+    const profileIdChanged = selectedProfileId !== originalProfileId;
+
+    if (!usernameChanged && !profileIdChanged) {
       router.back();
       return;
     }
@@ -62,47 +64,49 @@ const EditProfile = () => {
     setIsSaving(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/username/${user.$id}`, {
+      const updateData: { username?: string; profileId?: number } = {};
+      
+      if (usernameChanged) {
+        updateData.username = username.trim();
+      }
+      
+      if (profileIdChanged) {
+        updateData.profileId = selectedProfileId;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/user/update_profile/${userProfile.userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username: username.trim() }),
+        body: JSON.stringify(updateData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update username');
+        throw new Error(errorData.error || 'Failed to update profile');
       }
 
       const result = await response.json();
-      console.log("✅ Username updated successfully:", result.data.username);
+      console.log("✅ Profile updated successfully:", result.data);
+      
+      // Refetch user profile to update global state
+      await refetch();
       
       Alert.alert("Success", "Profile updated successfully!", [
         { text: "OK", onPress: () => router.back() }
       ]);
       
     } catch (error) {
-      console.error("❌ Error updating username:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to update username";
+      console.error("❌ Error updating profile:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to update profile";
       Alert.alert("Error", errorMessage);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const hasChanges = username.trim() !== originalUsername;
-
-  if (isLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-white">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563eb" />
-          <Text className="mt-4 text-gray-600 font-rubik">Loading profile...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const hasChanges = username.trim() !== originalUsername || selectedProfileId !== originalProfileId;
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -136,24 +140,21 @@ const EditProfile = () => {
           <Text className="text-base font-rubik-medium text-gray-500 uppercase tracking-wide mb-3 px-4">
             Profile Photo
           </Text>
-          <View className="rounded-xl bg-gray-50 overflow-hidden shadow-sm border border-gray-200">
-            <View className="flex-row items-center py-4 px-4">
-              <Image 
-                source={{ uri: user?.avatar }} 
-                className="w-12 h-12 rounded-full mr-3" 
-              />
-              <View className="flex-1">
-                <Text className="text-lg font-rubik-medium text-gray-900">Change Photo</Text>
-                <Text className="text-base font-rubik text-gray-500 mt-1">
-                  Tap to update your profile picture
-                </Text>
-              </View>
-              <TouchableOpacity 
-                onPress={() => Alert.alert("Coming Soon", "Profile picture update will be available soon")}
-              >
-                <Text className="text-lg font-rubik-medium text-blue-500">Change</Text>
-              </TouchableOpacity>
+          <View className="rounded-xl bg-gray-50 overflow-hidden shadow-sm border border-gray-200 py-4 px-4 flex-row items-center">
+            <View className="w-12 h-12">
+              <ProfilePicture profileId={selectedProfileId} size={48} />
             </View>
+            <View className="flex-1 ml-5">
+              <Text className="text-lg font-rubik-medium text-gray-900">Change Photo</Text>
+              <Text className="text-base font-rubik text-gray-500">
+                Tap to update your profile picture
+              </Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => setShowProfilePicker(true)}
+            >
+              <Edit2 size={20} color="#3b82f6" />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -187,7 +188,7 @@ const EditProfile = () => {
               <Text className="text-lg font-rubik-medium text-gray-900 mb-2">Full Name</Text>
               <View className="bg-gray-100 rounded-lg px-3 py-3">
                 <Text className="text-lg font-rubik text-gray-600">
-                  {user?.name || "No name provided"}
+                  {userProfile?.displayName || "No name provided"}
                 </Text>
               </View>
               <Text className="text-base font-rubik text-gray-500 mt-2">
@@ -200,7 +201,7 @@ const EditProfile = () => {
               <Text className="text-lg font-rubik-medium text-gray-900 mb-2">Email</Text>
               <View className="bg-gray-100 rounded-lg px-3 py-3">
                 <Text className="text-lg font-rubik text-gray-600">
-                  {user?.email || "No email provided"}
+                  {userProfile?.email || "No email provided"}
                 </Text>
               </View>
               <Text className="text-base font-rubik text-gray-500 mt-2">
@@ -213,6 +214,61 @@ const EditProfile = () => {
         {/* Bottom spacing */}
         <View className="h-8" />
       </ScrollView>
+
+      {/* Profile Picture Picker Modal */}
+      <Modal
+        visible={showProfilePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowProfilePicker(false)}
+      >
+        <TouchableOpacity 
+          className="flex-1 bg-black/50 justify-center items-center"
+          activeOpacity={1}
+          onPress={() => setShowProfilePicker(false)}
+        >
+          <TouchableOpacity 
+            activeOpacity={1}
+            className="bg-white rounded-3xl p-6 mx-6 w-11/12 max-w-md"
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text className="text-2xl font-rubik-bold text-gray-900 mb-4 text-center">
+              Choose Profile Picture
+            </Text>
+            
+            <View className="flex-row justify-around mb-6">
+              {PROFILE_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  onPress={() => setSelectedProfileId(option.id)}
+                  className="items-center"
+                >
+                  <View className="relative">
+                    <ProfilePicture profileId={option.id} size={100} />
+                    {selectedProfileId === option.id && (
+                      <View className="absolute -top-2 -right-2 bg-blue-500 rounded-full p-1">
+                        <Check size={20} color="#fff" />
+                      </View>
+                    )}
+                  </View>
+                  <Text className="text-base font-rubik text-gray-700 mt-2">
+                    {option.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setShowProfilePicker(false)}
+              className="bg-blue-500 rounded-xl py-3 px-6"
+            >
+              <Text className="text-lg font-rubik-medium text-white text-center">
+                Done
+              </Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };

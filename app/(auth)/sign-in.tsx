@@ -19,7 +19,7 @@ import { Banner } from "@/components/other/Banner";
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 const SignIn = () => {
-  const { refetch, loading, isLoggedIn, user } = useGlobalContext();
+  const { refetch, loading, isLoggedIn, userProfile } = useGlobalContext();
   const { loggedOut } = useLocalSearchParams();
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [needsProfileSetup, setNeedsProfileSetup] = useState<boolean | null>(null);
@@ -32,13 +32,29 @@ const SignIn = () => {
     }
   }, [loggedOut]);
 
-  // Check if user exists in Firebase (authenticated) when page loads
+  // After login, check if user has username and redirect accordingly
   useEffect(() => {
     const checkUserStatus = async () => {
-      if (isLoggedIn && user?.$id) {
+      // Only run this check if we're logged in AND don't have a status yet
+      if (isLoggedIn && userProfile?.userId && needsProfileSetup === null) {
         setIsCheckingStatus(true);
         try {
-          console.log(`🔍 Checking if user has username: ${user.$id}`);
+          // Save user info to Firestore
+          console.log('💾 Saving user info to Firestore...');
+          await fetch(`${API_BASE_URL}/api/auth/save-user-info`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: userProfile.userId,
+              email: userProfile.email,
+              displayName: userProfile.displayName,
+            }),
+          });
+          
+          // Check if user has username set
+          console.log(`🔍 Checking if user has username: ${userProfile.userId}`);
           const response = await fetch(
             `${API_BASE_URL}/api/auth/check-user-status`,
             {
@@ -46,12 +62,10 @@ const SignIn = () => {
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ userId: user.$id }),
+              body: JSON.stringify({ userId: userProfile.userId }),
             }
           );
           const data = await response.json();
-          
-          console.log("📦 User status response:", JSON.stringify(data, null, 2));
           
           if (data.success) {
             const needsSetup = data.data.needsProfileSetup;
@@ -67,44 +81,40 @@ const SignIn = () => {
         } finally {
           setIsCheckingStatus(false);
         }
-      } else if (!isLoggedIn) {
-        // Reset when logged out
-        setNeedsProfileSetup(null);
       }
     };
-    checkUserStatus();
-  }, [isLoggedIn, user?.$id]);
 
-  // Redirect logic
-  if (!loading && isLoggedIn) {
-    // If we're still checking status, show loading
-    if (needsProfileSetup === null || isCheckingStatus) {
-      return (
-        <SafeAreaView className="bg-white h-full items-center justify-center">
-          <ActivityIndicator size="large" color="#0066FF" />
-          <Text className="mt-4 text-base font-rubik text-gray-600">
-            Checking your profile...
-          </Text>
-        </SafeAreaView>
-      );
-    }
-    
-    // If user needs profile setup (no username in Firebase)
+    checkUserStatus();
+  }, [isLoggedIn, userProfile?.userId, needsProfileSetup]);
+
+  // Redirect logic - only after we've checked the status
+  if (!loading && isLoggedIn && needsProfileSetup !== null) {
     if (needsProfileSetup) {
       console.log("🔄 Redirecting to set-profile (user needs username)");
       return <Redirect href="/(auth)/set-profile" />;
     }
     
-    // If user has username in Firebase, go to main app
     console.log("✅ Redirecting to main app (user has username)");
     return <Redirect href={{ pathname: "/(tabs)", params: { loggedIn: "true" } }} />;
+  }
+
+  // Show loading while checking status
+  if (isCheckingStatus || (isLoggedIn && needsProfileSetup === null)) {
+    return (
+      <SafeAreaView className="bg-white h-full items-center justify-center">
+        <ActivityIndicator size="large" color="#0066FF" />
+        <Text className="mt-4 text-base font-rubik text-gray-600">
+          Checking your profile...
+        </Text>
+      </SafeAreaView>
+    );
   }
 
   const handleLogin = async () => {
     const result = await login();
 
     if (result) {
-      refetch();
+      await refetch();
     } else {
       Alert.alert("Login failed", "Please try again");
     }
