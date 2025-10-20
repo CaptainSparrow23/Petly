@@ -14,8 +14,8 @@ import {
   Globe
 } from "lucide-react-native";
 import { router } from "expo-router";
-import React from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface SettingsItemProps {
@@ -25,23 +25,32 @@ interface SettingsItemProps {
   onPress?: () => void;
   showArrow?: boolean;
   textColor?: string;
+  logout?: boolean;
+  isLoading?: boolean;
 }
 
 const SettingsItem = ({
   icon: Icon,
   title,
+  logout = false,
   subtitle,
   onPress,
   showArrow = true,
-  textColor = "#1f2937"
+  textColor = "#1f2937",
+  isLoading = false
 }: SettingsItemProps) => (
   <TouchableOpacity
     className="flex flex-row items-center py-4 px-4 bg-gray-50 border-b border-gray-100 last:border-b-0"
     onPress={onPress}
     activeOpacity={0.7}
+    disabled={isLoading}
   >
     <View className="mr-3">
-      <Icon size={22} color="#6b7280" />
+      {isLoading ? (
+        <ActivityIndicator size="small" color="#ef4444" />
+      ) : (
+        <Icon size={22} color={!logout ? "#6b7280" : "#ef4444"} />
+      )}
     </View>
     <View className="flex-1">
       <Text className="text-base font-rubik-medium" style={{ color: textColor }}>
@@ -75,20 +84,38 @@ const SettingsSection = ({ title, children }: SettingsSectionProps) => (
 
 const Settings = () => {
   const { user, refetch, logout } = useGlobalContext();
+  const [isLogoutConfirm, setIsLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
+    if (!isLogoutConfirm) {
+      // First press - show confirmation state
+      setIsLogoutConfirm(true);
+      // Reset after 3 seconds if they don't confirm
+      setTimeout(() => {
+        setIsLogoutConfirm(false);
+      }, 3000);
+      return;
+    }
+
+    // Second press - proceed with logout
+    setIsLoggingOut(true);
     const success = await logout();
     if (success) {
       console.log("✅ Logged out successfully");
       // Refetch to update global state
       await refetch();
-      Alert.alert("Success", "You have been logged out");
-      // Use replace to clear the navigation stack and redirect to sign-in
-      router.replace("/(auth)/sign-in");
+      // Use replace to clear the navigation stack and redirect to sign-in with logout flag
+      router.replace({
+        pathname: "/(auth)/sign-in",
+        params: { loggedOut: "true" }
+      });
     } else {
       console.log("❌ Logout failed");
       Alert.alert("Error", "An error occurred while logging out, please try again");
+      setIsLoggingOut(false);
     }
+    setIsLogoutConfirm(false);
   };
 
   return (
@@ -187,10 +214,12 @@ const Settings = () => {
         <SettingsSection title="">
           <SettingsItem
             icon={LogOut}
-            title="Log Out"
+            logout={true}
+            title={isLoggingOut ? "Logging Out..." : isLogoutConfirm ? "Confirm" : "Log Out"}
             onPress={handleLogout}
             showArrow={false}
-            textColor="#ef4444"
+            textColor={isLogoutConfirm ? "#dc2626" : "#ef4444"}
+            isLoading={isLoggingOut}
           />
         </SettingsSection>
 
