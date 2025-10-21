@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { Text, View, ImageBackground, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import room_backgound from '@/assets/images/room_background.png';
-import { Card } from '@/components/other/PetCard';
+import { Card } from '@/components/mypets/PetCard';
 import { petData } from '@/constants/petdata';
 import { Animations } from '@/constants/animations';
 import { useGlobalContext } from '@/lib/global-provider';
