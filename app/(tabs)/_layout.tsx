@@ -3,35 +3,93 @@ import { ProfilePicture } from '@/components/other/ProfilePicture';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
-import { Cat, Home, Settings, Store, UserRound, UsersRound, BarChart3 } from 'lucide-react-native';
-import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Cat, Home, Settings, Store, UsersRound, BarChart3, LogOut } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Text, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
 
 const CustomDrawerContent = (props: any) => {
-  const { userProfile } = useGlobalContext();
+  const { userProfile, refetch, logout } = useGlobalContext();
+  const [isLogoutConfirm, setIsLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const displayName = userProfile?.displayName || 'User';
   const username = userProfile?.username;
   
+  const handleLogout = async () => {
+    if (!isLogoutConfirm) {
+      // First press - show confirmation state
+      setIsLogoutConfirm(true);
+      // Reset after 3 seconds if they don't confirm
+      setTimeout(() => {
+        setIsLogoutConfirm(false);
+      }, 3000);
+      return;
+    }
+
+    // Second press - proceed with logout
+    setIsLoggingOut(true);
+    router.replace({
+      pathname: "/(auth)/sign-in",
+      params: { loggedOut: "true" }
+    });
+
+    const success = await logout();
+
+    if (success) {
+      console.log("✅ Logged out successfully");
+      await refetch();
+    } else {
+      console.log("❌ Logout failed");
+      Alert.alert("Error", "An error occurred while logging out, please try again");
+      setIsLoggingOut(false);
+    }
+    setIsLogoutConfirm(false);
+  };
+  
   return (
-    <DrawerContentScrollView {...props}>
-      <TouchableOpacity 
-        className="py-5 bg-primary-100 items-center"
-        onPress={() => router.replace('/(tabs)/settings')}
-        activeOpacity={0.7}
-      >
-        <ProfilePicture 
-          profileId={userProfile?.profileId || null}
-          size={128}
-          className="border-4 border-white shadow-lg"
-        />
-        <Text className="text-2xl mt-2 font-semibold text-black-300">{displayName}</Text>
-        <Text className="text-m mt-1 font-rubik-bold text-gray-500">
-          {username ? `@${username}` : 'No username set'}
-        </Text>
-        <View className="h-px bg- mt-6 -mb-2 w-[90%] align-center" />
-      </TouchableOpacity>
-      <DrawerItemList {...props} />
-    </DrawerContentScrollView>
+    <View style={{ flex: 1 }}>
+      <DrawerContentScrollView {...props}>
+        <TouchableOpacity 
+          className="py-5 bg-primary-100 items-center"
+          onPress={() => router.replace('/(tabs)/settings')}
+          activeOpacity={0.7}
+        >
+          <ProfilePicture 
+            profileId={userProfile?.profileId || null}
+            size={128}
+            className="border-4 border-white shadow-lg"
+          />
+          <Text className="text-2xl mt-2 font-semibold text-black-300">{displayName}</Text>
+          <Text className="text-m mt-1 font-rubik-bold text-gray-500">
+            {username ? `@${username}` : 'No username set'}
+          </Text>
+          <View className="h-px bg-gray-200 mt-6 -mb-2 w-[90%] align-center" />
+        </TouchableOpacity>
+        <DrawerItemList {...props} />
+      </DrawerContentScrollView>
+      
+      {/* Logout Button at Bottom */}
+      <View className="p-4 pb-8">
+        <TouchableOpacity
+          className="flex-row items-center py-3 px-4 rounded-full"
+          style={{ backgroundColor: isLogoutConfirm ? '#fee2e2' : '#f3f4f6' }}
+          onPress={handleLogout}
+          activeOpacity={0.7}
+          disabled={isLoggingOut}
+        >
+          {isLoggingOut ? (
+            <ActivityIndicator size="small" color="#ef4444" style={{ marginRight: 12 }} />
+          ) : (
+            <LogOut size={22} color="#ef4444" style={{ marginRight: 12 }} />
+          )}
+          <Text 
+            className="text-base font-rubik-medium" 
+            style={{ color: isLogoutConfirm ? '#dc2626' : '#ef4444' }}
+          >
+            {isLoggingOut ? "Logging Out..." : isLogoutConfirm ? "Confirm" : "Log Out"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 

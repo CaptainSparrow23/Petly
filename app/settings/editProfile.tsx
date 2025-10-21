@@ -115,7 +115,7 @@ const EditProfile = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <ChevronLeft size={24} color="#000" />
         </TouchableOpacity>
-        <Text className="text-2xl font-rubik-medium text-gray-900">Edit Profile</Text>
+        <Text className="text-[17px] font-semibold text-black">Edit Profile</Text>
         <TouchableOpacity 
           onPress={handleSave}
           disabled={isSaving || !hasChanges}

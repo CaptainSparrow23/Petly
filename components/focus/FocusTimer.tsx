@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Dimensions, FlatList, GestureResponderEvent, LayoutChangeEvent, Modal, PanResponder, Pressable, Text, View } from 'react-native'
 import Svg, { Circle } from 'react-native-svg'
-import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming, SharedValue } from 'react-native-reanimated'
+import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, withTiming, SharedValue, interpolateColor } from 'react-native-reanimated'
 import LottieView from 'lottie-react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Animations } from '@/constants/animations'
@@ -14,6 +14,13 @@ const MODE_COLORS = {
   Work: '#f59e0b',
   Break: '#22c55e',
   Rest: '#a855f7',
+} as const
+
+const MODE_LIGHT_COLORS = {
+  Study: '#e0f2fe',  // sky-100 (lighter than sky-200)
+  Work: '#ffedd5',   // amber-100 (lighter than amber-200)
+  Break: '#dcfce7',  // green-100 (lighter than green-200)
+  Rest: '#f3e8ff',   // purple-100 (lighter than purple-200)
 } as const
 
 const PET_ANIMATIONS = {
@@ -94,7 +101,7 @@ const formatTime = (totalSeconds: number) => {
 type ModeKey = keyof typeof MODE_COLORS
 type TimerMode = 'countdown' | 'stopwatch'
 
-const ProgressRing = ({ angle, showProgress = true }: { angle: SharedValue<number>, showProgress?: boolean }) => {
+const ProgressRing = ({ angle, showProgress = true, color = '#3b82f6', lightColor = '#dbeafe' }: { angle: SharedValue<number>, showProgress?: boolean, color?: string, lightColor?: string }) => {
 
   const dashProps = useAnimatedProps(() => {
     const ratio = Math.min(Math.max(angle.value / 360, 0), 1)
@@ -124,7 +131,7 @@ const ProgressRing = ({ angle, showProgress = true }: { angle: SharedValue<numbe
         cx={center}
         cy={center}
         r={RADIUS}
-        stroke="#dbeafe"
+        stroke={lightColor}
         strokeWidth={TRACK_WIDTH}
         fill="none"
       />
@@ -134,7 +141,7 @@ const ProgressRing = ({ angle, showProgress = true }: { angle: SharedValue<numbe
             cx={center}
             cy={center}
             r={RADIUS}
-            stroke="#3b82f6"
+            stroke={color}
             strokeWidth={TRACK_WIDTH}
             strokeLinecap="round"
             fill="none"
@@ -144,12 +151,12 @@ const ProgressRing = ({ angle, showProgress = true }: { angle: SharedValue<numbe
           />
           <AnimatedCircle
             r={16.2}
-            fill="#3b82f6"
+            fill={color}
             animatedProps={knobProps}
           />
           <AnimatedCircle
             r={10.8}
-            fill="#3b82f6"
+            fill={color}
             animatedProps={knobProps}
           />
         </>
@@ -226,6 +233,10 @@ const FocusTimer = () => {
   })
   const previousStepRef = useRef<number>(4) // 20 minutes / 5 minute steps
   const angle = useSharedValue(60) // (20 / 120) * 360
+  const timerOpacity = useSharedValue(1)
+  const timerScale = useSharedValue(1)
+  const countdownButtonOpacity = useSharedValue(1) // 1 = blue-500, 0 = blue-300
+  const stopwatchButtonOpacity = useSharedValue(0) // 1 = blue-500, 0 = blue-300
   const [catSource, setCatSource] = useState(idleAnimation)
   const catAnimationRef = useRef<LottieView>(null)
   const isStopwatch = timerMode === 'stopwatch'
@@ -247,23 +258,45 @@ const FocusTimer = () => {
         return
       }
 
-      setTimerMode(nextMode)
-
+      // Animate button colors
       if (nextMode === 'countdown') {
-        const defaultSeconds = minutesToSeconds(INITIAL_MINUTES)
-        setSelectedMinutes(INITIAL_MINUTES)
-        setSessionMinutes(INITIAL_MINUTES)
-        setRemainingSeconds(defaultSeconds)
-        previousStepRef.current = 4
+        countdownButtonOpacity.value = withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) })
+        stopwatchButtonOpacity.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) })
       } else {
-        setSelectedMinutes(0)
-        setSessionMinutes(0)
-        setRemainingSeconds(0)
-        setElapsedSeconds(0)
-        previousStepRef.current = 0
+        countdownButtonOpacity.value = withTiming(0, { duration: 300, easing: Easing.inOut(Easing.ease) })
+        stopwatchButtonOpacity.value = withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) })
       }
+
+      // Animate out
+      timerOpacity.value = withTiming(0, { duration: 200, easing: Easing.out(Easing.ease) })
+      timerScale.value = withTiming(0.8, { duration: 200, easing: Easing.out(Easing.ease) })
+
+      // Change mode after animation
+      setTimeout(() => {
+        setTimerMode(nextMode)
+
+        if (nextMode === 'countdown') {
+          const defaultSeconds = minutesToSeconds(INITIAL_MINUTES)
+          setSelectedMinutes(INITIAL_MINUTES)
+          setSessionMinutes(INITIAL_MINUTES)
+          setRemainingSeconds(defaultSeconds)
+          previousStepRef.current = 4
+          angle.value = withTiming(60, { duration: 800, easing: Easing.out(Easing.cubic) })
+        } else {
+          setSelectedMinutes(0)
+          setSessionMinutes(0)
+          setRemainingSeconds(0)
+          setElapsedSeconds(0)
+          previousStepRef.current = 0
+          angle.value = withTiming(0, { duration: 800, easing: Easing.out(Easing.cubic) })
+        }
+
+        // Animate in
+        timerOpacity.value = withTiming(1, { duration: 300, easing: Easing.in(Easing.ease) })
+        timerScale.value = withTiming(1, { duration: 300, easing: Easing.in(Easing.ease) })
+      }, 200)
     },
-    [isRunning, timerMode],
+    [isRunning, timerMode, angle, timerOpacity, timerScale, countdownButtonOpacity, stopwatchButtonOpacity],
   )
 
   useEffect(() => {
@@ -396,6 +429,7 @@ const FocusTimer = () => {
       PanResponder.create({
         onStartShouldSetPanResponder: () => !isRunning && !isStopwatch,
         onMoveShouldSetPanResponder: () => !isRunning && !isStopwatch,
+        onPanResponderGrant: updateFromGesture, // Handle tap to jump to position
         onPanResponderMove: updateFromGesture,
       }),
     [isRunning, isStopwatch, updateFromGesture],
@@ -408,7 +442,10 @@ const FocusTimer = () => {
     }
 
     if (timerMode === 'countdown') {
-      if (selectedMinutes === 0) return
+      if (selectedMinutes === 0) {
+        showBanner('Please select a time greater than 0 minutes', 'error')
+        return
+      }
       const startingSeconds = minutesToSeconds(selectedMinutes)
       setRemainingSeconds(startingSeconds)
       setSessionMinutes(selectedMinutes)
@@ -506,32 +543,56 @@ const FocusTimer = () => {
     return formatTime(displaySeconds)
   }, [elapsedSeconds, isRunning, isStopwatch, remainingSeconds, selectedMinutes])
 
+  const countdownButtonStyle = useAnimatedStyle(() => {
+    return {
+      backgroundColor: interpolateColor(
+        countdownButtonOpacity.value,
+        [0, 1],
+        ['#93c5fd', '#3b82f6'] // blue-300 to blue-500
+      ),
+    }
+  })
+
+  const stopwatchButtonStyle = useAnimatedStyle(() => {
+    return {
+      backgroundColor: interpolateColor(
+        stopwatchButtonOpacity.value,
+        [0, 1],
+        ['#93c5fd', '#3b82f6'] // blue-300 to blue-500
+      ),
+    }
+  })
+
   return (
     <View className="flex-1 bg-white px-6">
       {/* Timer Mode Toggle - Positioned Absolutely at Top Center */}
       <View className="absolute top-[-35] left-0 right-0 z-10 items-center" style={{ pointerEvents: 'box-none' }}>
         <View className="flex-row items-center" style={{ pointerEvents: 'auto' }}>
-          <Pressable
-            className={`items-center justify-center px-4 py-3 rounded-l-full ${timerMode === 'countdown' ? 'bg-blue-500' : 'bg-blue-300'}`}
-            onPress={() => handleTimerModePress('countdown')}
-          >
-            <MaterialCommunityIcons
-              name={timerMode === 'countdown' ? 'timer-sand-full' : 'timer-sand-empty'}
-              size={20}
-              color='#fff'
-            />
-          </Pressable>
+          <Animated.View style={[countdownButtonStyle, { borderTopLeftRadius: 9999, borderBottomLeftRadius: 9999 }]}>
+            <Pressable
+              className="items-center justify-center px-4 py-3"
+              onPress={() => handleTimerModePress('countdown')}
+            >
+              <MaterialCommunityIcons
+                name={timerMode === 'countdown' ? 'timer-sand-full' : 'timer-sand-empty'}
+                size={20}
+                color='#fff'
+              />
+            </Pressable>
+          </Animated.View>
           
-          <Pressable
-            className={`items-center justify-center px-4 py-3 rounded-r-full ${timerMode === 'stopwatch' ? 'bg-blue-500' : 'bg-blue-300'}`}
-            onPress={() => handleTimerModePress('stopwatch')}
-          >
-            <MaterialCommunityIcons
-              name={timerMode === 'stopwatch' ? 'timer' : 'timer-outline'}
-              size={20}
-              color='#fff'
-            />
-          </Pressable>
+          <Animated.View style={[stopwatchButtonStyle, { borderTopRightRadius: 9999, borderBottomRightRadius: 9999 }]}>
+            <Pressable
+              className="items-center justify-center px-4 py-3"
+              onPress={() => handleTimerModePress('stopwatch')}
+            >
+              <MaterialCommunityIcons
+                name={timerMode === 'stopwatch' ? 'timer' : 'timer-outline'}
+                size={20}
+                color='#fff'
+              />
+            </Pressable>
+          </Animated.View>
         </View>
       </View>
 
@@ -546,7 +607,7 @@ const FocusTimer = () => {
       <View className="flex-1 items-center justify-end pb-16">
         <View className="items-center justify-center ">
           <View style={{ width: SLIDER_SIZE, height: SLIDER_SIZE }} pointerEvents="none">
-            <ProgressRing angle={angle} showProgress={timerMode === 'countdown'} />
+            <ProgressRing angle={angle} showProgress={timerMode === 'countdown'} color={MODE_COLORS[mode]} lightColor={MODE_LIGHT_COLORS[mode]} />
           </View>
 
           {timerMode === 'countdown' && (
@@ -621,12 +682,19 @@ const FocusTimer = () => {
           </Pressable>
         </View>
 
-        <Text
-          className="font-medium text-slate-700 text-center mt-8 mb-1"
-          style={{ fontSize: 85 }}
+        <Animated.View 
+          style={{
+            opacity: timerOpacity,
+            transform: [{ scale: timerScale }],
+          }}
         >
-          {formattedTime}
-        </Text>
+          <Text
+            className="font-medium text-slate-700 text-center mt-8 mb-1"
+            style={{ fontSize: 85 }}
+          >
+            {formattedTime}
+          </Text>
+        </Animated.View>
 
         <Pressable
           className="min-w-[180px] items-center rounded-full px-10 py-3.5 shadow-lg mt-8"
@@ -712,7 +780,7 @@ const FocusTimer = () => {
               renderItem={({ item }) => (
                 <Pressable
                   className={`items-center rounded-2xl border ${
-                    mode === item ? 'border-sky-400 bg-sky-50' : 'border-slate-200'
+                    mode === item ? 'border-blue-400 bg-blue-50' : 'border-slate-200'
                   }`}
                   style={{ flex: 1, paddingVertical: 18 }}
                   onPress={() => {
