@@ -1,234 +1,222 @@
-import { MenuButton } from '@/components/other/MenuButton'
-import React, { useState, useEffect } from 'react'
-import { FlatList, Image, Pressable, ScrollView, Text, View, ActivityIndicator, Alert } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { Crown, Flame, Plus, Trophy, Users } from 'lucide-react-native'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Pressable, ScrollView, Text, View, ActivityIndicator, Alert } from 'react-native'
+import { Plus, Users, Trash2, Check, Edit3 } from 'lucide-react-native'
 import { useGlobalContext } from '@/lib/global-provider'
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import Constants from 'expo-constants'
+import Svg, { Path } from 'react-native-svg'
+import { ProfilePicture } from '@/components/other/ProfilePicture'
 
-const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
+const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string
 
 interface Friend {
-  id: string;
-  name: string;
-  username: string | null;
-  email: string;
-  avatar: string;
-  focusStreak: number;
-  weeklyMinutes: number;
-  todayFocus: number;
-  isOnline: boolean;
-  petType: string;
+  username: string | null
+  displayName: string
+  profileId: number | null
+  userId: string
+  timeActiveToday: number
 }
 
-const FriendCard = ({ 
-  friend, 
-  onRemoveFriend 
-}: { 
-  friend: Friend;
-  onRemoveFriend?: (friendId: string) => void;
-}) => {
-  const handleLongPress = () => {
-    if (onRemoveFriend) {
-      Alert.alert(
-        'Remove Friend',
-        `Are you sure you want to remove ${friend.name} from your friends?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Remove', 
-            style: 'destructive',
-            onPress: () => onRemoveFriend(friend.id)
-          }
-        ]
-      );
-    }
-  };
+
+const TopDropdownBadge = ({ labelBottom, top, labelTop, width = 60, height = 70, fontSize = 18, smallFontSize = 11 }: { labelBottom: string; labelTop: string; width?: number; height?: number; fontSize?: number; smallFontSize?: number, top: number }) => {
+  // geometry: rectangle part ~28 high, point reaches to full height
+  const rectH = Math.max(24, Math.max(32, height - 16))
+  const pointY = height
+  const midX = width / 2
 
   return (
-    <Pressable 
-      className="bg-white rounded-2xl p-4 mb-3 shadow-sm border border-gray-100"
-      onLongPress={handleLongPress}
-      delayLongPress={500}
+    <View style={{ position: 'absolute', top: 0, right: 20, alignSelf: 'center' }}>
+      <View style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>
+        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+          {/* pentagon path: top-left → top-right → rect-bottom-right → point → rect-bottom-left → close */}
+          <Path
+            d={`M 0 0 L ${width} 0 L ${width} ${rectH} L ${midX} ${pointY} L 0 ${rectH} Z`}
+            fill="#f2f2f2"
+          />
+        </Svg>
+          <View
+            style={{
+              position: 'absolute',
+              top: top,
+              alignItems: 'center',
+            }}
+          >
+            <Text
+            className='font-bold'
+              style={{
+                fontFamily: 'Rubik-Bold',
+                fontSize: fontSize,
+                color: '#2563eb', // Tailwind blue-600
+                lineHeight: fontSize + 2,
+              }}
+            >
+              {labelTop}
+            </Text>
+            <Text
+              style={{
+                fontFamily: 'Rubik-Medium',
+                fontSize: smallFontSize,
+                color: '#60a5fa', // Tailwind blue-400 (lighter)
+                marginTop: 1,
+              }}
+            >
+              {labelBottom}
+            </Text>
+          </View>
+      </View>
+    </View>
+  )
+}
+
+const FriendCard = ({
+  friend,
+  isEditMode,
+  isSelected,
+  onToggleSelect,
+}: {
+  friend: Friend
+  isEditMode: boolean
+  isSelected: boolean
+  onToggleSelect?: (friendId: string) => void
+}) => {
+  const handlePress = () => {
+    if (isEditMode && onToggleSelect) onToggleSelect(friend.userId)
+  }
+
+  return (
+    <Pressable
+      className={`rounded-2xl p-4 mb-3 shadow-sm border ${
+        isSelected ? 'border-red-500 bg-red-50' : 'border-gray-100 bg-white'
+      }`}
+      onPress={handlePress}
+      disabled={!isEditMode}
     >
+      <TopDropdownBadge 
+        labelTop={`${friend.timeActiveToday}m`}
+        labelBottom="today"
+        width={50}
+        height={65}
+        fontSize={15}
+        smallFontSize={11}
+        top={10}
+      />
+      
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center flex-1">
-          <View className="relative">
-            <Image 
-              source={{ uri: friend.avatar }} 
-              className="w-12 h-12 rounded-full"
-            />
-            {friend.isOnline && (
-              <View className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
-            )}
-          </View>
-          
-          <View className="ml-3 flex-1">
-            <Text className="font-rubik-bold text-gray-900">{friend.name}</Text>
-            <View className="flex-row items-center mt-1">
-              <Flame size={14} color="#f97316" />
-              <Text className="text-sm text-gray-600 ml-1">{friend.focusStreak} day streak</Text>
-              <Text className="text-gray-400 mx-2">•</Text>
-              <Text className="text-sm text-gray-600">{friend.petType}</Text>
+          {isEditMode && (
+            <View
+              className={`w-6 h-6 rounded-full border-2 mr-3 items-center justify-center ${
+                isSelected ? 'bg-red-500 border-red-500' : 'border-gray-300'
+              }`}
+            >
+              {isSelected && <Check size={16} color="#ffffff" />}
             </View>
+          )}
+
+          <ProfilePicture profileId={friend.profileId} size={48} />
+
+          <View className="ml-3 flex-1">
+            <Text className="font-rubik-bold text-gray-900">{friend.displayName}</Text>
+            {friend.username && <Text className="text-sm text-gray-500 mt-0.5">@{friend.username}</Text>}
           </View>
         </View>
-
-        <View className="items-end">
-          <Text className="font-rubik-bold text-blue-600">{friend.todayFocus}m</Text>
-          <Text className="text-xs text-gray-500">today</Text>
-        </View>
       </View>
     </Pressable>
-  );
-};
-
-const LeaderboardItem = ({ 
-  friend, 
-  index, 
-  onRemoveFriend 
-}: { 
-  friend: Friend; 
-  index: number;
-  onRemoveFriend?: (friendId: string) => void;
-}) => {
-  const handleLongPress = () => {
-    if (onRemoveFriend) {
-      Alert.alert(
-        'Remove Friend',
-        `Are you sure you want to remove ${friend.name} from your friends?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Remove', 
-            style: 'destructive',
-            onPress: () => onRemoveFriend(friend.id)
-          }
-        ]
-      );
-    }
-  };
-
-  return (
-    <Pressable 
-      className="flex-row items-center p-4 bg-white rounded-xl mb-2 shadow-sm border border-gray-100"
-      onLongPress={handleLongPress}
-      delayLongPress={500}
-    >
-      <View className="w-8 items-center">
-        {index === 0 ? (
-          <Crown size={20} color="#fbbf24" />
-        ) : index === 1 ? (
-          <Trophy size={18} color="#94a3b8" />
-        ) : index === 2 ? (
-          <Trophy size={18} color="#a78bfa" />
-        ) : (
-          <Text className="font-rubik-bold text-gray-500">{index + 1}</Text>
-        )}
-      </View>
-
-      <Image source={{ uri: friend.avatar }} className="w-10 h-10 rounded-full ml-3" />
-      
-      <View className="flex-1 ml-3">
-        <Text className="font-rubik-medium text-gray-900">{friend.name}</Text>
-        <View className="flex-row items-center mt-1">
-          <Flame size={12} color="#f97316" />
-          <Text className="text-xs text-gray-600 ml-1">{friend.focusStreak} days</Text>
-        </View>
-      </View>
-
-      <View className="items-end">
-        <Text className="font-rubik-bold text-blue-600">{friend.weeklyMinutes}m</Text>
-        <Text className="text-xs text-gray-500">this week</Text>
-      </View>
-    </Pressable>
-  );
-};
+  )
+}
 
 const Friends = () => {
-  const { userProfile } = useGlobalContext();
-  const [activeTab, setActiveTab] = useState<'friends' | 'leaderboard'>('friends');
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { userProfile, showBanner } = useGlobalContext()
+  const [friends, setFriends] = useState<Friend[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set())
+  const [isDeletingFriends, setIsDeletingFriends] = useState(false)
 
   const fetchFriends = async () => {
     if (!userProfile?.userId) {
-      console.log('❌ No user ID available for fetching friends');
-      setIsLoading(false);
-      setIsRefreshing(false);
-      return;
+      setIsLoading(false)
+      return
     }
-    
-    console.log('🔄 Fetching friends for user:', userProfile.userId);
-    console.log('🌐 API URL:', `${API_BASE_URL}/api/friends/list/${userProfile.userId}`);
-    
     try {
-      const response = await fetch(`${API_BASE_URL}/api/friends/list/${userProfile.userId}`);
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response ok:', response.ok);
-      
+      const response = await fetch(`${API_BASE_URL}/api/get_friends/${userProfile.userId}`)
       if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Friends data received:', result);
-        setFriends(result.data?.friends || []);
+        const result = await response.json()
+        setFriends(result.data?.friends || [])
       } else {
-        const errorText = await response.text();
-        console.error('❌ Failed to fetch friends:', response.status, response.statusText, errorText);
+        const errorText = await response.text()
+        console.error('Failed to fetch friends:', response.status, response.statusText, errorText)
       }
     } catch (error) {
-      console.error('💥 Error fetching friends:', error);
-      Alert.alert('Error', 'Failed to load friends. Please try again.');
+      console.error('Error fetching friends:', error)
+      Alert.alert('Error', 'Failed to load friends. Please try again.')
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      setIsLoading(false)
     }
-  };
+  }
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    fetchFriends();
-  };
+  const handleAddFriend = () => router.push('/friends/search' as any)
 
-  const handleAddFriend = () => {
-    router.push('/friends/search' as any);
-  };
+  const handleToggleEdit = () => {
+    if (isEditMode) setSelectedFriends(new Set())
+    setIsEditMode(!isEditMode)
+  }
 
-  const handleRemoveFriend = async (friendId: string) => {
-    if (!userProfile?.userId) return;
+  const handleToggleSelect = (friendId: string) => {
+    setSelectedFriends(prev => {
+      const next = new Set(prev)
+      next.has(friendId) ? next.delete(friendId) : next.add(friendId)
+      return next
+    })
+  }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/friends/remove`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
+  const handleDeleteSelected = async () => {
+    if (selectedFriends.size === 0 || !userProfile?.userId) return
+    Alert.alert(
+      'Remove Friends',
+      `Are you sure you want to remove ${selectedFriends.size} friend${selectedFriends.size > 1 ? 's' : ''}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeletingFriends(true)
+            try {
+              const removePromises = Array.from(selectedFriends).map(friendId =>
+                fetch(`${API_BASE_URL}/api/friends/remove`, {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId: userProfile.userId, friendId }),
+                })
+              )
+              await Promise.all(removePromises)
+              setFriends(prev => prev.filter(f => !selectedFriends.has(f.userId)))
+              setSelectedFriends(new Set())
+              setIsEditMode(false)
+              const count = selectedFriends.size
+              showBanner(`${count} friend${count > 1 ? 's' : ''} removed successfully`, 'success')
+            } catch (e) {
+              console.error('Error removing friends:', e)
+              showBanner('Failed to remove friends. Please try again.', 'error')
+            } finally {
+              setIsDeletingFriends(false)
+            }
+          },
         },
-        body: JSON.stringify({
-          userId: userProfile.userId,
-          friendId: friendId,
-        }),
-      });
-
-      if (response.ok) {
-        // Remove friend from local state
-        setFriends(prev => prev.filter(friend => friend.id !== friendId));
-        Alert.alert('Success', 'Friend removed successfully');
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Error', errorData.error || 'Failed to remove friend');
-      }
-    } catch (error) {
-      console.error('Error removing friend:', error);
-      Alert.alert('Error', 'Failed to remove friend. Please try again.');
-    }
-  };
+      ]
+    )
+  }
 
   useEffect(() => {
-    console.log('👤 User Profile in friends:', userProfile);
-    console.log('🆔 User ID:', userProfile?.userId);
-    fetchFriends();
-  }, [userProfile?.userId]);
+    fetchFriends()
+  }, [userProfile?.userId])
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchFriends()
+    }, [userProfile?.userId])
+  )
 
   if (isLoading) {
     return (
@@ -236,120 +224,116 @@ const Friends = () => {
         <ActivityIndicator size="large" color="#3b82f6" />
         <Text className="mt-4 text-gray-600 font-rubik">Loading friends...</Text>
       </View>
-    );
+    )
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
-
-      {/* Tab Navigation */}
-      <View className="bg-white px-6 pb-4">
-        <View className="flex-row bg-gray-100 rounded-xl p-1 mt-4">
-          <Pressable
-            className={`flex-1 flex-row items-center justify-center py-2 rounded-lg ${
-              activeTab === 'friends' ? 'bg-white shadow-sm' : ''
-            }`}
-            onPress={() => setActiveTab('friends')}
-          >
-            <Users size={18} color={activeTab === 'friends' ? '#3b82f6' : '#6b7280'} />
-            <Text className={`ml-2 font-rubik-medium ${
-              activeTab === 'friends' ? 'text-blue-600' : 'text-gray-600'
-            }`}>
-              Friends
-            </Text>
-          </Pressable>
-
-          <Pressable
-            className={`flex-1 flex-row items-center justify-center py-2 rounded-lg ${
-              activeTab === 'leaderboard' ? 'bg-white shadow-sm' : ''
-            }`}
-            onPress={() => setActiveTab('leaderboard')}
-          >
-            <Trophy size={18} color={activeTab === 'leaderboard' ? '#3b82f6' : '#6b7280'} />
-            <Text className={`ml-2 font-rubik-medium ${
-              activeTab === 'leaderboard' ? 'text-blue-600' : 'text-gray-600'
-            }`}>
-              Leaderboard
-            </Text>
-          </Pressable>
-        </View>
+    <View className="flex-1 bg-white">
+      {/* Top right buttons */}
+      <View className="absolute -top-12 right-0 z-10 pt-2 pr-6 flex-row gap-2">
+        {!isEditMode ? (
+          <>
+            {friends.length > 0 && (
+              <Pressable
+                onPress={handleToggleEdit}
+                className="bg-white rounded-full w-9 h-9 items-center justify-center border border-blue-500"
+              >
+                <Edit3 size={18} color="#3b82f6" />
+              </Pressable>
+            )}
+            <Pressable onPress={handleAddFriend} className="bg-blue-500 rounded-full w-9 h-9 items-center justify-center">
+              <Plus size={24} color="#ffffff" />
+            </Pressable>
+          </>
+        ) : (
+          <>
+            {selectedFriends.size > 0 && (
+              <Pressable 
+                onPress={handleDeleteSelected} 
+                className="bg-red-500 rounded-full px-3 py-2 flex-row items-center"
+                disabled={isDeletingFriends}
+              >
+                {isDeletingFriends ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Trash2 size={18} color="#ffffff" />
+                )}
+              </Pressable>
+            )}
+            <Pressable
+              onPress={handleToggleEdit}
+              className="bg-gray-100 rounded-full px-2 py-2 border border-gray-300"
+              disabled={isDeletingFriends}
+            >
+              <Text className="font-rubik-medium text-gray-700">Cancel</Text>
+            </Pressable>
+          </>
+        )}
       </View>
 
-      {/* Content */}
-      {activeTab === 'friends' ? (
-        <ScrollView className="flex-1 px-6">
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="font-rubik-bold text-gray-900 text-lg">Your Friends</Text>
-            <Text className="text-blue-600 font-rubik-medium">{friends.length} friends</Text>
+      <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* Toggle between Friends and Global */}
+        <View className="flex-row items-center gap-2 mt-12 mb-5">
+          <View className="flex-row bg-blue-100 rounded-full p-1 border-gray-300 border flex-1">
+            <Pressable className="flex-1 py-2.5 rounded-full bg-blue-500 px-4">
+              <Text className="text-center font-rubik-semibold text-white">Friends</Text>
+            </Pressable>
+            <Pressable className="flex-1 py-2.5 rounded-full bg-blue-100 px-4">
+              <Text className="text-center font-rubik-semibold text-gray-900">Global</Text>
+            </Pressable>
           </View>
-          
-          {friends.length > 0 && (
-            <Text className="text-sm text-gray-500 font-rubik mb-4">
-              Long press on any friend to remove them
+        </View>
+
+        {friends.length === 0 ? (
+          <View className="bg-white rounded-2xl p-6 items-center">
+            <Users size={48} color="#9ca3af" />
+            <Text className="font-rubik-bold text-gray-900 text-lg mt-4">No Friends Yet</Text>
+            <Text className="text-gray-600 font-rubik text-center mt-2">
+              Start building your focus community by adding friends!
             </Text>
-          )}
+            <Pressable className="bg-blue-500 rounded-xl px-6 py-3 mt-4" onPress={handleAddFriend}>
+              <Text className="text-white font-rubik-medium">Find Friends</Text>
+            </Pressable>
+          </View>
+        ) : (
+          friends.map(friend => (
+            <FriendCard
+              key={friend.userId}
+              friend={friend}
+              isEditMode={isEditMode}
+              isSelected={selectedFriends.has(friend.userId)}
+              onToggleSelect={handleToggleSelect}
+            />
+          ))
+        )}
 
-          {friends.length === 0 ? (
-            <View className="bg-white rounded-2xl p-6 items-center">
-              <Users size={48} color="#9ca3af" />
-              <Text className="font-rubik-bold text-gray-900 text-lg mt-4">No Friends Yet</Text>
-              <Text className="text-gray-600 font-rubik text-center mt-2">
-                Start building your focus community by adding friends!
-              </Text>
-              <Pressable 
-                className="bg-blue-500 rounded-xl px-6 py-3 mt-4"
-                onPress={handleAddFriend}
-              >
-                <Text className="text-white font-rubik-medium">Find Friends</Text>
-              </Pressable>
-            </View>
-          ) : (
-            friends.map((friend: Friend) => (
-              <FriendCard 
-                key={friend.id} 
-                friend={friend} 
-                onRemoveFriend={handleRemoveFriend}
-              />
-            ))
-          )}
+        <View className="h-6" />
+      </ScrollView>
 
-          <View className="h-6" />
-        </ScrollView>
-      ) : (
-        <ScrollView className="flex-1 px-6">
-          <View className="bg-yellow-400 rounded-2xl p-4 mb-6">
-            <View className="flex-row items-center">
-              <Crown size={24} color="white" />
-              <Text className="text-white font-rubik-bold text-lg ml-2">This Week's Leaders</Text>
-            </View>
-            <Text className="text-yellow-100 mt-1">Compete with friends and climb the ranks!</Text>
+      {/* Bottom profile section */} 
+      {userProfile && (
+        <View className="absolute bottom-0 left-0 right-0 overflow-hidden bg-blue-300">
+          {/* the angled blue background */}
+          <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}>
+            <Svg height="100%" width="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <Path d="M 0 100 L 0 0 L 80 0 L 20 100 L 0 100 Z" fill="#3b82f6" />
+            </Svg>
           </View>
 
-          <Text className="font-rubik-bold text-gray-900 text-lg mb-4">Weekly Rankings</Text>
+          {/* the white dropdown coming from the top center */}
+          <TopDropdownBadge labelTop={`${userProfile.timeActiveToday}m`}labelBottom="today" top={15} />
 
-          {friends.length === 0 ? (
-            <View className="bg-white rounded-2xl p-6 items-center">
-              <Trophy size={48} color="#9ca3af" />
-              <Text className="font-rubik-bold text-gray-900 text-lg mt-4">No Rankings Yet</Text>
-              <Text className="text-gray-600 font-rubik text-center mt-2">
-                Add friends to see who's leading this week!
-              </Text>
+          {/* content row */}
+          <View className="px-6 pt-4 pb-8">
+            <View className="flex-row items-center">
+              <ProfilePicture profileId={userProfile.profileId} size={54} />
+              <View className="ml-3 flex-1">
+                <Text className="font-bold text-lg text-white">{userProfile.displayName || 'You'}</Text>
+                {userProfile.username && <Text className="text-sm text-gray-100">@{userProfile.username}</Text>}
+              </View>
             </View>
-          ) : (
-            [...friends]
-              .sort((a: Friend, b: Friend) => b.weeklyMinutes - a.weeklyMinutes)
-              .map((friend: Friend, index: number) => (
-                <LeaderboardItem 
-                  key={friend.id} 
-                  friend={friend} 
-                  index={index} 
-                  onRemoveFriend={handleRemoveFriend}
-                />
-              ))
-          )}
-
-          <View className="h-6" />
-        </ScrollView>
+          </View>
+        </View>
       )}
     </View>
   )

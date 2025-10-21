@@ -621,9 +621,6 @@ const Account = () => {
     return (
       <View className="flex-1 bg-white items-center justify-center">
         <ActivityIndicator size="large" color={PRIMARY_BLUE} />
-        <Text className="mt-4 text-base font-rubik text-gray-600">
-          Loading insights...
-        </Text>
       </View>
     );
   }
