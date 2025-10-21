@@ -99,16 +99,16 @@ const Settings = () => {
 
     // Second press - proceed with logout
     setIsLoggingOut(true);
+    router.replace({
+      pathname: "/(auth)/sign-in",
+      params: { loggedOut: "true" }
+    });
+
     const success = await logout();
+
     if (success) {
       console.log("✅ Logged out successfully");
-      // Refetch to update global state
       await refetch();
-      // Use replace to clear the navigation stack and redirect to sign-in with logout flag
-      router.replace({
-        pathname: "/(auth)/sign-in",
-        params: { loggedOut: "true" }
-      });
     } else {
       console.log("❌ Logout failed");
       Alert.alert("Error", "An error occurred while logging out, please try again");

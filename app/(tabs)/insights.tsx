@@ -291,7 +291,8 @@ const ModeBreakdownDonut = ({
 
 const Account = () => {
   const { userProfile } = useGlobalContext();
-  const { weeklyData, loading, error, refetch, summary } = useWeeklyFocusData();
+  const { weeklyData, loading, error, refetch, summary, streak } =
+    useWeeklyFocusData();
   const {
     monthlyData,
     loading: monthlyLoading,
@@ -575,25 +576,7 @@ const Account = () => {
     [chartUnderHour]
   );
 
-  const streakCount = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
-    const sortedByDate = [...weeklyData].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    let count = 0;
-    for (const day of sortedByDate) {
-      // Skip today if it has 0 minutes (day not complete yet)
-      if (day.date === today && (day.totalMinutes ?? 0) === 0) {
-        continue;
-      }
-      if ((day.totalMinutes ?? 0) > 0) {
-        count += 1;
-      } else {
-        break;
-      }
-    }
-    return count;
-  }, [weeklyData]);
+  const streakCount = streak;
   const todayTotalSeconds = useMemo(() => {
     const parsed = parseTimeStringToSeconds(todayTotals.timeString);
     if (parsed > 0) {
