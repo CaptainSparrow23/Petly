@@ -13,6 +13,7 @@ interface UserProfile {
     email: string | null;
     profileId: number | null;
     timeActiveToday: number;
+    coins: number;
 }
 
 type BannerType = 'success' | 'error' | 'info' | 'warning';
@@ -26,6 +27,7 @@ interface GlobalContextType {
     setSelectedPetName: (name: string | null) => Promise<void>;
     logout: () => Promise<boolean>;
     showBanner: (message: string, type?: BannerType) => void;
+    coins: number;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -58,8 +60,12 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
             const data = await response.json();
 
             if (data.success) {
-                setUserProfile(data.data);
-                console.log('✅ User profile loaded:', data.data);
+                const profile = data.data as UserProfile;
+                setUserProfile({
+                    ...profile,
+                    coins: typeof profile.coins === "number" ? profile.coins : 0,
+                });
+                console.log('✅ User profile loaded:', profile);
             } else {
                 console.warn('⚠️ Failed to load user profile:', data.error);
                 setUserProfile(null);
@@ -217,6 +223,7 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
             setSelectedPetName,
             logout,
             showBanner,
+            coins: userProfile?.coins || 0
         }}>
             <Banner
                 message={bannerMessage}

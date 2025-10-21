@@ -4,8 +4,9 @@ import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawe
 import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import { Cat, Home, Settings, Store, UsersRound, BarChart3, LogOut } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Text, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const CustomDrawerContent = (props: any) => {
   const { userProfile, refetch, logout } = useGlobalContext();
@@ -93,6 +94,28 @@ const CustomDrawerContent = (props: any) => {
   );
 };
 
+const FocusHeaderCoins = () => {
+  const { coins } = useGlobalContext();
+  const formattedCoins = useMemo(() => coins.toLocaleString(), [coins]);
+
+  return (
+    <View className="mt-3 mr-3 flex-row items-center rounded-full bg-slate-900/10 shadow-sm">
+      <View className="mr-2 h-9 w-9 items-center justify-center rounded-full bg-amber-400">
+        <MaterialCommunityIcons name="currency-usd" size={18} color="#92400e" />
+      </View>
+      <Text className="text-sm font-semibold text-slate-700">{formattedCoins}</Text>
+      <TouchableOpacity
+        className="ml-2 h-7 w-7 items-center justify-center rounded-full"
+        style={{ backgroundColor: "#3b82f6" }}
+        activeOpacity={0.8}
+        onPress={() => {}}
+      >
+        <MaterialCommunityIcons name="plus" size={14} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 const DrawerLayout = () => {
   return (
     <Drawer 
@@ -119,6 +142,7 @@ const DrawerLayout = () => {
       <Drawer.Screen name='index' options={{ 
         title: '',
         headerTitle: () => null,
+        headerRight: () => <FocusHeaderCoins />,
         drawerLabel: 'Focus',
         drawerIcon: ({color, size}) => <Home color={color} size={size} />
       }} />
@@ -148,6 +172,7 @@ const DrawerLayout = () => {
       }} />
       <Drawer.Screen name='store' options={{ 
         title: 'Store', 
+        headerRight: () => <FocusHeaderCoins />,
         drawerIcon: ({color, size}) => <Store color={color} size={size} />
       }} />
       <Drawer.Screen name='friends' options={{ 
