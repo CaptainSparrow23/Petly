@@ -38,6 +38,7 @@ interface WeeklyFocusResponse {
     week: FocusSummary;
     lifetime: FocusSummary;
   };
+  streak?: number;
   message?: string;
 }
 
@@ -65,6 +66,7 @@ export const useWeeklyFocusData = () => {
   const [weeklyData, setWeeklyData] = useState<WeeklyFocusData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
   const createEmptySummary = (): FocusSummary => ({
     totalSeconds: 0,
     totalMinutes: 0,
@@ -80,6 +82,27 @@ export const useWeeklyFocusData = () => {
     week: createEmptySummary(),
     lifetime: createEmptySummary(),
   }));
+
+  const computeFallbackStreak = useCallback((data: WeeklyFocusData[]) => {
+    const today = new Date().toISOString().split('T')[0];
+    const sorted = [...data].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    let count = 0;
+
+    for (const day of sorted) {
+      if (day.date === today && (day.totalMinutes ?? 0) === 0) {
+        continue;
+      }
+      if ((day.totalMinutes ?? 0) > 0) {
+        count += 1;
+      } else {
+        break;
+      }
+    }
+
+    return count;
+  }, []);
 
   const fetchWeeklyFocusData = useCallback(async () => {
     if (!userProfile?.userId) {
@@ -149,6 +172,7 @@ export const useWeeklyFocusData = () => {
           week: sanitizeSummary(result.summary?.week),
           lifetime: sanitizeSummary(result.summary?.lifetime),
         });
+        setStreak(result.streak ?? computeFallbackStreak(sanitizedData));
         console.log('📊 Weekly focus data loaded:', result.data);
       } else {
         setError(result.message || 'Failed to fetch weekly data');
@@ -159,7 +183,7 @@ export const useWeeklyFocusData = () => {
     } finally {
       setLoading(false);
     }
-  }, [userProfile?.userId]);
+  }, [userProfile?.userId, computeFallbackStreak]);
 
   // Auto-fetch when component mounts or user changes
   useEffect(() => {
@@ -171,6 +195,7 @@ export const useWeeklyFocusData = () => {
     loading,
     error,
     summary,
+    streak,
     refetch: fetchWeeklyFocusData,
   };
 };

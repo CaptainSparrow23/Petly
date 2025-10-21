@@ -1,12 +1,12 @@
-import React from 'react';
-import { Text, View } from 'react-native';
+import { View, Text } from 'react-native'
+import React from 'react'
 
-const Store = () => {
+const store = () => {
   return (
-    <View className="flex-1 bg-white justify-center items-center">
-      <Text>Store</Text>
+    <View>
+      <Text>store</Text>
     </View>
-  );
-};
+  )
+}
 
-export default Store;
+export default store

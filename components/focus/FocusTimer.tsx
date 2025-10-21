@@ -536,7 +536,7 @@ const FocusTimer = () => {
       </View>
 
       {/* Status text - Positioned Absolutely at Top */}
-      <View className="absolute top-24 left-0 right-0 z-5 items-center" style={{ pointerEvents: 'none' }}>
+      <View className="absolute top-28 left-0 right-0 z-5 items-center" style={{ pointerEvents: 'none' }}>
         <Text className="text-base font-medium text-slate-600">
           {focusStatusText}
         </Text>
@@ -601,7 +601,7 @@ const FocusTimer = () => {
           </View>
         </View>
 
-        <View className="items-center -mt-12">
+        <View className="items-center -mt-8">
           <Pressable
             className="flex-row items-center gap-2 rounded-full bg-sky-100 px-5 py-2"
             onPress={() => {
@@ -622,7 +622,7 @@ const FocusTimer = () => {
         </View>
 
         <Text
-          className="font-medium text-slate-700 text-center mt-12 mb-8"
+          className="font-medium text-slate-700 text-center mt-8 mb-1"
           style={{ fontSize: 85 }}
         >
           {formattedTime}
