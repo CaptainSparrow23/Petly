@@ -396,6 +396,7 @@ const FocusTimer = () => {
       PanResponder.create({
         onStartShouldSetPanResponder: () => !isRunning && !isStopwatch,
         onMoveShouldSetPanResponder: () => !isRunning && !isStopwatch,
+        onPanResponderGrant: updateFromGesture, // Handle tap to jump to position
         onPanResponderMove: updateFromGesture,
       }),
     [isRunning, isStopwatch, updateFromGesture],
@@ -408,7 +409,10 @@ const FocusTimer = () => {
     }
 
     if (timerMode === 'countdown') {
-      if (selectedMinutes === 0) return
+      if (selectedMinutes === 0) {
+        showBanner('Please select a time greater than 0 minutes', 'error')
+        return
+      }
       const startingSeconds = minutesToSeconds(selectedMinutes)
       setRemainingSeconds(startingSeconds)
       setSessionMinutes(selectedMinutes)
