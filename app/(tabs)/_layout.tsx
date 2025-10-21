@@ -28,7 +28,7 @@ const CustomDrawerContent = (props: any) => {
         <Text className="text-m mt-1 font-rubik-bold text-gray-500">
           {username ? `@${username}` : 'No username set'}
         </Text>
-        <View className="h-px bg-gray-200 mt-6 -mb-2 w-[90%] align-center" />
+        <View className="h-px bg- mt-6 -mb-2 w-[90%] align-center" />
       </TouchableOpacity>
       <DrawerItemList {...props} />
     </DrawerContentScrollView>

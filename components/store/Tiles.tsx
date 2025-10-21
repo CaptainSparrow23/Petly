@@ -10,8 +10,23 @@ import {
 } from "react-native";
 import { Coins, Heart, Star } from "lucide-react-native";
 
-export type PetSpecies = "cat" | "dog" | "fox" | "bunny" | "owl";
-export type PetRarity = "common" | "rare" | "epic";
+export type PetSpecies =
+  | "cat"
+  | "dog"
+  | "fox"
+  | "bunny"
+  | "owl"
+  | "dragon"
+  | "phoenix"
+  | "griffin"
+  | "unicorn"
+  | "kraken"
+  | "kitsune"
+  | "sphinx"
+  | "pegasus"
+  | "leviathan"
+  | "wyvern";
+export type PetRarity = "common" | "rare" | "epic" | "legendary";
 
 export interface PetTileItem {
   id: string;
@@ -30,39 +45,37 @@ interface TileProps {
   onPress?: () => void;
 }
 
-const rarityMeta: Record<
-  PetRarity,
-  { label: string; badgeText: string; cardBackground: string; pillBackground: string; pillText: string }
-> = {
+const rarityMeta: Record<PetRarity, { borderColor: string }> = {
   common: {
-    label: "Common",
-    badgeText: "#0f172a",
-    cardBackground: "#d1fae5",
-    pillBackground: "rgba(16, 185, 129, 0.32)",
-    pillText: "#047857",
+    borderColor: "#10b981",
   },
   rare: {
-    label: "Rare",
-    badgeText: "#fff",
-    cardBackground: "#dbeafe",
-    pillBackground: "rgba(37, 99, 235, 0.32)",
-    pillText: "#1d4ed8",
+    borderColor: "#2563eb",
   },
   epic: {
-    label: "Epic",
-    badgeText: "#fff",
-    cardBackground: "#ede9fe",
-    pillBackground: "rgba(139, 92, 246, 0.32)",
-    pillText: "#6d28d9",
+    borderColor: "#8b5cf6",
+  },
+  legendary: {
+    borderColor: "#f59e0b",
   },
 };
 
 const speciesPlaceholder: Record<PetSpecies, ImageSourcePropType> = {
-  cat: icons.skye,
-  dog: icons.lancelot,
+  cat: images.lighting,
+  dog: images.lighting,
   fox: images.lighting,
   bunny: images.lighting,
   owl: images.lighting,
+  dragon: images.lighting,
+  phoenix: images.lighting,
+  griffin: images.lighting,
+  unicorn: images.lighting,
+  kraken: images.lighting,
+  kitsune: images.lighting,
+  sphinx: images.lighting,
+  pegasus: images.lighting,
+  leviathan: images.lighting,
+  wyvern: images.lighting,
 };
 
 const petImageLookup: Record<string, ImageSourcePropType> = {
@@ -98,7 +111,12 @@ const PriceTag = ({ value }: { value: number }) => (
 );
 
 const PetStars = ({ rarity, tint = "#facc15" }: { rarity: PetRarity; tint?: string }) => {
-  const counts: Record<PetRarity, number> = { common: 3, rare: 4, epic: 5 };
+  const counts: Record<PetRarity, number> = {
+    common: 3,
+    rare: 4,
+    epic: 5,
+    legendary: 5,
+  };
   return (
     <View className="flex-row gap-1">
       {Array.from({ length: counts[rarity] }).map((_, idx) => (
@@ -117,32 +135,19 @@ export const FeaturedTile = ({ item, onPress }: TileProps) => {
     }
     return resolvePetImage(imageKey, species);
   }, [imageKey, imageUrl, species]);
-  const rarityInfo = rarityMeta[rarity];
 
   return (
     <TouchableOpacity
       onPress={onPress}
       className="flex flex-col items-start w-60 h-80 relative overflow-hidden rounded-2xl"
-      style={{ backgroundColor: rarityMeta[rarity].cardBackground }}
+      style={{
+        backgroundColor: "#fff",
+        borderColor: rarityMeta[rarity].borderColor,
+        borderWidth: 4,
+      }}
       activeOpacity={0.9}
     >
       <Image source={imageSource} className="size-full" resizeMode="cover" />
-      <View
-        style={{
-          backgroundColor: rarityInfo.pillBackground,
-          alignSelf: "flex-start",
-          borderColor: `${rarityInfo.pillText}50`,
-          borderWidth: 1,
-        }}
-        className="flex flex-row items-center px-3 py-1 rounded-full absolute top-5 left-5"
-      >
-        <Text
-          className="text-xs font-rubik-bold"
-          style={{ color: rarityInfo.pillText }}
-        >
-          {rarityInfo.label}
-        </Text>
-      </View>
 
       <View className="flex flex-col items-start absolute bottom-5 inset-x-5">
         <Text
@@ -175,18 +180,21 @@ export const Tile = ({ item, onPress }: TileProps) => {
     }
     return resolvePetImage(imageKey, species);
   }, [imageKey, imageUrl, species]);
-  const rarityInfo = rarityMeta[rarity];
 
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.9}
-      className="flex-1 w-full px-3 py-4 rounded-lg shadow-lg shadow-black/10 relative"
-      style={{ backgroundColor: rarityMeta[rarity].cardBackground }}
+      className="flex-1 w-full px-3 py-4 rounded-2xl shadow-lg shadow-black/10 relative"
+      style={{
+        backgroundColor: "#fff",
+        borderColor: rarityMeta[rarity].borderColor,
+        borderWidth: 3,
+      }}
     >
       <Image
         source={imageSource}
-        className="w-full h-40 rounded-lg"
+        className="w-full h-40 rounded-xl"
         resizeMode="cover"
       />
       <View className="flex flex-col mt-3">

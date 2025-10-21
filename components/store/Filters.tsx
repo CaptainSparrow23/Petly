@@ -1,7 +1,7 @@
 import React from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Cat, Dog, Rabbit, Bird, PawPrint, Flame } from "lucide-react-native";
-import type { PetSpecies } from "@/components/Tiles";
+import type { PetSpecies } from "@/components/store/Tiles";
 
 export type SpeciesValue = PetSpecies | "all";
 
