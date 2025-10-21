@@ -25,7 +25,6 @@ const CustomDrawerContent = (props: any) => {
       return;
     }
 
-    // Second press - proceed with logout
     setIsLoggingOut(true);
     router.replace({
       pathname: "/(auth)/sign-in",
@@ -36,7 +35,6 @@ const CustomDrawerContent = (props: any) => {
 
     if (success) {
       console.log("✅ Logged out successfully");
-      await refetch();
     } else {
       console.log("❌ Logout failed");
       Alert.alert("Error", "An error occurred while logging out, please try again");
@@ -94,6 +92,7 @@ const CustomDrawerContent = (props: any) => {
 };
 
 const DrawerLayout = () => {
+  
   return (
     <Drawer 
       drawerContent={(props) => <CustomDrawerContent {...props} />}

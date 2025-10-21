@@ -10,9 +10,6 @@ export default function Index() {
     return (
       <SafeAreaView className="bg-white h-full flex justify-center items-center">
         <ActivityIndicator size="large" color="#2563eb" />
-        <Text className="mt-4 text-base font-rubik text-gray-600">
-          Loading...
-        </Text>
       </SafeAreaView>
     );
   }
