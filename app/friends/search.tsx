@@ -5,24 +5,23 @@ import {
   TextInput, 
   TouchableOpacity, 
   ScrollView, 
-  Image, 
-  ActivityIndicator, 
-  Alert 
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Search, UserPlus, Users } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useGlobalContext } from '@/lib/global-provider';
+import { ProfilePicture } from '@/components/other/ProfilePicture';
 import Constants from 'expo-constants';
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 interface SearchUser {
   id: string;
-  name: string;
+  displayName: string;
   username: string | null;
   email: string;
-  avatar: string;
+  profileId: number | null;
   isFriend: boolean;
 }
 
@@ -38,13 +37,13 @@ const UserCard = ({
   <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm border border-gray-100">
     <View className="flex-row items-center justify-between">
       <View className="flex-row items-center flex-1">
-        <Image 
-          source={{ uri: user.avatar }} 
-          className="w-12 h-12 rounded-full"
+        <ProfilePicture 
+          profileId={user.profileId} 
+          size={48}
         />
         
         <View className="ml-3 flex-1">
-          <Text className="font-rubik-bold text-gray-900">{user.name}</Text>
+          <Text className="font-rubik-bold text-gray-900">{user.displayName}</Text>
           <Text className="text-sm text-gray-600 mt-1">
             {user.username ? `@${user.username}` : user.email}
           </Text>
@@ -76,7 +75,7 @@ const UserCard = ({
 );
 
 const SearchFriends = () => {
-  const { userProfile } = useGlobalContext();
+  const { userProfile, showBanner } = useGlobalContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -95,7 +94,7 @@ const SearchFriends = () => {
     
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/friends/search/${userProfile.userId}?query=${encodeURIComponent(query.trim())}`
+        `${API_BASE_URL}/api/search_friends/${userProfile.userId}?query=${encodeURIComponent(query.trim())}`
       );
       
       if (response.ok) {
@@ -103,11 +102,11 @@ const SearchFriends = () => {
         setSearchResults(result.data?.users || []);
       } else {
         console.error('Search failed:', response.statusText);
-        Alert.alert('Error', 'Failed to search users. Please try again.');
+        showBanner('Failed to search users. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error searching users:', error);
-      Alert.alert('Error', 'Failed to search users. Please check your connection.');
+      showBanner('Failed to search users. Please check your connection.', 'error');
     } finally {
       setIsSearching(false);
     }
@@ -142,17 +141,20 @@ const SearchFriends = () => {
           )
         );
 
-        Alert.alert(
-          'Success', 
-          `You're now friends with ${result.data?.friend?.name || 'this user'}!`
-        );
+        const friendName = result.data?.friend?.displayName || 'this user';
+        showBanner(`You're now friends with ${friendName}!`, 'success');
+        
+        // Navigate back to trigger refresh on friends page
+        setTimeout(() => {
+          router.back();
+        }, 1500); // Give time to see the success banner
       } else {
         const errorData = await response.json();
-        Alert.alert('Error', errorData.error || 'Failed to add friend');
+        showBanner(errorData.error || 'Failed to add friend', 'error');
       }
     } catch (error) {
       console.error('Error adding friend:', error);
-      Alert.alert('Error', 'Failed to add friend. Please try again.');
+      showBanner('Failed to add friend. Please try again.', 'error');
     } finally {
       setAddingUserId(null);
     }
@@ -168,13 +170,13 @@ const SearchFriends = () => {
   }, [searchQuery, userProfile?.userId]);
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-4 bg-white">
+      <View className="flex-row items-center justify-between px-4 py-2 bg-white">
         <TouchableOpacity onPress={() => router.back()}>
           <ChevronLeft size={24} color="#000" />
         </TouchableOpacity>
-        <Text className="text-2xl font-rubik-medium text-gray-900">Find Friends</Text>
+        <Text className="text-[17px] font-semibold text-black">Find Friends</Text>
         <View className="w-6" />
       </View>
 
@@ -184,7 +186,7 @@ const SearchFriends = () => {
           <Search size={20} color="#6b7280" />
           <TextInput
             className="flex-1 ml-3 font-rubik text-gray-900"
-            placeholder="Search by name or username..."
+            placeholder="Search by username..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
@@ -192,9 +194,6 @@ const SearchFriends = () => {
             placeholderTextColor="#9ca3af"
           />
         </View>
-        <Text className="text-sm font-rubik text-gray-500 mt-2">
-          Enter at least 2 characters to search for users
-        </Text>
       </View>
 
       {/* Search Results */}
@@ -217,14 +216,11 @@ const SearchFriends = () => {
             <Search size={48} color="#9ca3af" />
             <Text className="font-rubik-bold text-gray-900 text-lg mt-4">Search for Friends</Text>
             <Text className="text-gray-600 font-rubik text-center mt-2">
-              Enter a name or username to find other Petly users
+              Enter a username to find other Petly users
             </Text>
           </View>
         ) : (
           <>
-            <Text className="font-rubik-bold text-gray-900 text-lg mb-4">
-              Search Results ({searchResults.length})
-            </Text>
             
             {searchResults.map((searchUser) => (
               <UserCard

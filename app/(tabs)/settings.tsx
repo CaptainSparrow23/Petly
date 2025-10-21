@@ -3,7 +3,6 @@ import { useGlobalContext } from "@/lib/global-provider";
 import type { LucideIcon } from "lucide-react-native";
 import { 
   ChevronRight, 
-  LogOut, 
   User, 
   Bell, 
   Shield, 
@@ -14,8 +13,8 @@ import {
   Globe
 } from "lucide-react-native";
 import { router } from "expo-router";
-import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View, Alert, ActivityIndicator } from "react-native";
+import React from "react";
+import { ScrollView, Text, TouchableOpacity, View, Alert } from "react-native";
 
 interface SettingsItemProps {
   icon: LucideIcon;
@@ -24,32 +23,23 @@ interface SettingsItemProps {
   onPress?: () => void;
   showArrow?: boolean;
   textColor?: string;
-  logout?: boolean;
-  isLoading?: boolean;
 }
 
 const SettingsItem = ({
   icon: Icon,
   title,
-  logout = false,
   subtitle,
   onPress,
   showArrow = true,
-  textColor = "#1f2937",
-  isLoading = false
+  textColor = "#1f2937"
 }: SettingsItemProps) => (
   <TouchableOpacity
-    className="flex flex-row items-center py-4 px-4 bg-gray-50 border-b border-gray-100 last:border-b-0"
+    className="flex flex-row items-center py-4 px-4 bg-gray-50"
     onPress={onPress}
     activeOpacity={0.7}
-    disabled={isLoading}
   >
     <View className="mr-3">
-      {isLoading ? (
-        <ActivityIndicator size="small" color="#ef4444" />
-      ) : (
-        <Icon size={22} color={!logout ? "#6b7280" : "#ef4444"} />
-      )}
+      <Icon size={22} color="#6b7280" />
     </View>
     <View className="flex-1">
       <Text className="text-base font-rubik-medium" style={{ color: textColor }}>
@@ -65,57 +55,37 @@ const SettingsItem = ({
   </TouchableOpacity>
 );
 
+const Separator = () => (
+  <View className="h-px bg-gray-200 mx-4" />
+);
+
 interface SettingsSectionProps {
   title: string;
   children: React.ReactNode;
 }
 
-const SettingsSection = ({ title, children }: SettingsSectionProps) => (
-  <View className="mb-8 ">
-    <Text className="text-sm font-rubik-medium text-gray-500 uppercase tracking-wide mb-3 px-4">
-      {title}
-    </Text>
-    <View className="rounded-xl bg-gray-200 overflow-hidden shadow-sm border border-gray-200">
-      {children}
+const SettingsSection = ({ title, children }: SettingsSectionProps) => {
+  const childrenArray = React.Children.toArray(children);
+  
+  return (
+    <View className="mb-8 ">
+      <Text className="text-sm font-rubik-medium text-gray-500 uppercase tracking-wide mb-3 px-4">
+        {title}
+      </Text>
+      <View className="rounded-xl bg-gray-200 overflow-hidden shadow-sm border border-gray-200">
+        {childrenArray.map((child, index) => (
+          <React.Fragment key={index}>
+            {child}
+            {index < childrenArray.length - 1 && <Separator />}
+          </React.Fragment>
+        ))}
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const Settings = () => {
-  const { userProfile, refetch, logout } = useGlobalContext();
-  const [isLogoutConfirm, setIsLogoutConfirm] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const handleLogout = async () => {
-    if (!isLogoutConfirm) {
-      // First press - show confirmation state
-      setIsLogoutConfirm(true);
-      // Reset after 3 seconds if they don't confirm
-      setTimeout(() => {
-        setIsLogoutConfirm(false);
-      }, 3000);
-      return;
-    }
-
-    // Second press - proceed with logout
-    setIsLoggingOut(true);
-    router.replace({
-      pathname: "/(auth)/sign-in",
-      params: { loggedOut: "true" }
-    });
-
-    const success = await logout();
-
-    if (success) {
-      console.log("✅ Logged out successfully");
-      await refetch();
-    } else {
-      console.log("❌ Logout failed");
-      Alert.alert("Error", "An error occurred while logging out, please try again");
-      setIsLoggingOut(false);
-    }
-    setIsLogoutConfirm(false);
-  };
+  const { userProfile, refetch } = useGlobalContext();
 
   return (
     <View className="flex-1 bg-white">
@@ -199,19 +169,6 @@ const Settings = () => {
             onPress={() => {
               Alert.alert("About Petly", "Petly v1.0.0\nA focus companion app with virtual pets");
             }}
-          />
-        </SettingsSection>
-
-        {/* Logout Section */}
-        <SettingsSection title="">
-          <SettingsItem
-            icon={LogOut}
-            logout={true}
-            title={isLoggingOut ? "Logging Out..." : isLogoutConfirm ? "Confirm" : "Log Out"}
-            onPress={handleLogout}
-            showArrow={false}
-            textColor={isLogoutConfirm ? "#dc2626" : "#ef4444"}
-            isLoading={isLoggingOut}
           />
         </SettingsSection>
 

@@ -12,6 +12,7 @@ interface UserProfile {
     displayName: string | null;
     email: string | null;
     profileId: number | null;
+    timeActiveToday: number;
 }
 
 type BannerType = 'success' | 'error' | 'info' | 'warning';
@@ -53,7 +54,7 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
             }
 
             // User is authenticated, fetch their full profile
-            const response = await fetch(`${API_BASE_URL}/api/user/profile/${currentUser.$id}`);
+            const response = await fetch(`${API_BASE_URL}/api/user/get_profile/${currentUser.$id}`);
             const data = await response.json();
 
             if (data.success) {
