@@ -115,7 +115,7 @@ export const useWeeklyFocusData = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/account/weekly-focus/${userProfile.userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/get_weekly_data/${userProfile.userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -218,7 +218,7 @@ export const useMonthlyFocusSummary = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/focus/monthly-summary/${userProfile.userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/get_monthly_data/${userProfile.userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

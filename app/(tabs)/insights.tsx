@@ -1,5 +1,4 @@
-import { ProfilePicture } from "@/components/other/ProfilePicture";
-import { useMonthlyFocusSummary, useWeeklyFocusData } from "@/hooks/account";
+import { useMonthlyFocusSummary, useWeeklyFocusData } from "@/hooks/insights";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ScrollView,
@@ -313,6 +312,7 @@ const Account = () => {
       fetchMonthlySummary();
     }
   }, [chartRange, monthlyHasFetched, fetchMonthlySummary]);
+  
   const orderedWeeklyData = useMemo(() => {
     const dataByDay = weeklyData.reduce<
       Record<string, (typeof weeklyData)[number]>
@@ -426,6 +426,7 @@ const Account = () => {
       timeString: "0 mins",
     };
   }, [orderedWeeklyData, todayShortName]);
+
   const todaySessions = useMemo(() => {
     const todaysEntry = weeklyData.find((day) => day.date === todayDateISO);
     if (!todaysEntry || !Array.isArray(todaysEntry.sessions)) {
@@ -577,6 +578,7 @@ const Account = () => {
   );
 
   const streakCount = streak;
+
   const todayTotalSeconds = useMemo(() => {
     const parsed = parseTimeStringToSeconds(todayTotals.timeString);
     if (parsed > 0) {
@@ -589,12 +591,15 @@ const Account = () => {
     if (!todayTotalSeconds) return "";
     return formatDetailedDuration(todayTotalSeconds);
   }, [todayTotalSeconds]);
+
+
   const todayMinutes = todayTotals.totalMinutes ?? 0;
   const dailyProgressRatio = Math.min(todayMinutes / DAILY_GOAL_MINUTES, 1);
   const weeklyProgressRatio = Math.min(
     totalFocusedMinutes / WEEKLY_GOAL_MINUTES,
     1
   );
+
   const dailyProgressLabel = formatGoalProgress(
     todayMinutes,
     DAILY_GOAL_MINUTES
@@ -636,7 +641,7 @@ const Account = () => {
         <View className="mt-6 flex-row gap-4">
           <View className="flex-[2.5] rounded-2xl border border-gray-200 bg-white p-4">
             <Text className="text-sm font-rubik-medium text-gray-500">
-              Today&apos;s Focus
+              Today's Focus
             </Text>
 
             {todayTotalSeconds > 0 ? (

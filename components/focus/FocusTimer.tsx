@@ -6,7 +6,7 @@ import LottieView from 'lottie-react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Animations } from '@/constants/animations'
 import { sessionTracker } from '@/hooks/focus'
-import { useWeeklyFocusData } from '@/hooks/account'
+import { useWeeklyFocusData } from '@/hooks/insights'
 import { useGlobalContext } from '@/lib/global-provider'
 
 const MODE_COLORS = {
@@ -169,7 +169,7 @@ const isSupportedPet = (name: string | null): name is PetName =>
   !!name && Object.prototype.hasOwnProperty.call(PET_ANIMATIONS, name)
 
 const FocusTimer = () => {
-  const { userProfile, selectedPetName, showBanner } = useGlobalContext()
+  const { userProfile, showBanner } = useGlobalContext()
   const { weeklyData, refetch: refetchWeeklyFocusData } = useWeeklyFocusData()
   const [timerMode, setTimerMode] = useState<TimerMode>('countdown')
   const [isRunning, setIsRunning] = useState<boolean>(false)
@@ -191,15 +191,17 @@ const FocusTimer = () => {
   }, [isRunning, todayFocusEntry])
 
   const hasPetAnimations = useMemo(
-    () => isSupportedPet(selectedPetName),
-    [selectedPetName],
+    () => isSupportedPet(userProfile?.selectedPet ?? null),
+    [userProfile?.selectedPet],
   )
+
+
   const activePetName = useMemo<PetName>(
     () =>
-      hasPetAnimations && selectedPetName
-        ? (selectedPetName as PetName)
+      hasPetAnimations && userProfile?.selectedPet
+        ? (userProfile.selectedPet as PetName)
         : DEFAULT_PET,
-    [hasPetAnimations, selectedPetName],
+    [hasPetAnimations, userProfile?.selectedPet],
   )
   const petAnimations = PET_ANIMATIONS[activePetName]
   const idleAnimation = petAnimations.Idle
@@ -654,8 +656,8 @@ const FocusTimer = () => {
               />
             ) : (
               <Text className="px-6 text-center text-sm font-rubik text-slate-500">
-                {selectedPetName
-                  ? `Animations coming soon for ${selectedPetName}`
+                {userProfile?.selectedPet
+                  ? `Animations coming soon for ${userProfile.selectedPet}`
                   : 'Select a pet to see their focus animation'}
               </Text>
             )}
