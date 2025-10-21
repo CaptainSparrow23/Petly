@@ -5,8 +5,8 @@ import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, w
 import LottieView from 'lottie-react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Animations } from '@/constants/animations'
-import { sessionTracker } from '@/hooks/focus'
-import { useWeeklyFocusData } from '@/hooks/insights'
+import { sessionTracker } from '@/hooks/useFocus'
+import { useWeeklyFocusData } from '@/hooks/useInsights'
 import { useGlobalContext } from '@/lib/global-provider'
 
 const MODE_COLORS = {

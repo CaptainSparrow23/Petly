@@ -1,29 +1,32 @@
+// hooks/useFocusData.ts
 import { useState, useEffect, useCallback } from 'react';
 import { useGlobalContext } from '@/lib/global-provider';
 import Constants from 'expo-constants';
 
-interface ModeTotals {
+export interface ModeTotals {
   totalSeconds: number;
   totalMinutes: number;
   timeString: string;
 }
 
-interface WeeklyFocusData {
-  date: string; // YYYY-MM-DD format
-  dayName: string; // Mon, Tue, Wed, etc.
+export interface WeeklySession {
+  startTime: string;
+  endTime: string;
+  durationSeconds?: number;
+  durationMinutes?: number;
+  mode?: string;
+}
+
+export interface WeeklyFocusData {
+  date: string; // YYYY-MM-DD
+  dayName: string; // Mon, Tue, ...
   totalMinutes: number;
   timeString: string; // "5 mins 30 secs"
   modes: Record<string, ModeTotals>;
-  sessions?: Array<{
-    startTime: string;
-    endTime: string;
-    durationSeconds?: number;
-    durationMinutes?: number;
-    mode?: string;
-  }>;
+  sessions?: WeeklySession[];
 }
 
-interface FocusSummary {
+export interface FocusSummary {
   totalSeconds: number;
   totalMinutes: number;
   timeString: string;
@@ -42,7 +45,7 @@ interface WeeklyFocusResponse {
   message?: string;
 }
 
-interface MonthlyFocusEntry {
+export interface MonthlyFocusEntry {
   month: string;
   label: string;
   totalSeconds: number;
@@ -52,10 +55,7 @@ interface MonthlyFocusEntry {
 interface MonthlyFocusResponse {
   success: boolean;
   data: MonthlyFocusEntry[];
-  range?: {
-    startMonth: string | null;
-    endMonth: string | null;
-  };
+  range?: { startMonth: string | null; endMonth: string | null };
   message?: string;
 }
 
@@ -67,12 +67,14 @@ export const useWeeklyFocusData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
+
   const createEmptySummary = (): FocusSummary => ({
     totalSeconds: 0,
     totalMinutes: 0,
     timeString: '0 mins 0 secs',
     modes: {},
   });
+
   const [summary, setSummary] = useState<{
     today: FocusSummary;
     week: FocusSummary;
@@ -89,18 +91,11 @@ export const useWeeklyFocusData = () => {
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
     let count = 0;
-
     for (const day of sorted) {
-      if (day.date === today && (day.totalMinutes ?? 0) === 0) {
-        continue;
-      }
-      if ((day.totalMinutes ?? 0) > 0) {
-        count += 1;
-      } else {
-        break;
-      }
+      if (day.date === today && (day.totalMinutes ?? 0) === 0) continue;
+      if ((day.totalMinutes ?? 0) > 0) count += 1;
+      else break;
     }
-
     return count;
   }, []);
 
@@ -110,21 +105,15 @@ export const useWeeklyFocusData = () => {
       setLoading(false);
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
 
       const response = await fetch(`${API_BASE_URL}/api/get_weekly_data/${userProfile.userId}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const result: WeeklyFocusResponse = await response.json();
 
@@ -137,67 +126,54 @@ export const useWeeklyFocusData = () => {
                 .map((session) => ({
                   startTime: typeof session?.startTime === 'string' ? session.startTime : '',
                   endTime: typeof session?.endTime === 'string' ? session.endTime : '',
-                  durationSeconds: (() => {
-                    if (typeof session?.durationSeconds === 'number') {
-                      return Math.round(session.durationSeconds);
-                    }
-                    if (typeof session?.durationMinutes === 'number') {
-                      return Math.round(session.durationMinutes * 60);
-                    }
-                    return undefined;
-                  })(),
-                  durationMinutes: (() => {
-                    if (typeof session?.durationMinutes === 'number') {
-                      return Math.round(session.durationMinutes);
-                    }
-                    if (typeof session?.durationSeconds === 'number') {
-                      return Math.round(session.durationSeconds / 60);
-                    }
-                    return undefined;
-                  })(),
+                  durationSeconds:
+                    typeof session?.durationSeconds === 'number'
+                      ? Math.round(session.durationSeconds)
+                      : typeof session?.durationMinutes === 'number'
+                      ? Math.round(session.durationMinutes * 60)
+                      : undefined,
+                  durationMinutes:
+                    typeof session?.durationMinutes === 'number'
+                      ? Math.round(session.durationMinutes)
+                      : typeof session?.durationSeconds === 'number'
+                      ? Math.round(session.durationSeconds / 60)
+                      : undefined,
                   mode: typeof session?.mode === 'string' ? session.mode : undefined,
                 }))
-                .filter((session) => session.startTime && session.endTime)
+                .filter((s) => s.startTime && s.endTime)
             : [],
         }));
         setWeeklyData(sanitizedData);
-        const sanitizeSummary = (value?: FocusSummary) => ({
-          totalSeconds: value?.totalSeconds ?? 0,
-          totalMinutes: value?.totalMinutes ?? 0,
-          timeString: value?.timeString ?? '0 mins 0 secs',
-          modes: value?.modes ?? {},
+
+        const sanitizeSummary = (v?: FocusSummary): FocusSummary => ({
+          totalSeconds: v?.totalSeconds ?? 0,
+          totalMinutes: v?.totalMinutes ?? 0,
+          timeString: v?.timeString ?? '0 mins 0 secs',
+          modes: v?.modes ?? {},
         });
+
         setSummary({
           today: sanitizeSummary(result.summary?.today),
           week: sanitizeSummary(result.summary?.week),
           lifetime: sanitizeSummary(result.summary?.lifetime),
         });
+
         setStreak(result.streak ?? computeFallbackStreak(sanitizedData));
-        console.log('📊 Weekly focus data loaded:', result.data);
       } else {
         setError(result.message || 'Failed to fetch weekly data');
       }
     } catch (err) {
-      console.error('Error fetching weekly focus data:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setLoading(false);
     }
   }, [userProfile?.userId, computeFallbackStreak]);
 
-  // Auto-fetch when component mounts or user changes
   useEffect(() => {
     fetchWeeklyFocusData();
   }, [fetchWeeklyFocusData]);
 
-  return {
-    weeklyData,
-    loading,
-    error,
-    summary,
-    streak,
-    refetch: fetchWeeklyFocusData,
-  };
+  return { weeklyData, loading, error, summary, streak, refetch: fetchWeeklyFocusData };
 };
 
 export const useMonthlyFocusSummary = () => {
@@ -213,31 +189,25 @@ export const useMonthlyFocusSummary = () => {
       setLoading(false);
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
 
       const response = await fetch(`${API_BASE_URL}/api/get_monthly_data/${userProfile.userId}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const result: MonthlyFocusResponse = await response.json();
 
       if (result.success) {
         setMonthlyData(
-          (result.data ?? []).map((entry) => ({
-            month: entry.month,
-            label: entry.label,
-            totalSeconds: entry.totalSeconds ?? 0,
-            totalMinutes: entry.totalMinutes ?? Math.floor((entry.totalSeconds ?? 0) / 60),
+          (result.data ?? []).map((e) => ({
+            month: e.month,
+            label: e.label,
+            totalSeconds: e.totalSeconds ?? 0,
+            totalMinutes: e.totalMinutes ?? Math.floor((e.totalSeconds ?? 0) / 60),
           }))
         );
         setHasFetched(true);
@@ -245,36 +215,25 @@ export const useMonthlyFocusSummary = () => {
         setError(result.message || 'Failed to fetch monthly summary');
       }
     } catch (err) {
-      console.error('Error fetching monthly focus summary:', err);
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
       setLoading(false);
     }
   }, [userProfile?.userId]);
 
-  return {
-    monthlyData,
-    loading,
-    error,
-    hasFetched,
-    refetch: fetchMonthlySummary,
-  };
+  return { monthlyData, loading, error, hasFetched, refetch: fetchMonthlySummary };
 };
 
-// Helper function to get the last 7 days including today
+// Optional helper if you still need it elsewhere
 export const getLastSevenDays = (): { date: string; dayName: string }[] => {
   const days = [];
   const today = new Date();
-  
   for (let i = 6; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(today.getDate() - i);
-    
-    const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }); // Mon, Tue, etc.
-    
+    const dateString = date.toISOString().split('T')[0];
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
     days.push({ date: dateString, dayName });
   }
-  
   return days;
 };
