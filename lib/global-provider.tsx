@@ -14,6 +14,8 @@ interface UserProfile {
     profileId: number | null;
     timeActiveToday: number;
     coins: number;
+    ownedPets: string[];
+    selectedPet: string | null;
 }
 
 type BannerType = 'success' | 'error' | 'info' | 'warning';
@@ -28,6 +30,7 @@ interface GlobalContextType {
     logout: () => Promise<boolean>;
     showBanner: (message: string, type?: BannerType) => void;
     coins: number;
+    ownedPets: string[];
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -64,6 +67,7 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
                 setUserProfile({
                     ...profile,
                     coins: typeof profile.coins === "number" ? profile.coins : 0,
+                    ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ['pet_skye'],
                 });
                 console.log('✅ User profile loaded:', profile);
             } else {
@@ -223,7 +227,8 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
             setSelectedPetName,
             logout,
             showBanner,
-            coins: userProfile?.coins || 0
+            coins: userProfile?.coins || 0,
+            ownedPets: userProfile?.ownedPets ?? []
         }}>
             <Banner
                 message={bannerMessage}

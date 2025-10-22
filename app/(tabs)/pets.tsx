@@ -1,56 +1,102 @@
-import { MenuButton } from '@/components/other/MenuButton';
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { Text, View, ImageBackground, FlatList } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Text, View, ImageBackground, FlatList, ImageSourcePropType } from 'react-native';
 import room_backgound from '@/assets/images/room_background.png';
 import { Card } from '@/components/mypets/PetCard';
-import { petData } from '@/constants/petdata';
 import { Animations } from '@/constants/animations';
 import { useGlobalContext } from '@/lib/global-provider';
 import LottieView from 'lottie-react-native';
+import type { PetTileItem } from '@/components/store/Tiles';
+import icons from '@/constants/icons';
+import images from '@/constants/images';
+import { useStoreCatalog } from '@/hooks/storeCatalog';
+import { rarityStarCount } from '@/components/store/Tiles';
 
+type OwnedPetCard = {
+  id: string;
+  name?: string;
+  type?: string;
+  image?: ImageSourcePropType;
+  rating?: number;
+};
+
+const resolvePetImage = (item: PetTileItem): ImageSourcePropType => {
+  if (item.imageUrl) {
+    return { uri: item.imageUrl };
+  }
+  const fromKey = item.imageKey
+    ? (icons[item.imageKey as keyof typeof icons] as ImageSourcePropType | undefined)
+    : undefined;
+  if (fromKey) {
+    return fromKey;
+  }
+
+  const fromSpecies = (icons[item.species as keyof typeof icons] ??
+    images[item.species as keyof typeof images]) as ImageSourcePropType | undefined;
+  return fromSpecies ?? images.lighting;
+};
+
+const animationStyleOverrides: Record<string, { width: number; aspectRatio: number }> = {
+  Lancelot: { width: 140, aspectRatio: 1 },
+};
+
+const resolveIdleAnimation = (petName?: string | null) => {
+  if (!petName) {
+    return null;
+  }
+  const key = `${petName.toLowerCase()}Idle` as keyof typeof Animations;
+  return Animations[key] ?? null;
+};
 
 const Profile = () => {
+  const { catalog, loading: catalogLoading, error: catalogError } = useStoreCatalog();
   const defaultAnimationStyle = useMemo(
     () => ({ width: 280, aspectRatio: 1 }),
     []
   );
 
-  const animationConfigByPet = useMemo<
-    Record<
-      string,
-      { source: any; style?: { [key: string]: number | string } }
-    >
-  >(
-    () => ({
-      Skye: {
-        source: Animations.skyeIdle,
-        style: { width: 280, aspectRatio: 1 },
-      },
-      Lancelot: {
-        source: Animations.lancelotIdle,
-        style: { width: 140, aspectRatio: 1},
-      },
-    }),
-    []
-  );
+  const { selectedPetName, setSelectedPetName, ownedPets } = useGlobalContext();
 
-  const { selectedPetName, setSelectedPetName } = useGlobalContext();
+  useEffect(() => {
+    if (catalogError) {
+      console.warn('Failed to load store catalog:', catalogError);
+    }
+  }, [catalogError]);
+
+  const ownedPetCards = useMemo(() => {
+    if (!catalog.length) {
+      return [];
+    }
+
+    return catalog
+      .filter((pet) => ownedPets.includes(pet.id))
+      .map<OwnedPetCard>((pet) => ({
+        id: pet.id,
+        name: pet.name,
+        type: pet.species,
+        image: resolvePetImage(pet),
+        rating: rarityStarCount[pet.rarity] ?? 0,
+      }));
+  }, [catalog, ownedPets]);
 
   useEffect(() => {
     const initializePet = async () => {
-      if (!selectedPetName && petData[0]?.name) {
-        await setSelectedPetName(petData[0].name);
+      if (!selectedPetName && ownedPetCards[0]?.name) {
+        await setSelectedPetName(ownedPetCards[0].name);
       }
     };
     initializePet();
-  }, [selectedPetName, setSelectedPetName]);
+  }, [selectedPetName, setSelectedPetName, ownedPetCards]);
 
-  const selectedConfig = selectedPetName
-    ? animationConfigByPet[selectedPetName]
-    : undefined;
-  const selectedAnimation = selectedConfig?.source;
-  const selectedStyle = selectedConfig?.style ?? defaultAnimationStyle;
+  const selectedAnimation = useMemo(
+    () => resolveIdleAnimation(selectedPetName),
+    [selectedPetName]
+  );
+  const selectedStyle = useMemo(() => {
+    if (selectedPetName && animationStyleOverrides[selectedPetName]) {
+      return animationStyleOverrides[selectedPetName];
+    }
+    return defaultAnimationStyle;
+  }, [selectedPetName, defaultAnimationStyle]);
 
   const handleSelectPet = useCallback(async (name?: string) => {
     if (!name) {
@@ -87,7 +133,7 @@ const Profile = () => {
       </ImageBackground>
 
       <FlatList
-        data={petData}
+        data={ownedPetCards}
         extraData={selectedPetName}
         renderItem={({ item, index }) => (
           <View
@@ -105,9 +151,7 @@ const Profile = () => {
             />
           </View>
         )}
-        keyExtractor={(item, index) =>
-          `pet-${item?.name ?? 'unknown'}-${index}`
-        }
+        keyExtractor={(item) => item.id}
         numColumns={2}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -116,6 +160,19 @@ const Profile = () => {
           paddingTop: 16,
         }}
         columnWrapperStyle={{ marginBottom: 16 }}
+        ListEmptyComponent={
+          catalogLoading ? (
+            <View className="items-center justify-center py-12">
+              <ActivityIndicator size="small" color="#2563eb" />
+            </View>
+          ) : (
+            <View className="items-center justify-center py-12">
+              <Text className="text-sm text-black-200">
+                You haven't unlocked any pets yet.
+              </Text>
+            </View>
+          )
+        }
       />
 
     </View>

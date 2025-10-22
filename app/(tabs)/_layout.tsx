@@ -103,15 +103,8 @@ const FocusHeaderCoins = () => {
       <View className="mr-2 h-9 w-9 items-center justify-center rounded-full bg-amber-400">
         <MaterialCommunityIcons name="currency-usd" size={18} color="#92400e" />
       </View>
-      <Text className="text-sm font-semibold text-slate-700">{formattedCoins}</Text>
-      <TouchableOpacity
-        className="ml-2 h-7 w-7 items-center justify-center rounded-full"
-        style={{ backgroundColor: "#3b82f6" }}
-        activeOpacity={0.8}
-        onPress={() => {}}
-      >
-        <MaterialCommunityIcons name="plus" size={14} color="#fff" />
-      </TouchableOpacity>
+      <Text className="text-sm font-semibold mr-4 text-slate-700 ">{formattedCoins}</Text>
+      
     </View>
   );
 };
