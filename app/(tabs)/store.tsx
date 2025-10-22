@@ -186,63 +186,6 @@ const Store = () => {
     return [...slice, ...sorted.slice(0, chunkSize - slice.length)];
   }, [featuredPets]);
 
-  const listHeader = useMemo(
-    () => (
-      <View className="px-6 pb-4">
-        {featuredShowcasePets.length > 0 && (
-          <View className="mb-6">
-            <Text className="text-2xl font-rubik-bold text-black-300">
-              Featured Companions
-            </Text>
-            <Text className="text-sm text-black-200 mt-1 mb-4">
-              Meet the rarest companions available in the store.
-            </Text>
-            <FlatList
-              data={featuredShowcasePets}
-              keyExtractor={featuredKeyExtractor}
-              renderItem={renderFeaturedItem}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingRight: 16 }}
-            />
-          </View>
-        )}
-        <View className="flex-row items-center justify-between">
-          <Text className="text-2xl font-rubik-bold text-black-300">
-            All Pets
-          </Text>
-          <TouchableOpacity onPress={toggleSortOrder} activeOpacity={0.7}>
-            <Text
-              className="text-sm font-rubik-medium"
-              style={{ color: PRIMARY_BLUE }}
-            >
-              {sortOrder === "desc"
-                ? "Sort: High → Low"
-                : "Sort: Low → High"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <Text className="text-sm text-black-200 mt-1">
-          Browse every companion available in the store.
-        </Text>
-        <View className="mt-4">
-          <Filters
-            selectedSpecies={selectedSpecies}
-            onSpeciesChange={setSelectedSpecies}
-          />
-        </View>
-      </View>
-    ),
-    [
-      featuredKeyExtractor,
-      featuredShowcasePets,
-      renderFeaturedItem,
-      selectedSpecies,
-      sortOrder,
-      toggleSortOrder,
-    ]
-  );
-
   if (loading) {
     return (
       <View className="flex-1 bg-white">
@@ -285,13 +228,63 @@ const Store = () => {
   );
 
   return (
-    <View className="flex-1 bg-white px-2">
+    <View className="flex-1 bg-white">
       <FlatList
         data={visiblePets}
         keyExtractor={(item) => item.id}
         renderItem={renderTile}
         numColumns={2}
-        ListHeaderComponent={listHeader}
+        ListHeaderComponent={
+          <><View>
+            {featuredShowcasePets.length > 0 && (
+              <><View className="px-7 pt-3">
+                <Text className="text-2xl font-bold text-black-300">
+                  Featured Companions
+                </Text>
+                <Text className="text-sm text-black-200 mt-1 mb-4">
+                  Meet the rarest companions available in the store.
+                </Text>
+              </View><FlatList
+                  data={featuredShowcasePets}
+                  keyExtractor={featuredKeyExtractor}
+                  renderItem={renderFeaturedItem}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingLeft: 24, paddingRight: 20, paddingBottom: 20 }} /></>
+
+            )}
+            <View className="px-7">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-2xl font-bold text-black-300">
+                  All Pets
+                </Text>
+                <TouchableOpacity onPress={toggleSortOrder} activeOpacity={0.7}>
+                  <Text
+                    className="text-sm font-rubik-medium"
+                    style={{ color: PRIMARY_BLUE }}
+                  >
+                    {sortOrder === "desc"
+                      ? "Sort: High → Low"
+                      : "Sort: Low → High"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Text className="text-sm text-black-200 mt-1">
+                Browse every companion available in the store.
+              </Text>
+            </View>
+          <View className="mt-3 mb-2">
+             <Filters
+                selectedSpecies={selectedSpecies}
+                onSpeciesChange={setSelectedSpecies} 
+                 />
+              
+            </View>
+          </View>
+          </>
+        }
+
+          
         columnWrapperStyle={{
           paddingHorizontal: 24,
           paddingBottom: 6,
@@ -300,7 +293,7 @@ const Store = () => {
         contentContainerStyle={{
           flexGrow: 1,
           paddingBottom: 32,
-          paddingTop: 20,
+          paddingTop: 8,
         }}
         ListEmptyComponent={EmptyState}
       />

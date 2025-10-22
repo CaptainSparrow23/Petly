@@ -12,8 +12,11 @@ import {
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation } from 'expo-router';
 import Constants from 'expo-constants';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { ActivityIndicator, Text, View, ImageBackground, FlatList, ImageSourcePropType } from 'react-native';
 import room_backgound from '@/assets/images/room_background.png';
 import { petData } from '@/constants/petdata';
+import { Card } from '@/components/mypets/PetCard';
 import { Animations } from '@/constants/animations';
 import { useGlobalContext } from '@/lib/global-provider';
 import LottieView from 'lottie-react-native';
@@ -21,6 +24,47 @@ import { Star } from 'lucide-react-native';
 import { DrawerToggleButton } from '@react-navigation/drawer';
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string | undefined;
+import type { PetTileItem } from '@/components/store/Tiles';
+import icons from '@/constants/icons';
+import images from '@/constants/images';
+import { useStoreCatalog } from '@/hooks/storeCatalog';
+import { rarityStarCount } from '@/components/store/Tiles';
+
+type OwnedPetCard = {
+  id: string;
+  name?: string;
+  type?: string;
+  image?: ImageSourcePropType;
+  rating?: number;
+};
+
+const resolvePetImage = (item: PetTileItem): ImageSourcePropType => {
+  if (item.imageUrl) {
+    return { uri: item.imageUrl };
+  }
+  const fromKey = item.imageKey
+    ? (icons[item.imageKey as keyof typeof icons] as ImageSourcePropType | undefined)
+    : undefined;
+  if (fromKey) {
+    return fromKey;
+  }
+
+  const fromSpecies = (icons[item.species as keyof typeof icons] ??
+    images[item.species as keyof typeof images]) as ImageSourcePropType | undefined;
+  return fromSpecies ?? images.lighting;
+};
+
+const animationStyleOverrides: Record<string, { width: number; aspectRatio: number }> = {
+  Lancelot: { width: 140, aspectRatio: 1 },
+};
+
+const resolveIdleAnimation = (petName?: string | null) => {
+  if (!petName) {
+    return null;
+  }
+  const key = `${petName.toLowerCase()}Idle` as keyof typeof Animations;
+  return Animations[key] ?? null;
+};
 
 const Profile = () => {
   const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
@@ -30,6 +74,36 @@ const Profile = () => {
   const userId = userProfile?.userId;
 
   // Keep local selection in sync if the profile changes elsewhere
+  const { catalog, loading: catalogLoading, error: catalogError } = useStoreCatalog();
+  const defaultAnimationStyle = useMemo(
+    () => ({ width: 280, aspectRatio: 1 }),
+    []
+  );
+
+  const { selectedPetName, setSelectedPetName, ownedPets } = useGlobalContext();
+
+  useEffect(() => {
+    if (catalogError) {
+      console.warn('Failed to load store catalog:', catalogError);
+    }
+  }, [catalogError]);
+
+  const ownedPetCards = useMemo(() => {
+    if (!catalog.length) {
+      return [];
+    }
+
+    return catalog
+      .filter((pet) => ownedPets.includes(pet.id))
+      .map<OwnedPetCard>((pet) => ({
+        id: pet.id,
+        name: pet.name,
+        type: pet.species,
+        image: resolvePetImage(pet),
+        rating: rarityStarCount[pet.rarity] ?? 0,
+      }));
+  }, [catalog, ownedPets]);
+
   useEffect(() => {
     if (userProfile?.selectedPet && userProfile.selectedPet !== focusedPet) {
       setFocusedPet(userProfile.selectedPet);
@@ -60,6 +134,24 @@ const Profile = () => {
     },
     [userId]
   );
+    const initializePet = async () => {
+      if (!selectedPetName && ownedPetCards[0]?.name) {
+        await setSelectedPetName(ownedPetCards[0].name);
+      }
+    };
+    initializePet();
+  }, [selectedPetName, setSelectedPetName, ownedPetCards]);
+
+  const selectedAnimation = useMemo(
+    () => resolveIdleAnimation(selectedPetName),
+    [selectedPetName]
+  );
+  const selectedStyle = useMemo(() => {
+    if (selectedPetName && animationStyleOverrides[selectedPetName]) {
+      return animationStyleOverrides[selectedPetName];
+    }
+    return defaultAnimationStyle;
+  }, [selectedPetName, defaultAnimationStyle]);
 
   const handleMenuPress = useCallback(async () => {
     if (isSavingPet) return;
@@ -145,6 +237,25 @@ const Profile = () => {
       <FlatList
         data={petData}
         keyExtractor={(item) => item.name}
+        data={ownedPetCards}
+        extraData={selectedPetName}
+        renderItem={({ item, index }) => (
+          <View
+            style={{
+              flexBasis: '48%',
+              maxWidth: '48%',
+              marginRight: index % 2 === 0 ? 8 : 0,
+              marginLeft: index % 2 === 1 ? 8 : 0,
+            }}
+          >
+            <Card
+              item={item}
+              onPress={() => handleSelectPet(item.name)}
+              isSelected={item.name === selectedPetName}
+            />
+          </View>
+        )}
+        keyExtractor={(item) => item.id}
         numColumns={2}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 10, paddingHorizontal: 20, paddingTop: 16 }}
@@ -190,6 +301,27 @@ const Profile = () => {
           );
         }}
       />
+        contentContainerStyle={{
+          paddingBottom: 10,
+          paddingHorizontal: 20,
+          paddingTop: 16,
+        }}
+        columnWrapperStyle={{ marginBottom: 16 }}
+        ListEmptyComponent={
+          catalogLoading ? (
+            <View className="items-center justify-center py-12">
+              <ActivityIndicator size="small" color="#2563eb" />
+            </View>
+          ) : (
+            <View className="items-center justify-center py-12">
+              <Text className="text-sm text-black-200">
+                You haven't unlocked any pets yet.
+              </Text>
+            </View>
+          )
+        }
+      />
+
     </View>
   );
 };

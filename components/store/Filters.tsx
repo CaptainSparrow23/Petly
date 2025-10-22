@@ -71,8 +71,8 @@ const Filters = ({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="mb-4"
-        contentContainerStyle={{ paddingRight: 16 }}
+        
+        contentContainerStyle={{ paddingRight: 16, paddingLeft: 20 }}
       >
         {speciesOptions.map(({ value, label, icon: Icon, accent }) => (
           <FilterChip
