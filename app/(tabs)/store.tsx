@@ -11,8 +11,10 @@ import {
   View,
 } from "react-native";
 
+// Accent color for interactive text links
 const PRIMARY_BLUE = "#2563eb";
 
+// Simple rarity ordering used for sorting the catalog grid
 const rarityRank: Record<PetTileItem["rarity"], number> = {
   common: 0,
   rare: 1,
@@ -20,6 +22,7 @@ const rarityRank: Record<PetTileItem["rarity"], number> = {
   legendary: 3,
 };
 
+// Backend endpoint injected via Expo config
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 interface StoreCatalogResponse {
@@ -29,6 +32,7 @@ interface StoreCatalogResponse {
 }
 
 const Store = () => {
+  // Shared banner + base state for catalog loading
   const { showBanner } = useGlobalContext();
   const [pets, setPets] = useState<PetTileItem[]>([]);
   const [featuredPets, setFeaturedPets] = useState<PetTileItem[]>([]);
@@ -38,6 +42,7 @@ const Store = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch catalog data and split legendary pets into the featured rail
   const fetchCatalog = useCallback(async () => {
     if (!API_BASE_URL) {
       const message = "Backend URL not configured";
@@ -50,7 +55,6 @@ const Store = () => {
     try {
       setLoading(true);
       setError(null);
-      setFeaturedPets([]);
 
       const response = await fetch(`${API_BASE_URL}/api/store/catalog`);
       if (!response.ok) {
@@ -62,40 +66,19 @@ const Store = () => {
         throw new Error(payload.message || "Failed to load catalog");
       }
 
-      setPets(payload.data);
+      const nextFeatured: PetTileItem[] = [];
+      const nextPets: PetTileItem[] = [];
 
-      const legendaryFromCatalog = payload.data.filter(
-        (pet) => pet.rarity === "legendary"
-      );
-
-      if (legendaryFromCatalog.length) {
-        setFeaturedPets(legendaryFromCatalog);
-      } else {
-        try {
-          const legendaryResponse = await fetch(
-            `${API_BASE_URL}/api/store/legendary`
-          );
-
-          if (!legendaryResponse.ok) {
-            throw new Error(`HTTP ${legendaryResponse.status}`);
-          }
-
-          const legendaryPayload: StoreCatalogResponse =
-            await legendaryResponse.json();
-
-          if (
-            legendaryPayload.success &&
-            Array.isArray(legendaryPayload.data)
-          ) {
-            setFeaturedPets(legendaryPayload.data);
-          } else {
-            setFeaturedPets([]);
-          }
-        } catch (legendaryError) {
-          console.warn("Failed to load legendary catalog:", legendaryError);
-          setFeaturedPets([]);
+      payload.data.forEach((pet) => {
+        if (pet.rarity === "legendary") {
+          nextFeatured.push(pet);
+        } else {
+          nextPets.push(pet);
         }
-      }
+      });
+
+      setPets(nextPets);
+      setFeaturedPets(nextFeatured);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Unable to load store catalog";
@@ -107,10 +90,31 @@ const Store = () => {
     }
   }, [showBanner]);
 
+  // Initial load on mount
   useEffect(() => {
     fetchCatalog();
   }, [fetchCatalog]);
 
+  // Compute grid spacing for the two-column layout
+  const tileContainerStyle = useCallback((index: number) => {
+    const baseSpacing = {
+      flexBasis: "48%",
+      maxWidth: "48%",
+      marginBottom: 16,
+    } as const;
+
+    const isLeftColumn = index % 2 === 0;
+    const marginTop = index < 2 ? 12 : 16;
+
+    return {
+      ...baseSpacing,
+      marginRight: isLeftColumn ? 12 : 0,
+      marginLeft: isLeftColumn ? 0 : 12,
+      marginTop,
+    };
+  }, []);
+
+  // Renderer for standard catalog tiles
   const renderTile = ({
     item,
     index,
@@ -118,20 +122,12 @@ const Store = () => {
     item: PetTileItem;
     index: number;
   }) => (
-    <View
-      style={{
-        flexBasis: "48%",
-        maxWidth: "48%",
-        marginRight: index % 2 === 0 ? 12 : 0,
-        marginLeft: index % 2 !== 0 ? 12 : 0,
-        marginTop: index < 2 ? 12 : 16,
-        marginBottom: 16,
-      }}
-    >
+    <View style={tileContainerStyle(index)}>
       <Tile item={item} onPress={() => {}} />
     </View>
   );
 
+  // Renderer for cards inside the featured carousel
   const renderFeaturedItem = useCallback(
     ({ item }: { item: PetTileItem }) => (
       <View style={{ marginRight: 16 }}>
@@ -141,8 +137,10 @@ const Store = () => {
     []
   );
 
-  const featuredKeyExtractor = useCallback((item: PetTileItem) => item.id, []);
+  // Stable key extractor for both lists
+  const keyExtractor = useCallback((item: PetTileItem) => item.id, []);
 
+  // Filter by species + sort by rarity/name for the grid
   const visiblePets = useMemo(() => {
     const narrowed =
       selectedSpecies === "all"
@@ -158,16 +156,18 @@ const Store = () => {
     });
   }, [pets, selectedSpecies, sortOrder]);
 
+  // Toggle between ascending/descending rarity order
   const toggleSortOrder = useCallback(() => {
     setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
   }, []);
 
+  // Rotate the featured carousel daily so longer lists feel fresh
   const featuredShowcasePets = useMemo(() => {
     if (!featuredPets.length) {
       return [];
     }
 
-    const chunkSize = 5;
+    const chunkSize = 4;
     const sorted = [...featuredPets].sort((a, b) => a.id.localeCompare(b.id));
     if (sorted.length <= chunkSize) {
       return sorted;
@@ -186,6 +186,7 @@ const Store = () => {
     return [...slice, ...sorted.slice(0, chunkSize - slice.length)];
   }, [featuredPets]);
 
+  // Loading + error gates before rendering the list
   if (loading) {
     return (
       <View className="flex-1 bg-white">
@@ -214,6 +215,7 @@ const Store = () => {
     );
   }
 
+  // Message shown when filters eliminate every pet
   const EmptyState = () => (
     <View className="flex-1 bg-white">
       <View className="flex-1 items-center justify-center px-6">
@@ -231,7 +233,7 @@ const Store = () => {
     <View className="flex-1 bg-white">
       <FlatList
         data={visiblePets}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         renderItem={renderTile}
         numColumns={2}
         ListHeaderComponent={
@@ -246,7 +248,7 @@ const Store = () => {
                 </Text>
               </View><FlatList
                   data={featuredShowcasePets}
-                  keyExtractor={featuredKeyExtractor}
+                  keyExtractor={keyExtractor}
                   renderItem={renderFeaturedItem}
                   horizontal
                   showsHorizontalScrollIndicator={false}

@@ -97,7 +97,7 @@ const FocusHeaderCoins = () => {
   const formattedCoins = useMemo(() => coins.toLocaleString(), [coins]);
 
   return (
-    <View className="mt-3 mr-3 flex-row items-center rounded-full bg-slate-900/10 shadow-sm">
+    <View className="mt-2 mr-4 flex-row items-center rounded-full bg-gray-200">
       <View className="mr-2 h-9 w-9 items-center justify-center rounded-full bg-amber-400">
         <MaterialCommunityIcons name="currency-usd" size={18} color="#92400e" />
       </View>
