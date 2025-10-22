@@ -13,12 +13,8 @@ interface UserProfile {
     profileId: number | null;
     timeActiveToday: number;
     coins: number;
-<<<<<<< HEAD
     ownedPets: string[];
     selectedPet: string | null;
-=======
-    selectedPet?: string | null;
->>>>>>> 7541071a03a68c891ad2cbf475cc1838e106add2
 }
 
 type BannerType = 'success' | 'error' | 'info' | 'warning';
@@ -31,11 +27,7 @@ interface GlobalContextType {
     logout: () => Promise<boolean>;
     showBanner: (message: string, type?: BannerType) => void;
     coins: number;
-<<<<<<< HEAD
     ownedPets: string[];
-=======
-    updateUserProfile: (patch: Partial<UserProfile>) => void;
->>>>>>> 7541071a03a68c891ad2cbf475cc1838e106add2
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -136,13 +128,8 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
             refetch,
             logout,
             showBanner,
-<<<<<<< HEAD
             coins: userProfile?.coins || 0,
             ownedPets: userProfile?.ownedPets ?? []
-=======
-            coins: userProfile?.coins || 0
-            updateUserProfile,
->>>>>>> 7541071a03a68c891ad2cbf475cc1838e106add2
         }}>
             <Banner
                 message={bannerMessage}
