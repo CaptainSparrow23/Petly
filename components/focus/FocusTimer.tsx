@@ -550,7 +550,7 @@ const FocusTimer = () => {
       backgroundColor: interpolateColor(
         countdownButtonOpacity.value,
         [0, 1],
-        ['#93c5fd', '#3b82f6'] // blue-300 to blue-500
+        ['#9CA3AF', '#191d31'] // blue-300 to blue-500
       ),
     }
   })
@@ -560,7 +560,7 @@ const FocusTimer = () => {
       backgroundColor: interpolateColor(
         stopwatchButtonOpacity.value,
         [0, 1],
-        ['#93c5fd', '#3b82f6'] // blue-300 to blue-500
+        ['#9CA3AF', '#191d31'] // blue-300 to blue-500
       ),
     }
   })
@@ -666,7 +666,7 @@ const FocusTimer = () => {
 
         <View className="items-center -mt-8">
           <Pressable
-            className="flex-row items-center gap-2 rounded-full bg-sky-100 px-5 py-2"
+            className="flex-row items-center gap-2 rounded-full bg-gray-200 px-5 py-2"
             onPress={() => {
               if (isRunning) {
                 showBanner('Leave the session to change mode', 'warning')
@@ -701,8 +701,8 @@ const FocusTimer = () => {
         <Pressable
           className="min-w-[180px] items-center rounded-full px-10 py-3.5 shadow-lg mt-8"
           style={{
-            backgroundColor: isRunning ? '#f59e0b' : '#3b82f6',
-            shadowColor: isRunning ? '#92400e' : '#1d4ed8',
+            backgroundColor: isRunning ? '#f59e0b' : '#191d31',
+            shadowColor: isRunning ? '#000000' : '#000000',
             shadowOpacity: 0.35,
             shadowRadius: 12,
             shadowOffset: { width: 0, height: 6 },

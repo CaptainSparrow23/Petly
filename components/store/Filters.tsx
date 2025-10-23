@@ -5,7 +5,7 @@ import type { PetSpecies } from "@/components/store/Tiles";
 
 export type SpeciesValue = PetSpecies | "all";
 
-const ACCENT_COLOR = "#1d4ed8";
+const ACCENT_COLOR = "#000000";
 
 interface FilterChipProps {
   label: string;

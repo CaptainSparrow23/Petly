@@ -1,16 +1,28 @@
 import Filters, { type SpeciesValue } from "@/components/store/Filters";
-import { FeaturedTile, Tile, PetTileItem } from "@/components/store/Tiles";
+import {
+  FeaturedTile,
+  Tile,
+  PetTileItem,
+  PetStars,
+  resolvePetImage,
+} from "@/components/store/Tiles";
 import { useGlobalContext } from "@/lib/global-provider";
 import Constants from "expo-constants";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
+  Modal,
+  Pressable,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
 
+const BUY_BUTTON_GRADIENT = ["#facc15", "#f97316"];
 // Accent color for interactive text links
 const PRIMARY_BLUE = "#2563eb";
 
@@ -32,15 +44,14 @@ interface StoreCatalogResponse {
 }
 
 const Store = () => {
-  // Shared banner + base state for catalog loading
-  const { showBanner } = useGlobalContext();
+  const { showBanner, ownedPets } = useGlobalContext();
   const [pets, setPets] = useState<PetTileItem[]>([]);
   const [featuredPets, setFeaturedPets] = useState<PetTileItem[]>([]);
-  const [selectedSpecies, setSelectedSpecies] =
-    useState<SpeciesValue>("all");
+  const [selectedSpecies, setSelectedSpecies] = useState<SpeciesValue>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPet, setSelectedPet] = useState<PetTileItem | null>(null);
 
   // Fetch catalog data and split legendary pets into the featured rail
   const fetchCatalog = useCallback(async () => {
@@ -66,10 +77,15 @@ const Store = () => {
         throw new Error(payload.message || "Failed to load catalog");
       }
 
+      const ownedLookup = Array.isArray(ownedPets) ? new Set(ownedPets) : null;
       const nextFeatured: PetTileItem[] = [];
       const nextPets: PetTileItem[] = [];
 
       payload.data.forEach((pet) => {
+        if (ownedLookup?.has(pet.id)) {
+          return;
+        }
+
         if (pet.rarity === "legendary") {
           nextFeatured.push(pet);
         } else {
@@ -88,12 +104,20 @@ const Store = () => {
     } finally {
       setLoading(false);
     }
-  }, [showBanner]);
+  }, [ownedPets, showBanner]);
 
   // Initial load on mount
   useEffect(() => {
     fetchCatalog();
   }, [fetchCatalog]);
+
+  const handleTilePress = useCallback((pet: PetTileItem) => {
+    setSelectedPet(pet);
+  }, []);
+
+  const dismissModal = useCallback(() => {
+    setSelectedPet(null);
+  }, []);
 
   // Compute grid spacing for the two-column layout
   const tileContainerStyle = useCallback((index: number) => {
@@ -123,7 +147,7 @@ const Store = () => {
     index: number;
   }) => (
     <View style={tileContainerStyle(index)}>
-      <Tile item={item} onPress={() => {}} />
+      <Tile item={item} onPress={() => handleTilePress(item)} />
     </View>
   );
 
@@ -131,7 +155,7 @@ const Store = () => {
   const renderFeaturedItem = useCallback(
     ({ item }: { item: PetTileItem }) => (
       <View style={{ marginRight: 16 }}>
-        <FeaturedTile item={item} onPress={() => {}} />
+        <FeaturedTile item={item} onPress={() => handleTilePress(item)} />
       </View>
     ),
     []
@@ -192,9 +216,7 @@ const Store = () => {
       <View className="flex-1 bg-white">
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#2563eb" />
-          <Text className="mt-3 text-sm text-black-300">
-            Loading catalog…
-          </Text>
+          <Text className="mt-3 text-sm text-black-300">Loading catalog…</Text>
         </View>
       </View>
     );
@@ -237,56 +259,64 @@ const Store = () => {
         renderItem={renderTile}
         numColumns={2}
         ListHeaderComponent={
-          <><View>
-            {featuredShowcasePets.length > 0 && (
-              <><View className="px-7 pt-3">
-                <Text className="text-2xl font-bold text-black-300">
-                  Featured Companions
-                </Text>
-                <Text className="text-sm text-black-200 mt-1 mb-4">
-                  Meet the rarest companions available in the store.
-                </Text>
-              </View><FlatList
-                  data={featuredShowcasePets}
-                  keyExtractor={keyExtractor}
-                  renderItem={renderFeaturedItem}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingLeft: 24, paddingRight: 20, paddingBottom: 20 }} /></>
-
-            )}
-            <View className="px-7">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-2xl font-bold text-black-300">
-                  All Pets
-                </Text>
-                <TouchableOpacity onPress={toggleSortOrder} activeOpacity={0.7}>
-                  <Text
-                    className="text-sm font-rubik-medium"
-                    style={{ color: PRIMARY_BLUE }}
-                  >
-                    {sortOrder === "desc"
-                      ? "Sort: High → Low"
-                      : "Sort: Low → High"}
+          <>
+            <View>
+              {featuredShowcasePets.length > 0 && (
+                <>
+                  <View className="px-7 pt-3">
+                    <Text className="text-2xl font-bold text-black-300">
+                      Featured Companions
+                    </Text>
+                    <Text className="text-sm text-black-200 mt-1 mb-4">
+                      Available for a limited time only.
+                    </Text>
+                  </View>
+                  <FlatList
+                    data={featuredShowcasePets}
+                    keyExtractor={keyExtractor}
+                    renderItem={renderFeaturedItem}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{
+                      paddingLeft: 24,
+                      paddingRight: 20,
+                      paddingBottom: 20,
+                    }}
+                  />
+                </>
+              )}
+              <View className="px-7">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-2xl font-bold text-black-300">
+                    All Pets
                   </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={toggleSortOrder}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      className="text-sm font-rubik-medium"
+                      style={{ color: PRIMARY_BLUE }}
+                    >
+                      {sortOrder === "desc"
+                        ? "Sort: High → Low"
+                        : "Sort: Low → High"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                <Text className="text-sm text-black-200 mt-1">
+                  Browse every pet available in the store.
+                </Text>
               </View>
-              <Text className="text-sm text-black-200 mt-1">
-                Browse every companion available in the store.
-              </Text>
+              <View className="mt-3 mb-2">
+                <Filters
+                  selectedSpecies={selectedSpecies}
+                  onSpeciesChange={setSelectedSpecies}
+                />
+              </View>
             </View>
-          <View className="mt-3 mb-2">
-             <Filters
-                selectedSpecies={selectedSpecies}
-                onSpeciesChange={setSelectedSpecies} 
-                 />
-              
-            </View>
-          </View>
           </>
         }
-
-          
         columnWrapperStyle={{
           paddingHorizontal: 24,
           paddingBottom: 6,
@@ -299,6 +329,78 @@ const Store = () => {
         }}
         ListEmptyComponent={EmptyState}
       />
+      <Modal transparent visible={!!selectedPet} onRequestClose={dismissModal}>
+        <Pressable
+          onPress={dismissModal}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(22, 23, 25, 0.45)",
+            justifyContent: "center",
+          }}
+        >
+          <Pressable
+            style={{
+              marginHorizontal: 70,
+              marginVertical: 20,
+              borderRadius: 24,
+              backgroundColor: "#ffffff",
+              overflow: "hidden",
+            }}
+            onPress={(event) => event.stopPropagation()}
+          >
+            {selectedPet && (
+              <Image
+                source={resolvePetImage(selectedPet)}
+                resizeMode="cover"
+                style={{ width: "100%", height: 300 }}
+              />
+            )}
+
+            <View className="px-6 py-5 bg-white">
+              <Text
+                className="text-2xl font-rubik-extra-bold text-black-900"
+                numberOfLines={1}
+              >
+                {selectedPet?.name}
+              </Text>
+              <Text className="mt-1 text-sm font-rubik text-slate-500">
+                {selectedPet?.rarity?.toUpperCase() ?? ""} ·{" "}
+                {selectedPet?.species
+                  ? selectedPet.species.charAt(0).toUpperCase() +
+                    selectedPet.species.slice(1)
+                  : ""}
+              </Text>
+              {selectedPet && (
+                <View className="mt-2">
+                  <PetStars rarity={selectedPet.rarity} />
+                </View>
+              )}
+              {!!selectedPet?.description && (
+                <Text className="mt-3 text-sm leading-5 text-slate-600">
+                  {selectedPet.description}
+                </Text>
+              )}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {}}
+                className="mt-6 rounded-full bg-black-300 flex-row items-center justify-center py-1 px-3"
+              >
+                <View className=" h-8 w-8 items-center justify-center rounded-full bg-amber-400">
+                  <MaterialCommunityIcons
+                    name="currency-usd"
+                    size={14}
+                    color="#92400e"
+                  />
+                </View>
+
+                <Text className="text-white py-3 ml-2 text-xl">
+                  {selectedPet?.priceCoins.toLocaleString()}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
