@@ -9,7 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Coins, Heart, Star } from "lucide-react-native";
+import { Heart, Star } from "lucide-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 export type PetSpecies =
@@ -106,7 +107,7 @@ export const rarityStarCount: Record<PetRarity, number> = {
   legendary: 6,
 };
 
-const resolvePetImage = (item: PetTileItem): ImageSourcePropType => {
+export const resolvePetImage = (item: PetTileItem): ImageSourcePropType => {
   if (item.imageUrl) {
     return { uri: item.imageUrl };
   }
@@ -128,15 +129,17 @@ const formatSpecies = (species: PetSpecies) =>
   species.charAt(0).toUpperCase() + species.slice(1);
 
 const PriceTag = ({ value }: { value: number }) => (
-  <View className="flex-row items-center bg-white/20 px-2 py-1 rounded-full">
-    <Coins size={14} color="#facc15" strokeWidth={1.5} />
-    <Text className="ml-1 text-sm font-rubik-bold text-white">
+  <View className="flex-row items-center bg-white/20 pl-1 pr-3 py-1 rounded-full">
+    <View className="h-6 w-6 items-center justify-center rounded-full bg-amber-400">
+      <MaterialCommunityIcons name="currency-usd" size={14} color="#92400e" />
+    </View>
+    <Text className="ml-1.5 text-sm font-rubik-bold text-white">
       {value.toLocaleString()}
     </Text>
   </View>
 );
 
-const PetStars = ({ rarity, tint = "#facc15" }: { rarity: PetRarity; tint?: string }) => {
+export const PetStars = ({ rarity, tint = "#facc15" }: { rarity: PetRarity; tint?: string }) => {
   return (
     <View className="flex-row gap-1">
       {Array.from({ length: rarityStarCount[rarity] }).map((_, idx) => (
@@ -219,12 +222,13 @@ export const Tile = ({ item, onPress }: TileProps) => {
         </View>
         <View className="flex flex-row items-center justify-between mt-3">
           <View className="flex-row items-center">
-            <Coins size={16} color="#0f172a" strokeWidth={1.6} />
-            <Text className="ml-1 text-base font-rubik-bold text-primary-300">
+            <View className="h-6 w-6 items-center justify-center rounded-full bg-amber-400">
+              <MaterialCommunityIcons name="currency-usd" size={14} color="#92400e" />
+            </View>
+            <Text className="ml-1.5 text-base font-rubik-bold text-primary-300">
               {priceCoins.toLocaleString()}
             </Text>
           </View>
-
         </View>
       </View>
     </BaseTile>
