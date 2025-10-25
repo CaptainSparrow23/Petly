@@ -28,6 +28,7 @@ interface GlobalContextType {
     showBanner: (message: string, type?: BannerType) => void;
     coins: number;
     ownedPets: string[];
+    updateUserProfile: (patch: Partial<UserProfile>) => void;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -129,7 +130,8 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
             logout,
             showBanner,
             coins: userProfile?.coins || 0,
-            ownedPets: userProfile?.ownedPets ?? []
+            ownedPets: userProfile?.ownedPets ?? [],
+            updateUserProfile,
         }}>
             <Banner
                 message={bannerMessage}

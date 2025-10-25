@@ -3,8 +3,6 @@ import {
   FeaturedTile,
   Tile,
   PetTileItem,
-  PetStars,
-  resolvePetImage,
 } from "@/components/store/Tiles";
 import { useGlobalContext } from "@/lib/global-provider";
 import Constants from "expo-constants";
@@ -12,17 +10,16 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
-  Modal,
-  Pressable,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
+import {
+  InsufficientCoinsModal,
+  PetPreviewModal,
+  PurchaseSuccessModal,
+} from "@/components/store/StoreModals";
 
-const BUY_BUTTON_GRADIENT = ["#facc15", "#f97316"];
 // Accent color for interactive text links
 const PRIMARY_BLUE = "#2563eb";
 
@@ -44,7 +41,8 @@ interface StoreCatalogResponse {
 }
 
 const Store = () => {
-  const { showBanner, ownedPets } = useGlobalContext();
+  const { showBanner, refetch, coins, userProfile, ownedPets } =
+    useGlobalContext();
   const [pets, setPets] = useState<PetTileItem[]>([]);
   const [featuredPets, setFeaturedPets] = useState<PetTileItem[]>([]);
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesValue>("all");
@@ -52,6 +50,17 @@ const Store = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPet, setSelectedPet] = useState<PetTileItem | null>(null);
+  const [showInsufficientCoinsModal, setShowInsufficientCoinsModal] =
+    useState(false);
+  const [showPurchaseSuccessModal, setShowPurchaseSuccessModal] =
+    useState(false);
+  const [isPurchasingPet, setIsPurchasingPet] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [insufficientPet, setInsufficientPet] = useState<PetTileItem | null>(
+    null
+  );
+  const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] =
+    useState<string | null>(null);
 
   // Fetch catalog data and split legendary pets into the featured rail
   const fetchCatalog = useCallback(async () => {
@@ -104,20 +113,118 @@ const Store = () => {
     } finally {
       setLoading(false);
     }
-  }, [ownedPets, showBanner]);
+  }, [ownedPets]);
 
   // Initial load on mount
   useEffect(() => {
     fetchCatalog();
   }, [fetchCatalog]);
 
+  // Open the detail modal when a tile is tapped
   const handleTilePress = useCallback((pet: PetTileItem) => {
     setSelectedPet(pet);
+    setPurchaseError(null);
   }, []);
 
-  const dismissModal = useCallback(() => {
+  const dismissPreview = useCallback(() => {
     setSelectedPet(null);
+    setPurchaseError(null);
+    setIsPurchasingPet(false);
+    setInsufficientPet(null);
   }, []);
+
+  // Kick off the purchase flow for the currently selected pet
+  const purchasePet = useCallback(async () => {
+    const petToPurchase = selectedPet;
+    if (!petToPurchase) {
+      return;
+    }
+
+    if (coins < petToPurchase.priceCoins) {
+      setInsufficientPet(petToPurchase);
+      setShowInsufficientCoinsModal(true);
+      setSelectedPet(null);
+      return;
+    }
+
+    const userId = userProfile?.userId;
+    if (!API_BASE_URL || !userId) {
+      const message =
+        "We couldn't complete your purchase. Please try again shortly.";
+      setPurchaseError(message);
+      showBanner(message, "error");
+      return;
+    }
+
+    setPurchaseError(null);
+    setIsPurchasingPet(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/store/purchase/${userId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            petId: petToPurchase.id,
+            priceCoins: petToPurchase.priceCoins,
+          }),
+        }
+      );
+
+      const payload: {
+        success?: boolean;
+        message?: string;
+        error?: string;
+      } | null = await response.json().catch(() => null);
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(
+          payload?.error || payload?.message || "Purchase failed"
+        );
+      }
+
+      setRecentlyPurchasedPetName(petToPurchase.name);
+      setSelectedPet(null);
+      setShowPurchaseSuccessModal(true);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "We could not complete your purchase. Please try again.";
+      setPurchaseError(message);
+      showBanner(message, "error");
+    } finally {
+      setIsPurchasingPet(false);
+    }
+  }, [coins, selectedPet, showBanner, userProfile?.userId]);
+
+  const handleCloseInsufficientCoinsModal = useCallback(() => {
+    setShowInsufficientCoinsModal(false);
+    setTimeout(() => {
+      setInsufficientPet(null);
+    }, 200);
+  }, []);
+
+  const handleGetMoreCoins = useCallback(() => {
+    setShowInsufficientCoinsModal(false);
+    showBanner("Coin top-ups coming soon.", "info");
+    setTimeout(() => {
+      setInsufficientPet(null);
+    }, 200);
+  }, [showBanner]);
+
+  const handleCloseSuccessModal = useCallback(() => {
+    const purchasedName = recentlyPurchasedPetName;
+    setShowPurchaseSuccessModal(false);
+    dismissPreview();
+    if (purchasedName) {
+      void refetch();
+    }
+    setTimeout(() => {
+      setRecentlyPurchasedPetName(null);
+    }, 250);
+  }, [dismissPreview, recentlyPurchasedPetName, refetch]);
 
   // Compute grid spacing for the two-column layout
   const tileContainerStyle = useCallback((index: number) => {
@@ -215,7 +322,7 @@ const Store = () => {
     return (
       <View className="flex-1 bg-white">
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="large" color="#191d31" />
           <Text className="mt-3 text-sm text-black-300">Loading catalog…</Text>
         </View>
       </View>
@@ -329,78 +436,25 @@ const Store = () => {
         }}
         ListEmptyComponent={EmptyState}
       />
-      <Modal transparent visible={!!selectedPet} onRequestClose={dismissModal}>
-        <Pressable
-          onPress={dismissModal}
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(22, 23, 25, 0.45)",
-            justifyContent: "center",
-          }}
-        >
-          <Pressable
-            style={{
-              marginHorizontal: 70,
-              marginVertical: 20,
-              borderRadius: 24,
-              backgroundColor: "#ffffff",
-              overflow: "hidden",
-            }}
-            onPress={(event) => event.stopPropagation()}
-          >
-            {selectedPet && (
-              <Image
-                source={resolvePetImage(selectedPet)}
-                resizeMode="cover"
-                style={{ width: "100%", height: 300 }}
-              />
-            )}
-
-            <View className="px-6 py-5 bg-white">
-              <Text
-                className="text-2xl font-rubik-extra-bold text-black-900"
-                numberOfLines={1}
-              >
-                {selectedPet?.name}
-              </Text>
-              <Text className="mt-1 text-sm font-rubik text-slate-500">
-                {selectedPet?.rarity?.toUpperCase() ?? ""} ·{" "}
-                {selectedPet?.species
-                  ? selectedPet.species.charAt(0).toUpperCase() +
-                    selectedPet.species.slice(1)
-                  : ""}
-              </Text>
-              {selectedPet && (
-                <View className="mt-2">
-                  <PetStars rarity={selectedPet.rarity} />
-                </View>
-              )}
-              {!!selectedPet?.description && (
-                <Text className="mt-3 text-sm leading-5 text-slate-600">
-                  {selectedPet.description}
-                </Text>
-              )}
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => {}}
-                className="mt-6 rounded-full bg-black-300 flex-row items-center justify-center py-1 px-3"
-              >
-                <View className=" h-8 w-8 items-center justify-center rounded-full bg-amber-400">
-                  <MaterialCommunityIcons
-                    name="currency-usd"
-                    size={14}
-                    color="#92400e"
-                  />
-                </View>
-
-                <Text className="text-white py-3 ml-2 text-xl">
-                  {selectedPet?.priceCoins.toLocaleString()}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <PetPreviewModal
+        pet={selectedPet}
+        visible={!!selectedPet}
+        onClose={dismissPreview}
+        onPurchase={purchasePet}
+        isPurchasing={isPurchasingPet}
+        purchaseError={purchaseError}
+      />
+      <InsufficientCoinsModal
+        visible={showInsufficientCoinsModal}
+        petName={insufficientPet?.name}
+        onClose={handleCloseInsufficientCoinsModal}
+        onGetMoreCoins={handleGetMoreCoins}
+      />
+      <PurchaseSuccessModal
+        visible={showPurchaseSuccessModal}
+        petName={recentlyPurchasedPetName}
+        onClose={handleCloseSuccessModal}
+      />
     </View>
   );
 };
