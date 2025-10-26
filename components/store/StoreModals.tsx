@@ -14,23 +14,23 @@ import {
   resolvePetImage,
 } from "./Tiles";
 
-interface PetPreviewModalProps {
+type PetPreviewModalProps = {
   pet: PetTileItem | null;
   visible: boolean;
   onClose: () => void;
   onPurchase: () => void;
   isPurchasing: boolean;
   purchaseError?: string | null;
-}
+};
 
-export const PetPreviewModal: React.FC<PetPreviewModalProps> = ({
+export const PetPreviewModal = ({
   pet,
   visible,
   onClose,
   onPurchase,
   isPurchasing,
   purchaseError,
-}) => (
+}: PetPreviewModalProps) => (
   <Modal transparent visible={visible} onRequestClose={onClose}>
     <Pressable
       onPress={onClose}
@@ -109,19 +109,19 @@ export const PetPreviewModal: React.FC<PetPreviewModalProps> = ({
   </Modal>
 );
 
-interface InsufficientCoinsModalProps {
+type InsufficientCoinsModalProps = {
   visible: boolean;
   petName?: string | null;
   onClose: () => void;
   onGetMoreCoins: () => void;
-}
+};
 
-export const InsufficientCoinsModal: React.FC<InsufficientCoinsModalProps> = ({
+export const InsufficientCoinsModal = ({
   visible,
   petName,
   onClose,
   onGetMoreCoins,
-}) => (
+}: InsufficientCoinsModalProps) => (
   <Modal
     transparent
     visible={visible}
@@ -193,19 +193,19 @@ export const InsufficientCoinsModal: React.FC<InsufficientCoinsModalProps> = ({
   </Modal>
 );
 
-interface PurchaseSuccessModalProps {
+type PurchaseSuccessModalProps = {
   visible: boolean;
   petName?: string | null;
   onClose: () => void;
   primaryButtonColor?: string;
-}
+};
 
-export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
+export const PurchaseSuccessModal = ({
   visible,
   petName,
   onClose,
   primaryButtonColor = "#191d31",
-}) => (
+}: PurchaseSuccessModalProps) => (
   <Modal
     transparent
     visible={visible}
