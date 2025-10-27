@@ -2,12 +2,15 @@ import GlobalProvider from "@/lib/global-provider";
 import { Stack } from "expo-router";
 import 'react-native-gesture-handler';
 import "./global.css";
+import { SheetProvider } from "react-native-actions-sheet";
+import "@/components/store/register-sheets";
 
 
 export default function RootLayout() {
   return (
-    <GlobalProvider>
-      <Stack 
+    <SheetProvider>
+      <GlobalProvider>
+        <Stack 
         screenOptions={{ 
           headerShown: false,
           animation: 'none',
@@ -41,6 +44,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-    </GlobalProvider>
+      </GlobalProvider>
+    </SheetProvider>
   );
 }
