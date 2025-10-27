@@ -1,12 +1,11 @@
 import Filters, { type SpeciesValue } from "@/components/store/Filters";
 import {
-  FeaturedTile,
   Tile,
   PetTileItem,
 } from "@/components/store/Tiles";
 import { useGlobalContext } from "@/lib/global-provider";
 import Constants from "expo-constants";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -14,14 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  InsufficientCoinsModal,
-  PetPreviewModal,
-  PurchaseSuccessModal,
-} from "@/components/store/StoreModals";
-
-// Accent color for interactive text links
-const PRIMARY_BLUE = "#2563eb";
+import { SheetManager } from "react-native-actions-sheet";
+import { useFocusEffect } from "@react-navigation/native";
 
 // Simple rarity ordering used for sorting the catalog grid
 const rarityRank: Record<PetTileItem["rarity"], number> = {
@@ -41,135 +34,111 @@ interface StoreCatalogResponse {
 }
 
 const Store = () => {
-  const { showBanner, refetch, coins, userProfile, ownedPets } =
+  const { refetch, coins, userProfile, ownedPets, updateUserProfile } =
     useGlobalContext();
+
   const [pets, setPets] = useState<PetTileItem[]>([]);
-  const [featuredPets, setFeaturedPets] = useState<PetTileItem[]>([]);
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesValue>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPet, setSelectedPet] = useState<PetTileItem | null>(null);
-  const [showInsufficientCoinsModal, setShowInsufficientCoinsModal] =
-    useState(false);
-  const [showPurchaseSuccessModal, setShowPurchaseSuccessModal] =
-    useState(false);
-  const [isPurchasingPet, setIsPurchasingPet] = useState(false);
-  const [purchaseError, setPurchaseError] = useState<string | null>(null);
-  const [insufficientPet, setInsufficientPet] = useState<PetTileItem | null>(
-    null
-  );
+
   const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] =
     useState<string | null>(null);
 
-  // Fetch catalog data and split legendary pets into the featured rail
-  const fetchCatalog = useCallback(async () => {
-    if (!API_BASE_URL) {
-      const message = "Backend URL not configured";
-      setError(message);
-      showBanner(`Store error: ${message}`, "error");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`${API_BASE_URL}/api/store/catalog`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+  // Fetch the latest catalog from the backend and filter out pets the user already owns.
+  const fetchCatalog = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!API_BASE_URL) {
+        const message = "Backend URL not configured";
+        setError(message);
+        console.warn("[Store] ", `Store error: ${message}`);
+        setLoading(false);
+        return;
       }
 
-      const payload: StoreCatalogResponse = await response.json();
-      if (!payload.success || !Array.isArray(payload.data)) {
-        throw new Error(payload.message || "Failed to load catalog");
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(`${API_BASE_URL}/api/store/catalog`, {
+          signal,
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload: StoreCatalogResponse = await response.json();
+        if (!payload.success || !Array.isArray(payload.data)) {
+          throw new Error(payload.message || "Failed to load catalog");
+        }
+
+        const ownedIds = new Set(ownedPets ?? []);
+        setPets(payload.data.filter((pet) => !ownedIds.has(pet.id)));
+      } catch (err) {
+        if (signal?.aborted) return;
+        const message =
+          err instanceof Error ? err.message : "Unable to load store catalog";
+        setError(message);
+        console.warn("[Store] ", `Store error: ${message}`);
+      } finally {
+        if (signal?.aborted) return;
+        setLoading(false);
+      }
+    },
+    [ownedPets]
+  );
+
+  // Refresh the catalog whenever the store tab gains focus.
+  useFocusEffect(
+    useCallback(() => {
+      const controller = new AbortController();
+      void fetchCatalog(controller.signal);
+      return () => {
+        controller.abort();
+      };
+    }, [fetchCatalog])
+  );
+
+  // Handle the full purchase flow for the currently previewed pet.
+  const handleConfirmPurchase = useCallback(async (pet: PetTileItem) => {
+    try {
+      if (coins < pet.priceCoins) {
+        await SheetManager.hide("store-confirmation");
+        // Allow the confirmation sheet to close before presenting the insufficient coins sheet.
+        setTimeout(() => {
+          void SheetManager.show("store-insufficient", {
+            payload: {
+              petName: pet.name,
+              onCloseRequest: () => {
+                void SheetManager.hide("store-insufficient");
+              },
+              onGetMoreCoins: () => {},
+              onClosed: () => {},
+            },
+        });
+      }, 0);
+      return;
+    }
+
+      const userId = userProfile?.userId;
+      if (!API_BASE_URL || !userId) {
+        const message =
+          "We couldn't complete your purchase. Please try again shortly.";
+        console.warn("[Store] ", message);
+        throw new Error(message);
       }
 
-      const ownedLookup = Array.isArray(ownedPets) ? new Set(ownedPets) : null;
-      const nextFeatured: PetTileItem[] = [];
-      const nextPets: PetTileItem[] = [];
-
-      payload.data.forEach((pet) => {
-        if (ownedLookup?.has(pet.id)) {
-          return;
-        }
-
-        if (pet.rarity === "legendary") {
-          nextFeatured.push(pet);
-        } else {
-          nextPets.push(pet);
-        }
-      });
-
-      setPets(nextPets);
-      setFeaturedPets(nextFeatured);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Unable to load store catalog";
-      setError(message);
-      showBanner(`Store error: ${message}`, "error");
-      setFeaturedPets([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [ownedPets]);
-
-  // Initial load on mount
-  useEffect(() => {
-    fetchCatalog();
-  }, [fetchCatalog]);
-
-  // Open the detail modal when a tile is tapped
-  const handleTilePress = useCallback((pet: PetTileItem) => {
-    setSelectedPet(pet);
-    setPurchaseError(null);
-  }, []);
-
-  const dismissPreview = useCallback(() => {
-    setSelectedPet(null);
-    setPurchaseError(null);
-    setIsPurchasingPet(false);
-    setInsufficientPet(null);
-  }, []);
-
-  // Kick off the purchase flow for the currently selected pet
-  const purchasePet = useCallback(async () => {
-    const petToPurchase = selectedPet;
-    if (!petToPurchase) {
-      return;
-    }
-
-    if (coins < petToPurchase.priceCoins) {
-      setInsufficientPet(petToPurchase);
-      setShowInsufficientCoinsModal(true);
-      setSelectedPet(null);
-      return;
-    }
-
-    const userId = userProfile?.userId;
-    if (!API_BASE_URL || !userId) {
-      const message =
-        "We couldn't complete your purchase. Please try again shortly.";
-      setPurchaseError(message);
-      showBanner(message, "error");
-      return;
-    }
-
-    setPurchaseError(null);
-    setIsPurchasingPet(true);
-
-    try {
       const response = await fetch(
         `${API_BASE_URL}/api/store/purchase/${userId}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            petId: petToPurchase.id,
-            priceCoins: petToPurchase.priceCoins,
+            petId: pet.id,
+            priceCoins: pet.priceCoins,
           }),
-        }
+        },
       );
 
       const payload: {
@@ -180,53 +149,82 @@ const Store = () => {
 
       if (!response.ok || !payload?.success) {
         throw new Error(
-          payload?.error || payload?.message || "Purchase failed"
+          payload?.error || payload?.message || "Purchase failed",
         );
       }
 
-      setRecentlyPurchasedPetName(petToPurchase.name);
-      setSelectedPet(null);
-      setShowPurchaseSuccessModal(true);
+      setRecentlyPurchasedPetName(pet.name);
+      setPets((prev) => prev.filter((item) => item.id !== pet.id));
+      updateUserProfile({
+        coins: Math.max(0, coins - pet.priceCoins),
+        ownedPets: ownedPets.includes(pet.id)
+          ? ownedPets
+          : [...ownedPets, pet.id],
+      });
+      await SheetManager.hide("store-confirmation");
+      // Queue the success sheet so it appears after the confirmation sheet finishes closing.
+      setTimeout(() => {
+        void SheetManager.show("store-success", {
+          payload: {
+            petName: pet.name,
+            onCloseRequest: () => {
+              void SheetManager.hide("store-success");
+            },
+            onClosed: () => {
+              if (recentlyPurchasedPetName) {
+                void refetch();
+              }
+              void SheetManager.hide("store-preview");
+              setRecentlyPurchasedPetName(null);
+            },
+          },
+        });
+      }, 0);
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : "We could not complete your purchase. Please try again.";
-      setPurchaseError(message);
-      showBanner(message, "error");
-    } finally {
-      setIsPurchasingPet(false);
+      console.warn("[Store] ", message);
+      throw new Error(message);
     }
-  }, [coins, selectedPet, showBanner, userProfile?.userId]);
+  }, [
+    coins,
+    ownedPets,
+    recentlyPurchasedPetName,
+    refetch,
+    updateUserProfile,
+    userProfile?.userId,
+  ]);
 
-  const handleCloseInsufficientCoinsModal = useCallback(() => {
-    setShowInsufficientCoinsModal(false);
-    setTimeout(() => {
-      setInsufficientPet(null);
-    }, 200);
-  }, []);
+  // Open the confirmation sheet for the tapped pet.
+  const handlePurchasePress = useCallback((pet: PetTileItem) => {
+    void SheetManager.show("store-confirmation", {
+      payload: {
+        petName: pet.name,
+        petPrice: pet.priceCoins,
+        onConfirm: () => handleConfirmPurchase(pet),
+        onCancel: () => {
+          void SheetManager.hide("store-confirmation");
+        },
+      },
+    });
+  }, [handleConfirmPurchase]);
 
-  const handleGetMoreCoins = useCallback(() => {
-    setShowInsufficientCoinsModal(false);
-    showBanner("Coin top-ups coming soon.", "info");
-    setTimeout(() => {
-      setInsufficientPet(null);
-    }, 200);
-  }, [showBanner]);
+  // Show the pet details preview sheet when a tile is pressed.
+  const handleTilePress = useCallback((pet: PetTileItem) => {
+    setRecentlyPurchasedPetName(null);
+    void SheetManager.show("store-preview", {
+      payload: {
+        pet,
+        onPurchase: handlePurchasePress,
+        onClosed: () => {
+          setRecentlyPurchasedPetName(null);
+        },
+      },
+    });
+  }, [handlePurchasePress]);
 
-  const handleCloseSuccessModal = useCallback(() => {
-    const purchasedName = recentlyPurchasedPetName;
-    setShowPurchaseSuccessModal(false);
-    dismissPreview();
-    if (purchasedName) {
-      void refetch();
-    }
-    setTimeout(() => {
-      setRecentlyPurchasedPetName(null);
-    }, 250);
-  }, [dismissPreview, recentlyPurchasedPetName, refetch]);
-
-  // Compute grid spacing for the two-column layout
   const tileContainerStyle = useCallback((index: number) => {
     const baseSpacing = {
       flexBasis: "48%",
@@ -245,7 +243,6 @@ const Store = () => {
     };
   }, []);
 
-  // Renderer for standard catalog tiles
   const renderTile = ({
     item,
     index,
@@ -258,20 +255,9 @@ const Store = () => {
     </View>
   );
 
-  // Renderer for cards inside the featured carousel
-  const renderFeaturedItem = useCallback(
-    ({ item }: { item: PetTileItem }) => (
-      <View style={{ marginRight: 16 }}>
-        <FeaturedTile item={item} onPress={() => handleTilePress(item)} />
-      </View>
-    ),
-    []
-  );
-
-  // Stable key extractor for both lists
   const keyExtractor = useCallback((item: PetTileItem) => item.id, []);
 
-  // Filter by species + sort by rarity/name for the grid
+  // Apply species filtering and rarity sorting before rendering.
   const visiblePets = useMemo(() => {
     const narrowed =
       selectedSpecies === "all"
@@ -287,38 +273,12 @@ const Store = () => {
     });
   }, [pets, selectedSpecies, sortOrder]);
 
-  // Toggle between ascending/descending rarity order
   const toggleSortOrder = useCallback(() => {
     setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
   }, []);
 
-  // Rotate the featured carousel daily so longer lists feel fresh
-  const featuredShowcasePets = useMemo(() => {
-    if (!featuredPets.length) {
-      return [];
-    }
-
-    const chunkSize = 4;
-    const sorted = [...featuredPets].sort((a, b) => a.id.localeCompare(b.id));
-    if (sorted.length <= chunkSize) {
-      return sorted;
-    }
-
-    const totalChunks = Math.ceil(sorted.length / chunkSize);
-    const dayIndex = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
-    const chunkIndex = dayIndex % totalChunks;
-    const start = chunkIndex * chunkSize;
-    const slice = sorted.slice(start, start + chunkSize);
-
-    if (slice.length === chunkSize) {
-      return slice;
-    }
-
-    return [...slice, ...sorted.slice(0, chunkSize - slice.length)];
-  }, [featuredPets]);
-
-  // Loading + error gates before rendering the list
   if (loading) {
+    // Loading state: show a centered spinner while the catalog fetch is in flight.
     return (
       <View className="flex-1 bg-white">
         <View className="flex-1 items-center justify-center">
@@ -330,6 +290,7 @@ const Store = () => {
   }
 
   if (error) {
+    // Error state: surface the message in a simple fallback view.
     return (
       <View className="flex-1 bg-white">
         <View className="flex-1 items-center justify-center px-6">
@@ -344,7 +305,7 @@ const Store = () => {
     );
   }
 
-  // Message shown when filters eliminate every pet
+  // Empty-state fallback for when the filtered list has no pets.
   const EmptyState = () => (
     <View className="flex-1 bg-white">
       <View className="flex-1 items-center justify-center px-6">
@@ -360,38 +321,16 @@ const Store = () => {
 
   return (
     <View className="flex-1 bg-white">
+      {/* Main catalog grid */}
       <FlatList
         data={visiblePets}
         keyExtractor={keyExtractor}
         renderItem={renderTile}
         numColumns={2}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
             <View>
-              {featuredShowcasePets.length > 0 && (
-                <>
-                  <View className="px-7 pt-3">
-                    <Text className="text-2xl font-bold text-black-300">
-                      Featured Companions
-                    </Text>
-                    <Text className="text-sm text-black-200 mt-1 mb-4">
-                      Available for a limited time only.
-                    </Text>
-                  </View>
-                  <FlatList
-                    data={featuredShowcasePets}
-                    keyExtractor={keyExtractor}
-                    renderItem={renderFeaturedItem}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{
-                      paddingLeft: 24,
-                      paddingRight: 20,
-                      paddingBottom: 20,
-                    }}
-                  />
-                </>
-              )}
               <View className="px-7">
                 <View className="flex-row items-center justify-between">
                   <Text className="text-2xl font-bold text-black-300">
@@ -402,8 +341,7 @@ const Store = () => {
                     activeOpacity={0.7}
                   >
                     <Text
-                      className="text-sm font-rubik-medium"
-                      style={{ color: PRIMARY_BLUE }}
+                      className="text-sm font-rubik-medium text-gray-600"
                     >
                       {sortOrder === "desc"
                         ? "Sort: High → Low"
@@ -435,25 +373,6 @@ const Store = () => {
           paddingTop: 8,
         }}
         ListEmptyComponent={EmptyState}
-      />
-      <PetPreviewModal
-        pet={selectedPet}
-        visible={!!selectedPet}
-        onClose={dismissPreview}
-        onPurchase={purchasePet}
-        isPurchasing={isPurchasingPet}
-        purchaseError={purchaseError}
-      />
-      <InsufficientCoinsModal
-        visible={showInsufficientCoinsModal}
-        petName={insufficientPet?.name}
-        onClose={handleCloseInsufficientCoinsModal}
-        onGetMoreCoins={handleGetMoreCoins}
-      />
-      <PurchaseSuccessModal
-        visible={showPurchaseSuccessModal}
-        petName={recentlyPurchasedPetName}
-        onClose={handleCloseSuccessModal}
       />
     </View>
   );

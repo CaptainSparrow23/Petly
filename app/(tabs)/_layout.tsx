@@ -108,9 +108,8 @@ const FocusHeaderCoins = () => {
 };
 
 const DrawerLayout = () => {
-  
   return (
-    <Drawer 
+      <Drawer 
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{ 
         headerShown: true,
