@@ -79,18 +79,13 @@ const resolveIdleAnimation = (petName?: string | null) => {
   return Animations[key] ?? null;
 };
 
-type GlobalContextForPets = ReturnType<typeof useGlobalContext> & {
-  updateUserProfile?: (patch: Partial<{ selectedPet: string | null }>) => void;
-  ownedPets?: string[];
-};
-
 const Profile = () => {
   const {
     userProfile,
     showBanner,
     updateUserProfile,
     ownedPets: ownedPetsFromContext,
-  } = useGlobalContext() as GlobalContextForPets;
+  } = useGlobalContext();
   const navigation = useNavigation();
   const [focusedPet, setFocusedPet] = useState<string | null>(
     userProfile?.selectedPet ?? null,

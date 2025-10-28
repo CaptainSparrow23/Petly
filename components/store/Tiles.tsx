@@ -4,13 +4,12 @@ import React from "react";
 import {
   Image,
   ImageSourcePropType,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Coins, Heart, Star } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Star } from "lucide-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export type PetSpecies =
   | "cat"
@@ -106,7 +105,7 @@ export const rarityStarCount: Record<PetRarity, number> = {
   legendary: 6,
 };
 
-const resolvePetImage = (item: PetTileItem): ImageSourcePropType => {
+export const resolvePetImage = (item: PetTileItem): ImageSourcePropType => {
   if (item.imageUrl) {
     return { uri: item.imageUrl };
   }
@@ -127,16 +126,9 @@ const resolvePetImage = (item: PetTileItem): ImageSourcePropType => {
 const formatSpecies = (species: PetSpecies) =>
   species.charAt(0).toUpperCase() + species.slice(1);
 
-const PriceTag = ({ value }: { value: number }) => (
-  <View className="flex-row items-center bg-white/20 px-2 py-1 rounded-full">
-    <Coins size={14} color="#facc15" strokeWidth={1.5} />
-    <Text className="ml-1 text-sm font-rubik-bold text-white">
-      {value.toLocaleString()}
-    </Text>
-  </View>
-);
+export const formatSpeciesUtil = formatSpecies;
 
-const PetStars = ({ rarity, tint = "#facc15" }: { rarity: PetRarity; tint?: string }) => {
+export const PetStars = ({ rarity, tint = "#facc15" }: { rarity: PetRarity; tint?: string }) => {
   return (
     <View className="flex-row gap-1">
       {Array.from({ length: rarityStarCount[rarity] }).map((_, idx) => (
@@ -145,56 +137,6 @@ const PetStars = ({ rarity, tint = "#facc15" }: { rarity: PetRarity; tint?: stri
     </View>
   );
 };
-
-export const FeaturedTile = ({ item, onPress }: TileProps) => {
-  const { name, rarity, species, priceCoins } = item;
-
-  return (
-    <BaseTile
-      item={item}
-      onPress={onPress}
-      borderWidth={4}
-      containerClassName="flex flex-col items-start w-60 h-80 relative overflow-hidden rounded-2xl"
-      imageClassName="size-full"
-      overlay={
-        <LinearGradient
-          pointerEvents="none"
-          colors={["rgba(15,23,42,0)", "rgba(15,23,42,0.85)"]}
-          locations={[0, 1]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.featuredGradientOverlay}
-        />
-      }
-    >
-      <View className="flex flex-col items-start absolute bottom-5 inset-x-5">
-        <Text className="text-xl font-bold text-white" numberOfLines={1}>
-          {name}
-        </Text>
-        <Text className="text-sm font-rubik text-white/80" numberOfLines={1}>
-          {formatSpecies(species)}
-        </Text>
-        <View className="mt-2">
-          <PetStars rarity={rarity} tint="#facc15" />
-        </View>
-        <View className="flex flex-row items-center justify-between w-full mt-3">
-          <PriceTag value={priceCoins} />
-         
-        </View>
-      </View>
-    </BaseTile>
-  );
-};
-
-const styles = StyleSheet.create({
-  featuredGradientOverlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    top: "45%",
-  },
-});
 
 export const Tile = ({ item, onPress }: TileProps) => {
   const { name, rarity, species, priceCoins } = item;
@@ -219,12 +161,13 @@ export const Tile = ({ item, onPress }: TileProps) => {
         </View>
         <View className="flex flex-row items-center justify-between mt-3">
           <View className="flex-row items-center">
-            <Coins size={16} color="#0f172a" strokeWidth={1.6} />
-            <Text className="ml-1 text-base font-rubik-bold text-primary-300">
+            <View className="h-6 w-6 items-center justify-center rounded-full bg-amber-400">
+              <MaterialCommunityIcons name="currency-usd" size={14} color="#92400e" />
+            </View>
+            <Text className="ml-1.5 text-base font-rubik-bold text-primary-300">
               {priceCoins.toLocaleString()}
             </Text>
           </View>
-
         </View>
       </View>
     </BaseTile>

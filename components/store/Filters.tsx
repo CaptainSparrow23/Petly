@@ -1,9 +1,11 @@
 import React from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { Cat, Dog, Rabbit, Bird, PawPrint, Flame } from "lucide-react-native";
+import { Bird, Cat, Dog, PawPrint, Rabbit } from "lucide-react-native";
 import type { PetSpecies } from "@/components/store/Tiles";
 
 export type SpeciesValue = PetSpecies | "all";
+
+const ACCENT_COLOR = "#000000";
 
 interface FilterChipProps {
   label: string;
@@ -18,7 +20,7 @@ const FilterChip = ({
   active,
   onPress,
   Icon,
-  activeColor = "#1d4ed8",
+  activeColor = ACCENT_COLOR,
 }: FilterChipProps) => {
   const background = active ? `${activeColor}20` : "rgba(148, 163, 184, 0.12)";
   const border = active ? activeColor : "rgba(148, 163, 184, 0.4)";
@@ -47,14 +49,12 @@ const speciesOptions: Array<{
   value: SpeciesValue;
   label: string;
   icon: FilterChipProps["Icon"];
-  accent?: string;
 }> = [
-  { value: "all", label: "All Pets", icon: PawPrint, accent: "#1d4ed8" },
-  { value: "cat", label: "Cats", icon: Cat, accent: "#f97316" },
-  { value: "dog", label: "Dogs", icon: Dog, accent: "#2563eb" },
-  { value: "fox", label: "Foxes", icon: Flame, accent: "#ea580c" },
-  { value: "bunny", label: "Bunnies", icon: Rabbit, accent: "#16a34a" },
-  { value: "owl", label: "Owls", icon: Bird, accent: "#6366f1" },
+  { value: "all", label: "All Pets", icon: PawPrint },
+  { value: "cat", label: "Cats", icon: Cat },
+  { value: "dog", label: "Dogs", icon: Dog },
+  { value: "bird", label: "Birds", icon: Bird },
+  { value: "rabbit", label: "Rabbits", icon: Rabbit },
 ];
 
 interface FiltersProps {
@@ -74,13 +74,12 @@ const Filters = ({
         
         contentContainerStyle={{ paddingRight: 16, paddingLeft: 20 }}
       >
-        {speciesOptions.map(({ value, label, icon: Icon, accent }) => (
+        {speciesOptions.map(({ value, label, icon: Icon }) => (
           <FilterChip
             key={value}
             label={label}
             Icon={Icon}
             active={selectedSpecies === value}
-            activeColor={accent}
             onPress={() => onSpeciesChange?.(value)}
           />
         ))}

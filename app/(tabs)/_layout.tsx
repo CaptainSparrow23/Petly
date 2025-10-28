@@ -58,10 +58,10 @@ const CustomDrawerContent = (props: any) => {
             className="border-4 border-white shadow-lg"
           />
           <Text className="text-2xl mt-2 font-semibold text-black-300">{displayName}</Text>
-          <Text className="text-m mt-1 font-rubik-bold text-gray-500">
+          <Text className="text-sm mt-1 text-gray-500">
             {username ? `@${username}` : 'No username set'}
           </Text>
-          <View className="h-px bg-gray-200 mt-6 -mb-2 w-[90%] align-center" />
+
         </TouchableOpacity>
         <DrawerItemList {...props} />
       </DrawerContentScrollView>
@@ -97,7 +97,7 @@ const FocusHeaderCoins = () => {
   const formattedCoins = useMemo(() => coins.toLocaleString(), [coins]);
 
   return (
-    <View className="mt-3 mr-3 flex-row items-center rounded-full bg-slate-900/10 shadow-sm">
+    <View className="mt-2 mr-4 flex-row items-center rounded-full bg-gray-200">
       <View className="mr-2 h-9 w-9 items-center justify-center rounded-full bg-amber-400">
         <MaterialCommunityIcons name="currency-usd" size={18} color="#92400e" />
       </View>
@@ -108,9 +108,8 @@ const FocusHeaderCoins = () => {
 };
 
 const DrawerLayout = () => {
-  
   return (
-    <Drawer 
+      <Drawer 
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{ 
         headerShown: true,
@@ -128,8 +127,14 @@ const DrawerLayout = () => {
         drawerStyle: {
           width: 250,
         },
+        drawerActiveBackgroundColor: '#191d31',
+        drawerInactiveBackgroundColor: 'transparent',
+        drawerActiveTintColor: '#ffffff',
+        drawerInactiveTintColor: '#1f2937',
         drawerType: 'front',
         swipeEnabled: true,
+        
+  
       }}>
       <Drawer.Screen name='index' options={{ 
         title: '',
