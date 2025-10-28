@@ -27,7 +27,7 @@ import room_background from "@/assets/images/room_background.png";
 import { Animations } from "@/constants/animations";
 import icons from "@/constants/icons";
 import images from "@/constants/images";
-import { useStoreCatalog } from "@/hooks/storeCatalog";
+import { useStoreCatalog } from "@/hooks/useStore";
 import { useGlobalContext } from "@/lib/global-provider";
 import type { PetTileItem } from "@/components/store/Tiles";
 import { rarityStarCount } from "@/components/store/Tiles";

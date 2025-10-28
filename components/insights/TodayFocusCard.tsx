@@ -37,18 +37,12 @@ export default function TodayFocusCard() {
   const durationLabel = useMemo(() => (totalSeconds ? formatDetailedDuration(totalSeconds) : ''), [totalSeconds]);
 
   return (
-    <View className="flex-[2.5] rounded-2xl border border-gray-200 bg-white p-4">
-      <Text className="text-sm font-rubik-medium text-gray-500">Today&apos;s Focus</Text>
+    <View className="w-[60%] relative rounded-2xl border border-gray-200 bg-gray-50 p-3">
+      <Text className="text-m text-gray-700">Today's Focus</Text>
       {totalSeconds > 0 ? (
-        <>
-          <Text className="mt-3 text-3xl font-rubik-bold text-blue-600">{durationLabel}</Text>
-          <Text className="mt-2 text-xs text-gray-400">Total focused time across all modes today</Text>
-        </>
+          <Text className="text-3xl font-semibold font-rubik-bold text-blue-600">{durationLabel}</Text>
       ) : (
-        <>
-          <Text className="mt-3 text-3xl font-rubik-bold text-blue-600">0 mins 0 secs</Text>
-          <Text className="mt-3 text-sm text-gray-500">No focus sessions logged yet today</Text>
-        </>
+          <Text className="absolute bottom-2 right-3 text-3xl font-semibold font-rubik-bold text-blue-600">0 mins 0 secs</Text>
       )}
     </View>
   );
