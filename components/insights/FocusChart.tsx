@@ -1,132 +1,151 @@
-// components/FocusChart.tsx
-import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import {
   VictoryAxis,
   VictoryBar,
   VictoryChart,
   VictoryLabel,
-  VictoryLine,
-  VictoryScatter,
 } from 'victory-native';
-
-const PRIMARY_BLUE = '#2563eb';
-const GRID_LINE_COLOR = '#e5e7eb';
-const DASH_LINE_COLOR = PRIMARY_BLUE;
-const CHART_HEIGHT = 200;
-const Y_AXIS_LABEL_WIDTH = 30;
 
 export type ChartRange = 'today' | 'week' | 'sixMonths';
 export type ChartDatum = { key: string; label: string; totalMinutes: number };
 
-const CHART_RANGE_LABELS: Record<ChartRange, string> = {
+type FocusChartProps = {
+  data?: {
+    // For "today", pass 24 hourly points (00–23). If omitted, dummy data is used.
+    today?: ChartDatum[];
+    week?: ChartDatum[];
+    sixMonths?: ChartDatum[];
+  };
+  initialRange?: ChartRange;
+  title?: string;
+};
+
+/* ---------------- Dummy data ---------------- */
+const makeDummyToday = (): ChartDatum[] => {
+  // 24 hours of minutes (example values)
+  const mins = [5,10,0,0,0,8,12,20,25,15,5,0,0,30,40,35,0,10,5,0,0,12,18,6];
+  return Array.from({ length: 24 }, (_, h) => ({
+    key: String(h).padStart(2, '0'),
+    label: `${String(h).padStart(2, '0')}:00`,
+    totalMinutes: mins[h] ?? 0,
+  }));
+};
+
+const DUMMY_DATA = {
+  today: makeDummyToday(),
+  week: [
+    { key: 'Mon', label: 'Mon', totalMinutes: 60 },
+    { key: 'Tue', label: 'Tue', totalMinutes: 30 },
+    { key: 'Wed', label: 'Wed', totalMinutes: 90 },
+    { key: 'Thu', label: 'Thu', totalMinutes: 10 },
+    { key: 'Fri', label: 'Fri', totalMinutes: 120 },
+    { key: 'Sat', label: 'Sat', totalMinutes: 40 },
+    { key: 'Sun', label: 'Sun', totalMinutes: 12 },
+  ],
+  sixMonths: [
+    { key: 'May', label: 'May', totalMinutes: 240 },
+    { key: 'Jun', label: 'Jun', totalMinutes: 180 },
+    { key: 'Jul', label: 'Jul', totalMinutes: 320 },
+    { key: 'Aug', label: 'Aug', totalMinutes: 200 },
+    { key: 'Sep', label: 'Sep', totalMinutes: 260 },
+    { key: 'Oct', label: 'Oct', totalMinutes: 300 },
+  ],
+};
+/* -------------------------------------------- */
+
+const RANGE_LABELS: Record<ChartRange, string> = {
   today: 'Today',
   week: 'This Week',
   sixMonths: 'Last 6 Months',
 };
 
-const formatTotalHours = (minutes: number) => {
-  if (!minutes) return '0';
-  const hours = minutes / 60;
-  return Number.isInteger(hours) ? `${hours}` : hours.toFixed(1);
+// 0–23 hours -> 8 slots of 3 hours each, labeled 12am, 3am, …, 9pm
+const hourLabel = (h: number) => {
+  if (h === 0) return '12am';
+  if (h < 12) return `${h}am`;
+  if (h === 12) return '12pm';
+  return `${h - 12}pm`;
+};
+const groupInto3HourSlots = (hours: ChartDatum[]): ChartDatum[] => {
+  const out: ChartDatum[] = [];
+  for (let start = 0; start < 24; start += 3) {
+    const total = hours
+      .slice(start, start + 3)
+      .reduce((s, d) => s + d.totalMinutes, 0);
+    out.push({
+      key: `slot-${start}`,
+      label: hourLabel(start),
+      totalMinutes: total,
+    });
+  }
+  return out; // 8 bars: 12am, 3am, 6am, 9am, 12pm, 3pm, 6pm, 9pm
 };
 
 export default function FocusChart({
-  range,
-  onChangeRange,
-  dataset,
-  loading,
-  error,
-  onRetry,
-  summaryContextLabel,
-}: {
-  range: ChartRange;
-  onChangeRange: (r: ChartRange) => void;
-  dataset: ChartDatum[];
-  loading: boolean;
-  error: string | null;
-  onRetry: () => void;
-  summaryContextLabel: string; // 'today' | 'this week' | 'the last 6 months'
-}) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  data,
+  initialRange = 'week',
+  title = 'Focused Time Distribution',
+}: FocusChartProps) {
+  const [range, setRange] = useState<ChartRange>(initialRange);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [chartWidth, setChartWidth] = useState(0);
 
-  const best = useMemo(() => dataset.reduce((m, d) => Math.max(m, d.totalMinutes), 0), [dataset]);
-  const underHour = best < 60;
-  const overFiveHours = best > 300;
-  const intervalCount = underHour ? 2 : 5;
-  const intervalMinutes = underHour ? 30 : overFiveHours ? 120 : 60;
-  const maxMinutes = intervalMinutes * intervalCount;
-  const domainMax = useMemo(() => (maxMinutes ? maxMinutes + Math.max(intervalMinutes * 0.04, 1) : 1), [maxMinutes, intervalMinutes]);
+  // pick dataset (props or dummy)
+  const raw: ChartDatum[] = useMemo(() => {
+    const src = { ...DUMMY_DATA, ...(data || {}) };
+    if (range === 'today') return src.today ?? DUMMY_DATA.today;
+    if (range === 'sixMonths') return src.sixMonths ?? DUMMY_DATA.sixMonths;
+    return src.week ?? DUMMY_DATA.week;
+  }, [data, range]);
 
+  // for "today", group into 3h slots; otherwise use as-is
+  const dataset: ChartDatum[] = useMemo(() => {
+    if (range !== 'today') return raw;
+    const hours = raw.length === 24 ? raw : DUMMY_DATA.today;
+    return groupInto3HourSlots(hours);
+  }, [raw, range]);
+
+  const hasData = dataset.some(d => d.totalMinutes > 0);
   const victoryData = useMemo(
-    () => dataset.map((d) => ({ x: d.label, y: Math.min(d.totalMinutes, maxMinutes), actualMinutes: d.totalMinutes })),
-    [dataset, maxMinutes]
+    () => dataset.map(d => ({ x: d.label, y: d.totalMinutes, actualMinutes: d.totalMinutes })),
+    [dataset]
   );
-  const hasData = useMemo(() => dataset.some((d) => d.totalMinutes > 0), [dataset]);
-  const totalMinutes = useMemo(() => dataset.reduce((s, d) => s + d.totalMinutes, 0), [dataset]);
-  const formattedTotalHours = useMemo(() => formatTotalHours(totalMinutes), [totalMinutes]);
-
-  const yTickValues = useMemo(
-    () => Array.from({ length: intervalCount + 1 }, (_, idx) => idx * intervalMinutes),
-    [intervalCount, intervalMinutes]
-  );
-  const formatYAxisTick = useCallback(
-    (value: number) => {
-      if (underHour) return value === 60 ? '1h' : `${value}m`;
-      if (value === 0) return '0m';
-      const h = Math.round(value / 60);
-      return `${h}h`;
-    },
-    [underHour]
-  );
-  const xTickValues = useMemo(() => dataset.map((d) => d.label), [dataset]);
+  const xTickValues = useMemo(() => dataset.map(d => d.label), [dataset]);
+  const maxY = useMemo(() => Math.max(1, ...dataset.map(d => d.totalMinutes)), [dataset]);
 
   return (
-    <View className="mt-6 rounded-2xl border border-gray-200 bg-white p-4">
-      <View className="flex-row items-center justify-between">
-        <Text className="text-lg font-rubik-medium text-gray-900">Focused Time Distribution</Text>
-        <View style={{ position: 'relative', zIndex: 30 }}>
-          <TouchableOpacity activeOpacity={0.85} onPress={() => setIsMenuOpen((p) => !p)}>
-            <Text className="text-sm font-rubik-medium" style={{ color: PRIMARY_BLUE }}>
-              {CHART_RANGE_LABELS[range]}
+    <View className="relative my-4 rounded-2xl border border-gray-200 bg-gray-50 p-3">
+      {/* Header */}
+      <View className="mb-4 flex-row items-center justify-between">
+        <Text className="text-m text-gray-900">{title}</Text>
+
+        <View className="relative">
+          <TouchableOpacity onPress={() => setMenuOpen(p => !p)} activeOpacity={0.85}>
+            <Text className="text-sm font-rubik-medium text-blue-500">
+              {RANGE_LABELS[range]}
             </Text>
           </TouchableOpacity>
-          {isMenuOpen && (
+          {menuOpen && (
             <View
-              style={{
-                position: 'absolute',
-                top: 28,
-                right: 0,
-                width: 150,
-                borderRadius: 12,
-                backgroundColor: '#ffffff',
-                borderWidth: 1,
-                borderColor: '#e2e8f0',
-                shadowColor: '#0f172a',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
-                shadowRadius: 8,
-                elevation: 6,
-                zIndex: 40,
-              }}
+              className="absolute right-0 top-0 w-40 rounded-xl border border-gray-200 bg-gray-50 shadow-lg"
+              style={{ zIndex: 50, elevation: 50 }}
             >
-              {(Object.keys(CHART_RANGE_LABELS) as ChartRange[]).map((value) => (
+              {(['today', 'week', 'sixMonths'] as ChartRange[]).map(val => (
                 <TouchableOpacity
-                  key={value}
-                  activeOpacity={0.85}
+                  key={val}
                   onPress={() => {
-                    onChangeRange(value);
-                    setIsMenuOpen(false);
+                    setRange(val);
+                    setMenuOpen(false);
                   }}
-                  style={{
-                    paddingVertical: 10,
-                    paddingHorizontal: 12,
-                    backgroundColor: range === value ? '#eff6ff' : 'transparent',
-                  }}
+                  className={`px-3 py-2 ${range === val ? 'bg-blue-100' : ''}`}
                 >
-                  <Text className="text-xs font-rubik-medium" style={{ color: range === value ? PRIMARY_BLUE : '#0f172a' }}>
-                    {CHART_RANGE_LABELS[value]}
+                  <Text
+                    className={`text-xs font-rubik-medium ${
+                      range === val ? 'text-blue-600' : 'text-slate-900'
+                    }`}
+                  >
+                    {RANGE_LABELS[val]}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -135,121 +154,72 @@ export default function FocusChart({
         </View>
       </View>
 
-      <View className="mt-3">
-        <Text className="text-sm text-gray-600" numberOfLines={2}>
-          Total focused time {summaryContextLabel}:{' '}
-          <Text style={{ color: PRIMARY_BLUE }}>{formattedTotalHours}</Text> hours
-        </Text>
-      </View>
-
-      {loading ? (
-        <View className="flex-row items-center justify-center py-8">
-          <ActivityIndicator size="large" color={PRIMARY_BLUE} />
-        </View>
-      ) : error ? (
-        <View className="py-8">
-          <Text className="text-red-500 text-center mb-2">Error loading data</Text>
-          <Text className="text-gray-600 text-center text-sm">{error}</Text>
-          <TouchableOpacity onPress={onRetry} className="bg-blue-500 rounded-lg px-4 py-2 mt-3 self-center">
-            <Text className="text-white font-rubik-medium">Retry</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View className="mt-6">
-          <View
-            style={{ height: CHART_HEIGHT + 24, position: 'relative' }}
-            onLayout={(e) => {
-              const { width } = e.nativeEvent.layout;
-              if (width !== chartWidth) setChartWidth(width);
-            }}
+      {/* Chart */}
+      <View
+        className="relative mt-2"
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          if (w !== chartWidth) setChartWidth(w);
+        }}
+      >
+        {chartWidth > 0 && (
+          <VictoryChart
+            width={chartWidth}
+            height={250}
+            domain={{ y: [0, Math.ceil(maxY * 1.1)] }}           
+            domainPadding={{ x: 28, y: [0, 8] }}                
+            padding={{ top: 8, bottom: 30, left: 30, right: 0 }} 
+            categories={{ x: xTickValues }}
           >
-            {chartWidth > 0 && (
-              <VictoryChart
-                width={chartWidth}
-                height={CHART_HEIGHT + 16}
-                domain={{ y: [0, domainMax] }}
-                domainPadding={{
-                  x: 24,
-                  y: maxMinutes > 0 ? [0, Math.max(intervalMinutes * 0.04, 1)] : [0, 1],
-                }}
-                categories={{ x: xTickValues }}
-                padding={{ top: 8, bottom: 28, left: Y_AXIS_LABEL_WIDTH + 12, right: 24 }}
-              >
-                <VictoryAxis
-                  dependentAxis
-                  tickValues={yTickValues}
-                  tickFormat={formatYAxisTick}
-                  style={{
-                    axis: { stroke: 'transparent' },
-                    ticks: { stroke: 'transparent' },
-                    tickLabels: { fill: '#94a3b8', fontSize: 12, padding: 2, fontFamily: 'Rubik-Regular' },
-                    grid: { stroke: GRID_LINE_COLOR, strokeDasharray: '4,4' },
-                  }}
+            {/* X axis */}
+            <VictoryAxis
+              tickValues={xTickValues}
+              style={{
+                axis: { stroke: '#e2e8f0' },
+                ticks: { stroke: 'transparent' },
+                tickLabels: { fill: '#0f172a', fontSize: 12, padding: 12, fontFamily: 'Rubik-Medium' },
+                grid: { stroke: 'transparent' },
+              }}
+            />
+
+            {/* Y axis */}
+            <VictoryAxis
+              dependentAxis
+              style={{
+                axis: { stroke: 'transparent' },
+                ticks: { stroke: 'transparent' },
+                tickLabels: { fill: '#94a3b8', fontSize: 12, padding: 6, fontFamily: 'Rubik-Regular' },
+                grid: { stroke: '#e5e7eb', strokeDasharray: '4,4' },
+              }}
+            />
+
+            {/* Bars for all ranges (today already grouped into 3h slots) */}
+            <VictoryBar
+              data={victoryData}
+              barWidth={18}
+              cornerRadius={{ top: 8, bottom: 0 }}
+              labels={({ datum }) => (datum.actualMinutes > 0 ? `${datum.actualMinutes}m` : '')}
+              labelComponent={
+                <VictoryLabel
+                  dy={-2}
+                  style={{ fill: '#64748b', fontSize: 11, fontFamily: 'Rubik-Medium' }}
                 />
-                <VictoryAxis
-                  tickValues={xTickValues}
-                  style={{
-                    axis: { stroke: '#e2e8f0', strokeWidth: 1 },
-                    ticks: { stroke: 'transparent' },
-                    tickLabels: { fill: '#0f172a', fontSize: 12, padding: 8, fontFamily: 'Rubik-Medium' },
-                  }}
-                />
-                {range !== 'today' && maxMinutes > 0 && (
-                  <VictoryLine
-                    y={() => maxMinutes}
-                    style={{ data: { stroke: DASH_LINE_COLOR, strokeWidth: 1, strokeDasharray: '6,4' } }}
-                  />
-                )}
-                {range === 'today' ? (
-                  (() => {
-                    const pointsWithData = victoryData.filter((d) => d.actualMinutes > 0);
-                    const blocks = [
-                      <VictoryScatter
-                        key="scatter"
-                        data={pointsWithData}
-                        size={4}
-                        style={{ data: { fill: PRIMARY_BLUE } }}
-                        labels={({ datum }) => (datum.actualMinutes > 0 ? `${datum.actualMinutes}m` : '')}
-                        labelComponent={<VictoryLabel dy={-8} style={{ fill: '#64748b', fontSize: 11, fontFamily: 'Rubik-Medium' }} />}
-                      />,
-                    ];
-                    if (pointsWithData.length > 1) {
-                      blocks.unshift(
-                        <VictoryLine
-                          key="line"
-                          data={pointsWithData}
-                          interpolation="monotoneX"
-                          style={{ data: { stroke: PRIMARY_BLUE, strokeWidth: 3 } }}
-                        />
-                      );
-                    }
-                    return blocks;
-                  })()
-                ) : (
-                  <VictoryBar
-                    data={victoryData}
-                    barWidth={16}
-                    cornerRadius={{ top: 8, bottom: 0 }}
-                    labels={({ datum }) => (datum.actualMinutes > 0 ? `${datum.actualMinutes}m` : '')}
-                    labelComponent={<VictoryLabel dy={-1} style={{ fill: '#64748b', fontSize: 11, fontFamily: 'Rubik-Medium' }} />}
-                    style={{
-                      data: { fill: ({ datum }: any) => (datum.actualMinutes > 0 ? PRIMARY_BLUE : GRID_LINE_COLOR) },
-                    }}
-                  />
-                )}
-              </VictoryChart>
-            )}
-            {!hasData && (
-              <Text
-                className="font-rubik-medium"
-                style={{ position: 'absolute', alignSelf: 'center', top: '45%', fontSize: 14, color: '#cbd5f5' }}
-              >
-                No data
-              </Text>
-            )}
-          </View>
-        </View>
-      )}
+              }
+              style={{
+                data: {
+                  fill: ({ datum }: any) => (datum.actualMinutes > 0 ? '#3B82F6' : '#e5e7eb'),
+                },
+              }}
+            />
+          </VictoryChart>
+        )}
+
+        {!hasData && (
+          <Text className="absolute top-[45%] self-center text-[14px] font-rubik-medium text-blue-200">
+            No data
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
