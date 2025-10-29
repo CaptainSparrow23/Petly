@@ -429,11 +429,11 @@ export const useFocusTimer = () => {
   }, [elapsedSeconds, isRunning, isStopwatch, remainingSeconds, selectedMinutes]);
 
   const countdownButtonStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(countdownButtonOpacity.value, [0, 1], ['#93c5fd', '#3b82f6']),
+    backgroundColor: interpolateColor(countdownButtonOpacity.value, [0, 1], ['#9CA3AF', '#191d31']),
   }));
 
   const stopwatchButtonStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(stopwatchButtonOpacity.value, [0, 1], ['#93c5fd', '#3b82f6']),
+    backgroundColor: interpolateColor(stopwatchButtonOpacity.value, [0, 1], ['#9CA3AF', '#191d31']),
   }));
 
   const setMode = (m: ModeKey) => {

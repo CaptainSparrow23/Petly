@@ -93,20 +93,6 @@ const Profile = () => {
   const [isSavingPet, setIsSavingPet] = useState(false);
   const userId = userProfile?.userId;
 
-  const { catalog, loading: catalogLoading, error: catalogError } =
-    useStoreCatalog();
-
-  const defaultAnimationStyle = useMemo(
-    () => ({ width: 280, aspectRatio: 1 }),
-    [],
-  );
-
-  useEffect(() => {
-    if (catalogError) {
-      console.warn("Failed to load store catalog:", catalogError);
-    }
-  }, [catalogError]);
-
   const ownedPetIds = useMemo(() => {
     if (Array.isArray(ownedPetsFromContext) && ownedPetsFromContext.length) {
       return ownedPetsFromContext;
@@ -119,22 +105,32 @@ const Profile = () => {
     return [];
   }, [ownedPetsFromContext, userProfile?.ownedPets]);
 
-  const ownedPetCards = useMemo<OwnedPetCard[]>(() => {
-    if (catalog.length) {
-      const ownedSet = ownedPetIds.length ? new Set(ownedPetIds) : null;
-      return catalog
-        .filter((pet) => !ownedSet || ownedSet.has(pet.id))
-        .map<OwnedPetCard>((pet) => ({
-          id: pet.id,
-          name: pet.name,
-          type: pet.species,
-          image: resolvePetImage(pet),
-          rating: rarityStarCount[pet.rarity] ?? 0,
-        }));
-    }
+  const {
+    ownedPets: catalogOwnedPets,
+    loading: catalogLoading,
+    error: catalogError,
+  } = useStoreCatalog(ownedPetIds);
 
-    return [];
-  }, [catalog, ownedPetIds]);
+  const defaultAnimationStyle = useMemo(
+    () => ({ width: 280, aspectRatio: 1 }),
+    [],
+  );
+
+  useEffect(() => {
+    if (catalogError) {
+      console.warn("Failed to load store catalog:", catalogError);
+    }
+  }, [catalogError]);
+
+  const ownedPetCards = useMemo<OwnedPetCard[]>(() => {
+    return catalogOwnedPets.map((pet) => ({
+      id: pet.id,
+      name: pet.name,
+      type: pet.species,
+      image: resolvePetImage(pet),
+      rating: rarityStarCount[pet.rarity] ?? 0,
+    }));
+  }, [catalogOwnedPets]);
 
   const petCardsData = ownedPetCards;
 

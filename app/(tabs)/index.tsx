@@ -61,7 +61,7 @@ const Index = () => {
       {/* Mode toggle */}
       <View className="absolute left-0 right-0 z-10 items-center" style={{ top: -35, pointerEvents: 'box-none' }}>
         <View className="flex-row items-center" style={{ pointerEvents: 'auto' }}>
-          <Animated.View style={[, { borderTopLeftRadius: 9999, borderBottomLeftRadius: 9999 }]}>
+          <Animated.View style={[countdownButtonStyle, { borderTopLeftRadius: 9999, borderBottomLeftRadius: 9999 }]}>
             <Pressable className="items-center justify-center px-4 py-3" onPress={() => handleTimerModePress('countdown')}>
               <MaterialCommunityIcons
                 name={timerMode === 'countdown' ? 'timer-sand-full' : 'timer-sand-empty'}
@@ -120,14 +120,14 @@ const Index = () => {
         {/* Mode pill */}
         <View className="items-center -mt-8">
           <Pressable
-            className="flex-row items-center gap-2 rounded-full bg-sky-100 px-5 py-2"
+            className="flex-row items-center gap-2 rounded-full bg-gray-200 px-5 py-2"
             onPress={() => {
               if (!isRunning) setModePickerVisible(true);
             }}
             style={{ elevation: 2 }}
           >
             <View className="h-3 w-3 rounded-full" style={{ backgroundColor: MODE_COLORS[mode] }} />
-            <Text className="font-medium text-sky-800">{mode}</Text>
+            <Text className="font-medium">{mode}</Text>
           </Pressable>
         </View>
 
@@ -142,8 +142,8 @@ const Index = () => {
         <Pressable
           className="mt-8 min-w-[180px] items-center rounded-full px-10 py-3.5 shadow-lg"
           style={{
-            backgroundColor: isRunning ? '#f59e0b' : '#3b82f6',
-            shadowColor: isRunning ? '#92400e' : '#1d4ed8',
+            backgroundColor: isRunning ? '#f59e0b' : '#191d31',
+            shadowColor: isRunning ? '#92400e' : '#191d31',
             shadowOpacity: 0.35,
             shadowRadius: 12,
             shadowOffset: { width: 0, height: 6 },

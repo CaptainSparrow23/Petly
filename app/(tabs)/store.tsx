@@ -3,6 +3,7 @@ import {
   Tile,
   PetTileItem,
 } from "@/components/store/Tiles";
+import { useStoreCatalog } from "@/hooks/useStore";
 import { useGlobalContext } from "@/lib/global-provider";
 import Constants from "expo-constants";
 import React, { useCallback, useMemo, useState } from "react";
@@ -27,77 +28,34 @@ const rarityRank: Record<PetTileItem["rarity"], number> = {
 // Backend endpoint injected via Expo config
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
-interface StoreCatalogResponse {
-  success: boolean;
-  data?: PetTileItem[];
-  message?: string;
-}
-
 const Store = () => {
-  const { refetch, coins, userProfile, ownedPets, updateUserProfile } =
-    useGlobalContext();
+  const {
+    refetch: refetchProfile,
+    coins,
+    userProfile,
+    ownedPets,
+    updateUserProfile,
+  } = useGlobalContext();
 
-  const [pets, setPets] = useState<PetTileItem[]>([]);
+  const {
+    availablePets,
+    loading,
+    error,
+    refetch: refetchCatalog,
+  } = useStoreCatalog(ownedPets, { autoFetch: false });
+
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesValue>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] =
     useState<string | null>(null);
 
-  // Fetch the latest catalog from the backend and filter out pets the user already owns.
-  const fetchCatalog = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!API_BASE_URL) {
-        const message = "Backend URL not configured";
-        setError(message);
-        console.warn("[Store] ", `Store error: ${message}`);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`${API_BASE_URL}/api/store/catalog`, {
-          signal,
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const payload: StoreCatalogResponse = await response.json();
-        if (!payload.success || !Array.isArray(payload.data)) {
-          throw new Error(payload.message || "Failed to load catalog");
-        }
-
-        const ownedIds = new Set(ownedPets ?? []);
-        setPets(payload.data.filter((pet) => !ownedIds.has(pet.id)));
-      } catch (err) {
-        if (signal?.aborted) return;
-        const message =
-          err instanceof Error ? err.message : "Unable to load store catalog";
-        setError(message);
-        console.warn("[Store] ", `Store error: ${message}`);
-      } finally {
-        if (signal?.aborted) return;
-        setLoading(false);
-      }
-    },
-    [ownedPets]
-  );
-
   // Refresh the catalog whenever the store tab gains focus.
   useFocusEffect(
     useCallback(() => {
-      const controller = new AbortController();
-      void fetchCatalog(controller.signal);
-      return () => {
-        controller.abort();
-      };
-    }, [fetchCatalog])
+      void refetchCatalog();
+      return undefined;
+    }, [refetchCatalog])
   );
 
   // Handle the full purchase flow for the currently previewed pet.
@@ -154,13 +112,13 @@ const Store = () => {
       }
 
       setRecentlyPurchasedPetName(pet.name);
-      setPets((prev) => prev.filter((item) => item.id !== pet.id));
       updateUserProfile({
         coins: Math.max(0, coins - pet.priceCoins),
         ownedPets: ownedPets.includes(pet.id)
           ? ownedPets
           : [...ownedPets, pet.id],
       });
+      void refetchCatalog();
       await SheetManager.hide("store-confirmation");
       // Queue the success sheet so it appears after the confirmation sheet finishes closing.
       setTimeout(() => {
@@ -172,7 +130,7 @@ const Store = () => {
             },
             onClosed: () => {
               if (recentlyPurchasedPetName) {
-                void refetch();
+                void refetchProfile();
               }
               void SheetManager.hide("store-preview");
               setRecentlyPurchasedPetName(null);
@@ -192,7 +150,8 @@ const Store = () => {
     coins,
     ownedPets,
     recentlyPurchasedPetName,
-    refetch,
+    refetchCatalog,
+    refetchProfile,
     updateUserProfile,
     userProfile?.userId,
   ]);
@@ -261,8 +220,8 @@ const Store = () => {
   const visiblePets = useMemo(() => {
     const narrowed =
       selectedSpecies === "all"
-        ? pets
-        : pets.filter((pet) => pet.species === selectedSpecies);
+        ? availablePets
+        : availablePets.filter((pet) => pet.species === selectedSpecies);
 
     return [...narrowed].sort((a, b) => {
       const diff = rarityRank[a.rarity] - rarityRank[b.rarity];
@@ -271,7 +230,7 @@ const Store = () => {
       }
       return sortOrder === "asc" ? diff : -diff;
     });
-  }, [pets, selectedSpecies, sortOrder]);
+  }, [availablePets, selectedSpecies, sortOrder]);
 
   const toggleSortOrder = useCallback(() => {
     setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
