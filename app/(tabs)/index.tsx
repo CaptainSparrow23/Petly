@@ -13,7 +13,7 @@ export default function IndexScreen() {
   const [activity, setActivity] = useState<"Study" | "Rest">("Study");
   const [pickerOpen, setPickerOpen] = useState(false);
   const HOUR_SECONDS = 3600;
-  const INITIAL_COUNTDOWN_SECONDS = 20 * 60; // 20 minutes
+  const INITIAL_COUNTDOWN_SECONDS = 20 * 60;
   const [running, setRunning] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(INITIAL_COUNTDOWN_SECONDS);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
@@ -22,29 +22,30 @@ export default function IndexScreen() {
   const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { loggedIn } = useLocalSearchParams();
   const { showBanner } = useGlobalContext();
+  const [dragging, setDragging] = useState(false);
+  const [previewP, setPreviewP] = useState<number | null>(null);
 
-  // focused-today accumulator
-  const [totalFocusedSecondsToday, setTotalFocusedSecondsToday] = useState(0);
-  const [focusDate, setFocusDate] = useState<string>(new Date().toDateString());
-
+  // show success on login navigation
   useEffect(() => {
-    if (loggedIn === 'true') showBanner('Successfully logged in', 'success');
+    if (loggedIn === "true") showBanner("Successfully logged in", "success");
   }, [loggedIn, showBanner]);
 
-  // --- Derived tracker progress
   const progress =
     mode === "countdown" ? secondsLeft / HOUR_SECONDS : secondsElapsed / HOUR_SECONDS;
 
-  // --- Start / Stop / Confirm handlers
+  // stop and clear the ticking interval
   const clearTicker = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = null;
   };
+
+  // clear the confirm timeout
   const clearConfirmTimeout = () => {
     if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
     confirmTimeoutRef.current = null;
   };
 
+  // fully stop session and reset numbers, then banner
   const fullyStopAndReset = (reason?: "timer-max" | "countdown-zero" | "manual") => {
     clearTicker();
     setRunning(false);
@@ -66,8 +67,8 @@ export default function IndexScreen() {
     }
   };
 
+  // start a session (with guard for 0:00 countdown)
   const handleStart = () => {
-    // guard: don't start countdown if set to 0
     if (mode === "countdown" && secondsLeft <= 0) {
       showBanner("Set a countdown above 0:00 to start.", "warning");
       return;
@@ -77,21 +78,20 @@ export default function IndexScreen() {
     clearConfirmTimeout();
   };
 
+  // stop press → enter confirm window, second press confirms stop
   const handleStopPress = () => {
-    // first press enters confirm state for a few seconds
     if (!confirmingStop) {
       setConfirmingStop(true);
       clearConfirmTimeout();
       confirmTimeoutRef.current = setTimeout(() => {
-        // timeout ended → revert back to running/Stop
         setConfirmingStop(false);
       }, 3000);
       return;
     }
-    // pressed while confirming → fully stop
     fullyStopAndReset("manual");
   };
 
+  // main CTA handler
   const handleStartStop = () => {
     if (running) {
       handleStopPress();
@@ -100,27 +100,15 @@ export default function IndexScreen() {
     }
   };
 
-  // --- Handle ticking logic
+  // ticking logic for timer/countdown
   useEffect(() => {
-    const tickFocus = () => {
-      // reset accumulator if day changed
-      const today = new Date().toDateString();
-      if (today !== focusDate) {
-        setFocusDate(today);
-        setTotalFocusedSecondsToday(0);
-      }
-      setTotalFocusedSecondsToday((s) => s + 1);
-    };
-
     clearTicker();
     if (!running) return;
 
     if (mode === "countdown") {
       intervalRef.current = setInterval(() => {
-        tickFocus();
         setSecondsLeft((prev) => {
           if (prev <= 1) {
-            // reaches zero during active session
             clearTicker();
             setRunning(false);
             setConfirmingStop(false);
@@ -132,12 +120,9 @@ export default function IndexScreen() {
         });
       }, 1000);
     } else {
-      // Timer mode (count up)
       intervalRef.current = setInterval(() => {
-        tickFocus();
         setSecondsElapsed((prev) => {
           if (prev >= HOUR_SECONDS) {
-            // reached 60 mins during active session
             clearTicker();
             setRunning(false);
             setConfirmingStop(false);
@@ -151,9 +136,9 @@ export default function IndexScreen() {
     }
 
     return clearTicker;
-  }, [running, mode, focusDate]);
+  }, [running, mode]);
 
-  // --- Mode switch reset
+  // when switching mode (timer/countdown), reset numbers
   useEffect(() => {
     clearTicker();
     setRunning(false);
@@ -166,45 +151,42 @@ export default function IndexScreen() {
     }
   }, [mode]);
 
-  // --- Manual tracker control (only for countdown and when not running)
+  const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
+
+  // commit tracker changes (already snapped by TimeTracker)
   const handleTrackerChange = (p: number) => {
     if (!running && mode === "countdown") {
-      // Snap to 2-minute increments
-      const snapped = Math.round((p * 60) / 2) * 2; // in minutes
-      setSecondsLeft(snapped * 60);
+      setSecondsLeft(Math.round(p * HOUR_SECONDS));
     }
   };
 
-  // --- Derived time display
-  const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
-  const minutes = Math.floor(secondsToShow / 60);
-  const seconds = Math.floor(secondsToShow % 60);
+  // choose whether to show live or snapped preview time
+  const displaySeconds = useMemo(() => {
+    if (dragging && previewP != null) {
+      const minutesSnap = Math.round(previewP * 60);
+      return minutesSnap * 60;
+    }
+    return secondsToShow;
+  }, [dragging, previewP, secondsToShow]);
 
-  // --- Tracker colors (blue for Study, purple for Rest)
+  const minutes = Math.floor(displaySeconds / 60);
+  const seconds = Math.floor(displaySeconds % 60);
   const isRest = activity === "Rest";
   const trackColor = isRest ? "#8b5cf6" : "#3b82f6";
   const trackBgColor = isRest ? "#e9d5ff" : "#bfdbfe";
 
-  // --- Skye animation
+  // choose Skye animation based on state
   const skyeSource = useMemo(() => {
-    if (!running) return Animations.skyeIdle; // skye.json
+    if (!running) return Animations.skyeIdle;
     return activity === "Study" ? Animations.skyeStudy : Animations.skyeRest;
   }, [running, activity]);
 
-  // --- Info line below the top toggle (3 possible sentences)
+  // pick a static info line
   const infoText = useMemo(() => {
-    if (!running) {
-      const mins = Math.floor(totalFocusedSecondsToday / 60);
-      return `You have focused for ${mins} minute${mins === 1 ? "" : "s"} today.`;
-    }
-    if (mode === "timer") {
-      const mins = Math.floor(secondsElapsed / 60);
-      return `Timer running — ${mins} min elapsed.`;
-    }
-    // countdown
-    const minsRemaining = Math.ceil(secondsLeft / 60);
-    return `Countdown running — ${minsRemaining} min remaining.`;
-  }, [running, mode, totalFocusedSecondsToday, secondsElapsed, secondsLeft]);
+    if (!running) return "You have focused for 15 minutes today.";
+    if (mode === "timer") return "Timer mode helps you track your study sessions.";
+    return "Countdown mode helps you stay disciplined with time.";
+  }, [running, mode]);
 
   // cleanup on unmount
   useEffect(() => {
@@ -214,11 +196,31 @@ export default function IndexScreen() {
     };
   }, []);
 
+  // guard: block opening the Study/Rest picker if a session is running
+  const handleOpenPicker = () => {
+    if (running) {
+      showBanner("End your session before changing activity.", "error");
+      return;
+    }
+    setPickerOpen(true);
+  };
+
+  // guard: block changing Study/Rest while running (extra safety)
+  const handleSelectActivity = (newActivity: "Study" | "Rest") => {
+    if (running) {
+      showBanner("End your session before changing activity.", "error");
+      setPickerOpen(false);
+      return;
+    }
+    setActivity(newActivity);
+    setPickerOpen(false);
+  };
+
   return (
     <View className="flex-1 bg-white pt-14 relative">
-
-      <Text className="absolute left-1/2 -translate-x-1/2 top-28 text-medium text-gray-800">{infoText}</Text>
-
+      <Text className="text-m text-gray-800 absolute top-28 left-1/2 -translate-x-1/2">
+        {infoText}
+      </Text>
 
       {/* Segmented toggle at top */}
       <View className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 flex-row w-28 border border-blue-200 rounded-full bg-blue-50 overflow-hidden">
@@ -238,25 +240,26 @@ export default function IndexScreen() {
 
       {/* Bottom section */}
       <View className="flex-1 items-center justify-end pb-8">
-        {/* Circle Tracker with Skye */}
         <TimeTracker
           progress={progress}
           onChange={handleTrackerChange}
           disabled={running || mode === "timer"}
           trackColor={trackColor}
           trackBgColor={trackBgColor}
+          onPreviewProgress={setPreviewP}
+          onDragStateChange={setDragging}
           centerContent={
-            <View style={{ width: '130%', height: '130%' }}>
+            <View style={{ width: "130%", height: "130%" }}>
               <LottieView source={skyeSource} autoPlay loop style={{ width: "100%", height: "100%" }} />
             </View>
           }
         />
 
-        {/* Selector chip */}
-        <View className="items-center mt-7">
+        {/* Activity chip (blocked during session) */}
+        <View className="items-center mt-4">
           <TouchableOpacity
             className="flex-row items-center px-6 py-2 rounded-full border bg-blue-50 border-blue-100"
-            onPress={() => setPickerOpen(true)}
+            onPress={handleOpenPicker}
           >
             <View
               className="w-3 h-3 rounded-full mr-2"
@@ -275,11 +278,7 @@ export default function IndexScreen() {
         <TouchableOpacity
           onPress={handleStartStop}
           className={`${
-            !running
-              ? "bg-blue-600"
-              : confirmingStop
-              ? "bg-red-800"
-              : "bg-red-500"
+            !running ? "bg-blue-600" : confirmingStop ? "bg-red-800" : "bg-red-500"
           } w-52 items-center py-4 mb-6 rounded-full`}
         >
           <Text className="text-white text-2xl font-semibold">
@@ -288,14 +287,11 @@ export default function IndexScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Modal component */}
+      {/* Study/Rest picker */}
       <ModePickerModal
         visible={pickerOpen}
         currentActivity={activity}
-        onSelect={(newActivity) => {
-          setActivity(newActivity);
-          setPickerOpen(false);
-        }}
+        onSelect={handleSelectActivity}
       />
     </View>
   );

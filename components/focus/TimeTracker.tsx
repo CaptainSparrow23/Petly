@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, GestureResponderEvent, PanResponder, StyleSheet } from "react-native";
+import { View, GestureResponderEvent, PanResponder } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
 interface TimeTrackerProps {
-  progress: number;                 // 0–1 (fraction of an hour)
-  onChange?: (progress: number) => void;
+  progress: number;                
+  onChange?: (progress: number) => void;          
   disabled?: boolean;
-  trackColor?: string;              // main arc + handle
-  trackBgColor?: string;            // lighter background ring
-  centerContent?: React.ReactNode;  // content centered inside the ring (e.g., Lottie)
+  trackColor?: string;              
+  trackBgColor?: string;          
+  centerContent?: React.ReactNode; 
+  onPreviewProgress?: (progress: number) => void;    
+  onDragStateChange?: (dragging: boolean) => void;   
 }
 
 export default function TimeTracker({
@@ -18,28 +20,37 @@ export default function TimeTracker({
   trackColor = "#3b82f6",
   trackBgColor = "#bfdbfe",
   centerContent,
+  onPreviewProgress,
+  onDragStateChange,
 }: TimeTrackerProps) {
   const [angle, setAngle] = useState(progress * 360);
   const prevAngleRef = useRef(angle);
 
+  // keep visual angle in sync with external progress
   useEffect(() => {
-    const a = Math.max(0, Math.min(360, progress * 360));
+    const a = clamp360(progress * 360);
     setAngle(a);
     prevAngleRef.current = a;
   }, [progress]);
 
-  const size = 325;
-  const strokeWidth = 25;
-  const radius = (size - strokeWidth) / 2;
-  const center = size / 2;
+  // geometry (kept minimal; literals where sensible)
+  const center = 350 / 2;
+  const radius = (350 - 25) / 2;
   const circumference = 2 * Math.PI * radius;
-
   const strokeDashoffset = circumference * (1 - angle / 360);
+  const PAD = 17; // padding in viewBox so stroke/handle never clip
 
-  // 2-minute snapping: 60 min => 360°, so 2 min => 12°
-  const STEP_DEG = 12;
-  const snapAngle = (a: number) => Math.max(0, Math.min(360, Math.round(a / STEP_DEG) * STEP_DEG));
+  // drag state refs
+  const isDraggingRef = useRef(false);
+  const tapStartAngleRef = useRef(0);
 
+  // clamp an angle to [0, 360]
+  const clamp360 = (a: number) => Math.max(0, Math.min(360, a));
+
+  // snap angle to nearest 5 minutes (30°)
+  const snap5 = (a: number) => clamp360(Math.round(a / 30) * 30);
+
+  // compute angle from a touch event
   const getTouchAngle = (event: GestureResponderEvent) => {
     const { locationX, locationY } = event.nativeEvent;
     const dx = locationX - center;
@@ -50,66 +61,96 @@ export default function TimeTracker({
     return deg;
   };
 
-  const updateAngle = (newAngle: number, snap: boolean) => {
-    const prevAngle = prevAngleRef.current;
-    let delta = newAngle - prevAngle;
+  // update angle smoothly while dragging (no snap)
+  const updateAngleSmooth = (newAngle: number) => {
+    const prev = prevAngleRef.current;
+    let delta = newAngle - prev;
     if (delta > 300) delta -= 360;
     if (delta < -300) delta += 360;
-
-    let updated = Math.max(0, Math.min(360, prevAngle + delta));
-    if (snap) updated = snapAngle(updated);
-
+    const updated = clamp360(prev + delta);
     prevAngleRef.current = updated;
     setAngle(updated);
-    onChange?.(updated / 360);
+    onPreviewProgress?.(snap5(updated) / 360);
   };
 
+  // build gesture handlers (no tap flicker, snap on release)
   const panResponder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => !disabled,
         onMoveShouldSetPanResponder: () => !disabled,
+
+        // record touch; don't move handle yet
         onPanResponderGrant: (e) => {
           if (disabled) return;
-          const a = snapAngle(getTouchAngle(e));
-          prevAngleRef.current = a;
-          setAngle(a);
-          onChange?.(a / 360);
+          const a = clamp360(getTouchAngle(e));
+          tapStartAngleRef.current = a;
+          isDraggingRef.current = false;
+          onDragStateChange?.(true);
+          onPreviewProgress?.(snap5(a) / 360);
         },
+
+        // drag smoothly after a tiny movement threshold
         onPanResponderMove: (e) => {
           if (disabled) return;
-          updateAngle(getTouchAngle(e), true);
+          const a = clamp360(getTouchAngle(e));
+          let diff = Math.abs(a - tapStartAngleRef.current);
+          if (diff > 180) diff = 360 - diff;
+          if (!isDraggingRef.current && diff < 8) {
+            onPreviewProgress?.(snap5(a) / 360);
+            return;
+          }
+          isDraggingRef.current = true;
+          updateAngleSmooth(a);
         },
+
+        // snap to 5-min and commit
         onPanResponderRelease: () => {
-          prevAngleRef.current = angle;
+          const base = isDraggingRef.current ? prevAngleRef.current : tapStartAngleRef.current;
+          const snapped = snap5(base);
+          isDraggingRef.current = false;
+          onDragStateChange?.(false);
+          prevAngleRef.current = snapped;
+          setAngle(snapped);
+          onChange?.(snapped / 360);
+        },
+
+        // interrupted → treat like release
+        onPanResponderTerminate: () => {
+          const snapped = snap5(prevAngleRef.current || tapStartAngleRef.current);
+          isDraggingRef.current = false;
+          onDragStateChange?.(false);
+          prevAngleRef.current = snapped;
+          setAngle(snapped);
+          onChange?.(snapped / 360);
         },
       }),
-    [disabled, angle]
+    [disabled]
   );
 
+  // handle position
   const handleRad = ((angle - 90) * Math.PI) / 180;
   const handleX = center + radius * Math.cos(handleRad);
   const handleY = center + radius * Math.sin(handleRad);
 
   return (
-    <View style={{ width: size, height: size }} {...panResponder.panHandlers}>
-      {/* centered content over the SVG; pointerEvents none so dragging still works */}
+    <View style={{ width: 350, height: 350 }} {...panResponder.panHandlers}>
       {centerContent ? (
-        <View pointerEvents="none" style={styles.centerOverlay}>
+        <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
           {centerContent}
         </View>
       ) : null}
 
-      <Svg width={size} height={size}>
+      <Svg width={350} height={350} viewBox={`${-PAD} ${-PAD} ${350 + PAD * 2} ${350 + PAD * 2}`}>
         {/* background ring */}
-        <Circle cx={center} cy={center} r={radius} stroke={trackBgColor} strokeWidth={strokeWidth} fill="none" />
+        <Circle cx={center} cy={center} r={radius} stroke={trackBgColor} strokeWidth={25} fill="none" />
         {/* progress arc */}
         <Circle
           cx={center}
           cy={center}
           r={radius}
           stroke={trackColor}
-          strokeWidth={strokeWidth}
+          strokeWidth={25}
           fill="none"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
@@ -119,20 +160,8 @@ export default function TimeTracker({
           originY={center}
         />
         {/* handle */}
-        <Circle cx={handleX} cy={handleY} r={12} fill={trackColor} />
+        <Circle cx={handleX} cy={handleY} r={15} fill={trackColor} stroke="#081587" strokeWidth={3} />
       </Svg>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  centerOverlay: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
