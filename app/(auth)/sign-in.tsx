@@ -1,7 +1,7 @@
 import icons from "@/constants/icons";
 import images from "@/constants/images";
 import { login } from "@/lib/appwrite";
-import { useGlobalContext } from "@/lib/global-provider";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {

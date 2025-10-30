@@ -4,9 +4,9 @@ import {
   PetTileItem,
 } from "@/components/store/Tiles";
 import { useStoreCatalog } from "@/hooks/useStore";
-import { useGlobalContext } from "@/lib/global-provider";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 import Constants from "expo-constants";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { use, useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { SheetManager } from "react-native-actions-sheet";
 import { useFocusEffect } from "@react-navigation/native";
+import CoinBadge from "@/components/other/CoinBadge";
 
 // Simple rarity ordering used for sorting the catalog grid
 const rarityRank: Record<PetTileItem["rarity"], number> = {
@@ -31,9 +32,7 @@ const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const Store = () => {
   const {
     refetch: refetchProfile,
-    coins,
     userProfile,
-    ownedPets,
     updateUserProfile,
   } = useGlobalContext();
 
@@ -42,7 +41,7 @@ const Store = () => {
     loading,
     error,
     refetch: refetchCatalog,
-  } = useStoreCatalog(ownedPets, { autoFetch: false });
+  } = useStoreCatalog(userProfile?.ownedPets, { autoFetch: false });
 
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesValue>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -61,7 +60,7 @@ const Store = () => {
   // Handle the full purchase flow for the currently previewed pet.
   const handleConfirmPurchase = useCallback(async (pet: PetTileItem) => {
     try {
-      if (coins < pet.priceCoins) {
+      if (userProfile?.coins && userProfile.coins < pet.priceCoins) {
         await SheetManager.hide("store-confirmation");
         // Allow the confirmation sheet to close before presenting the insufficient coins sheet.
         setTimeout(() => {
@@ -113,10 +112,10 @@ const Store = () => {
 
       setRecentlyPurchasedPetName(pet.name);
       updateUserProfile({
-        coins: Math.max(0, coins - pet.priceCoins),
-        ownedPets: ownedPets.includes(pet.id)
-          ? ownedPets
-          : [...ownedPets, pet.id],
+        coins: Math.max(0, userProfile?.coins - pet.priceCoins),
+        ownedPets: userProfile?.ownedPets.includes(pet.id)
+          ? userProfile?.ownedPets
+          : [...(userProfile?.ownedPets || []), pet.id],
       });
       void refetchCatalog();
       await SheetManager.hide("store-confirmation");
@@ -147,8 +146,8 @@ const Store = () => {
       throw new Error(message);
     }
   }, [
-    coins,
-    ownedPets,
+    userProfile?.coins,
+    userProfile?.ownedPets,
     recentlyPurchasedPetName,
     refetchCatalog,
     refetchProfile,
@@ -280,6 +279,7 @@ const Store = () => {
 
   return (
     <View className="flex-1 bg-white">
+      <CoinBadge />
       {/* Main catalog grid */}
       <FlatList
         data={visiblePets}

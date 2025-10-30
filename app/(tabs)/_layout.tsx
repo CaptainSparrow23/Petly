@@ -1,4 +1,4 @@
-import { useGlobalContext } from '@/lib/global-provider';
+import { useGlobalContext } from '@/lib/GlobalProvider';
 import { ProfilePicture } from '@/components/other/ProfilePicture';
 import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import { router } from 'expo-router';

@@ -1,4 +1,4 @@
-import GlobalProvider from "@/lib/global-provider";
+import GlobalProvider from "@/lib/GlobalProvider";
 import { Stack } from "expo-router";
 import 'react-native-gesture-handler';
 import "./global.css";

@@ -28,7 +28,7 @@ import { Animations } from "@/constants/animations";
 import icons from "@/constants/icons";
 import images from "@/constants/images";
 import { useStoreCatalog } from "@/hooks/useStore";
-import { useGlobalContext } from "@/lib/global-provider";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 import type { PetTileItem } from "@/components/store/Tiles";
 import { rarityStarCount } from "@/components/store/Tiles";
 
@@ -84,7 +84,6 @@ const Profile = () => {
     userProfile,
     showBanner,
     updateUserProfile,
-    ownedPets: ownedPetsFromContext,
   } = useGlobalContext();
   const navigation = useNavigation();
   const [focusedPet, setFocusedPet] = useState<string | null>(
@@ -94,16 +93,12 @@ const Profile = () => {
   const userId = userProfile?.userId;
 
   const ownedPetIds = useMemo(() => {
-    if (Array.isArray(ownedPetsFromContext) && ownedPetsFromContext.length) {
-      return ownedPetsFromContext;
-    }
-
-    if (Array.isArray(userProfile?.ownedPets) && userProfile.ownedPets.length) {
+    if (Array.isArray(userProfile?.ownedPets) && userProfile?.ownedPets.length) {
       return userProfile.ownedPets;
     }
 
     return [];
-  }, [ownedPetsFromContext, userProfile?.ownedPets]);
+  }, [userProfile?.ownedPets]);
 
   const {
     ownedPets: catalogOwnedPets,
