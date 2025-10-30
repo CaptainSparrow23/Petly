@@ -26,8 +26,6 @@ interface GlobalContextType {
     refetch: () => Promise<void>;
     logout: () => Promise<boolean>;
     showBanner: (message: string, type?: BannerType) => void;
-    coins: number;
-    ownedPets: string[];
     updateUserProfile: (patch: Partial<UserProfile>) => void;
 }
 
@@ -37,8 +35,6 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [isCheckingAuth, setIsCheckingAuth] = useState(false);
-    
-    // Banner state
     const [bannerVisible, setBannerVisible] = useState(false);
     const [bannerMessage, setBannerMessage] = useState('');
     const [bannerType, setBannerType] = useState<BannerType>('info');
@@ -129,8 +125,6 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
             refetch,
             logout,
             showBanner,
-            coins: userProfile?.coins || 0,
-            ownedPets: userProfile?.ownedPets ?? [],
             updateUserProfile,
         }}>
             <Banner
@@ -147,11 +141,9 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
 
 export const useGlobalContext = () : GlobalContextType => {
     const context = useContext(GlobalContext);
-
     if(!context){
         throw new Error('useGlobalContext must be used within a GlobalProvider');
     }
-
     return context;
 }
 

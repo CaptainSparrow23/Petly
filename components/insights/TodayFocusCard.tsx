@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text } from 'react-native';
-import { useGlobalContext } from '@/lib/global-provider';
+import { useGlobalContext } from '@/lib/GlobalProvider';
 
 const parseTimeStringToSeconds = (timeString?: string | null) => {
   if (!timeString) return 0;

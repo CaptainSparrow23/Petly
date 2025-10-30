@@ -1,106 +1,86 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Platform } from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
 import LottieView from "lottie-react-native";
 import ModePickerModal from "../../components/focus/ModePickerModal";
+import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
 import TimeTracker from "../../components/focus/TimeTracker";
 import { Animations } from "../../constants/animations";
-import { useGlobalContext } from "@/lib/global-provider";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useLocalSearchParams } from "expo-router";
+import CoinBadge from "@/components/other/CoinBadge";
 
 export default function IndexScreen() {
   const [mode, setMode] = useState<"timer" | "countdown">("countdown");
   const [activity, setActivity] = useState<"Study" | "Rest">("Study");
   const [pickerOpen, setPickerOpen] = useState(false);
-  const HOUR_SECONDS = 3600;
+
+  // 1 full rotation = 2 hours
+  const TWO_HOUR_SECONDS = 2 * 60 * 60; // 7200
   const INITIAL_COUNTDOWN_SECONDS = 20 * 60;
+
   const [running, setRunning] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(INITIAL_COUNTDOWN_SECONDS);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [confirmingStop, setConfirmingStop] = useState(false);
-  const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [stopModalOpen, setStopModalOpen] = useState(false);
+  const [lastCountdownTargetSec, setLastCountdownTargetSec] = useState(INITIAL_COUNTDOWN_SECONDS);
+
   const { loggedIn } = useLocalSearchParams();
-  const { showBanner } = useGlobalContext();
+  const { showBanner, userProfile } = useGlobalContext();
+
   const [dragging, setDragging] = useState(false);
   const [previewP, setPreviewP] = useState<number | null>(null);
 
-  // show success on login navigation
   useEffect(() => {
     if (loggedIn === "true") showBanner("Successfully logged in", "success");
   }, [loggedIn, showBanner]);
 
   const progress =
-    mode === "countdown" ? secondsLeft / HOUR_SECONDS : secondsElapsed / HOUR_SECONDS;
+    mode === "countdown" ? secondsLeft / TWO_HOUR_SECONDS : secondsElapsed / TWO_HOUR_SECONDS;
 
-  // stop and clear the ticking interval
   const clearTicker = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = null;
   };
 
-  // clear the confirm timeout
-  const clearConfirmTimeout = () => {
-    if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
-    confirmTimeoutRef.current = null;
-  };
-
-  // fully stop session and reset numbers, then banner
   const fullyStopAndReset = (reason?: "timer-max" | "countdown-zero" | "manual") => {
     clearTicker();
     setRunning(false);
-    setConfirmingStop(false);
-    clearConfirmTimeout();
 
     if (mode === "countdown") {
-      setSecondsLeft(INITIAL_COUNTDOWN_SECONDS);
+      setSecondsLeft(lastCountdownTargetSec);
     } else {
       setSecondsElapsed(0);
     }
 
     if (reason === "timer-max") {
-      showBanner("Timer reached 60:00 — session ended.", "success");
+      showBanner("Timer reached 2:00:00 — session ended.", "success");
     } else if (reason === "countdown-zero") {
       showBanner("Countdown finished — session ended.", "success");
-    } else {
+    } else if (reason === "manual") {
       showBanner("Session stopped.", "info");
     }
   };
 
-  // start a session (with guard for 0:00 countdown)
   const handleStart = () => {
     if (mode === "countdown" && secondsLeft <= 0) {
       showBanner("Set a countdown above 0:00 to start.", "warning");
       return;
     }
     setRunning(true);
-    setConfirmingStop(false);
-    clearConfirmTimeout();
   };
 
-  // stop press → enter confirm window, second press confirms stop
-  const handleStopPress = () => {
-    if (!confirmingStop) {
-      setConfirmingStop(true);
-      clearConfirmTimeout();
-      confirmTimeoutRef.current = setTimeout(() => {
-        setConfirmingStop(false);
-      }, 3000);
-      return;
-    }
-    fullyStopAndReset("manual");
-  };
-
-  // main CTA handler
   const handleStartStop = () => {
     if (running) {
-      handleStopPress();
+      setStopModalOpen(true);
     } else {
       handleStart();
     }
   };
 
-  // ticking logic for timer/countdown
+  // ticking logic (2h cap for timer)
   useEffect(() => {
     clearTicker();
     if (!running) return;
@@ -109,11 +89,7 @@ export default function IndexScreen() {
       intervalRef.current = setInterval(() => {
         setSecondsLeft((prev) => {
           if (prev <= 1) {
-            clearTicker();
-            setRunning(false);
-            setConfirmingStop(false);
-            clearConfirmTimeout();
-            showBanner("Countdown finished — session ended.", "success");
+            fullyStopAndReset("countdown-zero");
             return 0;
           }
           return prev - 1;
@@ -122,13 +98,9 @@ export default function IndexScreen() {
     } else {
       intervalRef.current = setInterval(() => {
         setSecondsElapsed((prev) => {
-          if (prev >= HOUR_SECONDS) {
-            clearTicker();
-            setRunning(false);
-            setConfirmingStop(false);
-            clearConfirmTimeout();
-            showBanner("Timer reached 60:00 — session ended.", "success");
-            return HOUR_SECONDS;
+          if (prev >= TWO_HOUR_SECONDS) {
+            fullyStopAndReset("timer-max");
+            return TWO_HOUR_SECONDS;
           }
           return prev + 1;
         });
@@ -136,67 +108,65 @@ export default function IndexScreen() {
     }
 
     return clearTicker;
-  }, [running, mode]);
+  }, [running, mode, lastCountdownTargetSec]);
 
-  // when switching mode (timer/countdown), reset numbers
+  // switching modes → reset but keep sticky target for countdown
   useEffect(() => {
     clearTicker();
     setRunning(false);
-    setConfirmingStop(false);
-    clearConfirmTimeout();
     if (mode === "countdown") {
-      setSecondsLeft(INITIAL_COUNTDOWN_SECONDS);
+      setSecondsLeft(lastCountdownTargetSec);
     } else {
       setSecondsElapsed(0);
     }
-  }, [mode]);
+  }, [mode, lastCountdownTargetSec]);
 
   const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
 
-  // commit tracker changes (already snapped by TimeTracker)
+  // when user sets a new countdown via tracker, remember it
   const handleTrackerChange = (p: number) => {
     if (!running && mode === "countdown") {
-      setSecondsLeft(Math.round(p * HOUR_SECONDS));
+      const SNAP_S = 300; // 5 minutes
+      const raw = p * TWO_HOUR_SECONDS;
+      const next = Math.round(raw / SNAP_S) * SNAP_S;
+      setSecondsLeft(next);
+      setLastCountdownTargetSec(next);
     }
   };
 
-  // choose whether to show live or snapped preview time
+  // preview while dragging (maps 0..1 → 2h)
   const displaySeconds = useMemo(() => {
     if (dragging && previewP != null) {
-      const minutesSnap = Math.round(previewP * 60);
-      return minutesSnap * 60;
+      return Math.round(previewP * TWO_HOUR_SECONDS);
     }
     return secondsToShow;
   }, [dragging, previewP, secondsToShow]);
 
-  const minutes = Math.floor(displaySeconds / 60);
+  const hours = Math.floor(displaySeconds / 3600);
+  const minutes = Math.floor((displaySeconds % 3600) / 60);
   const seconds = Math.floor(displaySeconds % 60);
+
+  const hh = Math.min(hours, 99).toString().padStart(2, "0");
+  const mm = minutes.toString().padStart(2, "0");
+  const ss = seconds.toString().padStart(2, "0");
+  const showHours = displaySeconds >= 3600; 
+
+
   const isRest = activity === "Rest";
   const trackColor = isRest ? "#8b5cf6" : "#3b82f6";
   const trackBgColor = isRest ? "#e9d5ff" : "#bfdbfe";
 
-  // choose Skye animation based on state
   const skyeSource = useMemo(() => {
     if (!running) return Animations.skyeIdle;
     return activity === "Study" ? Animations.skyeStudy : Animations.skyeRest;
   }, [running, activity]);
 
-  // pick a static info line
   const infoText = useMemo(() => {
-    if (!running) return "You have focused for 15 minutes today.";
+    if (!running) return `You have focused for ${userProfile?.timeActiveToday} minutes today.`;
     if (mode === "timer") return "Timer mode helps you track your study sessions.";
     return "Countdown mode helps you stay disciplined with time.";
-  }, [running, mode]);
+  }, [running, mode, userProfile?.timeActiveToday]);
 
-  // cleanup on unmount
-  useEffect(() => {
-    return () => {
-      clearTicker();
-      clearConfirmTimeout();
-    };
-  }, []);
-
-  // guard: block opening the Study/Rest picker if a session is running
   const handleOpenPicker = () => {
     if (running) {
       showBanner("End your session before changing activity.", "error");
@@ -205,7 +175,6 @@ export default function IndexScreen() {
     setPickerOpen(true);
   };
 
-  // guard: block changing Study/Rest while running (extra safety)
   const handleSelectActivity = (newActivity: "Study" | "Rest") => {
     if (running) {
       showBanner("End your session before changing activity.", "error");
@@ -218,11 +187,13 @@ export default function IndexScreen() {
 
   return (
     <View className="flex-1 bg-white pt-14 relative">
-      <Text className="text-m text-gray-800 absolute top-28 left-1/2 -translate-x-1/2">
-        {infoText}
-      </Text>
 
-      {/* Segmented toggle at top */}
+      <CoinBadge />
+      {/* Top info line */}
+      <View className="absolute top-28 left-1/2 -translate-x-1/2">
+        <Text className="text-m text-gray-800">{infoText}</Text>
+      </View>
+
       <View className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 flex-row w-28 border border-blue-200 rounded-full bg-blue-50 overflow-hidden">
         <TouchableOpacity
           onPress={() => setMode("countdown")}
@@ -241,7 +212,7 @@ export default function IndexScreen() {
       {/* Bottom section */}
       <View className="flex-1 items-center justify-end pb-8">
         <TimeTracker
-          progress={progress}
+          progress={progress} // 0..1 of two hours
           onChange={handleTrackerChange}
           disabled={running || mode === "timer"}
           trackColor={trackColor}
@@ -249,13 +220,13 @@ export default function IndexScreen() {
           onPreviewProgress={setPreviewP}
           onDragStateChange={setDragging}
           centerContent={
-            <View style={{ width: "130%", height: "130%" }}>
+            <View style={{ width: "130%", height: "130%" }} pointerEvents="none">
               <LottieView source={skyeSource} autoPlay loop style={{ width: "100%", height: "100%" }} />
             </View>
           }
         />
 
-        {/* Activity chip (blocked during session) */}
+        {/* Activity chip */}
         <View className="items-center mt-4">
           <TouchableOpacity
             className="flex-row items-center px-6 py-2 rounded-full border bg-blue-50 border-blue-100"
@@ -269,29 +240,54 @@ export default function IndexScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Timer text */}
-        <Text className="text-8xl tracking-widest mb-4 mt-20">
-          {minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
-        </Text>
+        {/* Time text — horizontal, fixed width, no jitter */}
+        <View className="w-full items-center justify-center mt-20 mb-4 relative">
+          <Text
+            className="text-8xl tracking-widest opacity-0"
+            style={{
+              ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
+              fontFamily: Platform.select({ ios: undefined, android: "monospace", default: undefined }),
+              includeFontPadding: false,
+              lineHeight: 88,
+            }}
+          >
+            {showHours ? "00:00:00" : "00:00"}
+          </Text>
 
-        {/* Start / Stop / Confirm Button */}
+          <Text
+            className="text-8xl tracking-widest text-gray-900 absolute left-0 right-0 text-center"
+            selectable={false}
+            style={{
+              ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
+              fontFamily: Platform.select({ ios: undefined, android: "monospace", default: undefined }),
+              includeFontPadding: false,
+              lineHeight: 88,
+            }}
+          >
+            {showHours ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`}
+          </Text>
+        </View>
+
+        {/* Start / Stop */}
         <TouchableOpacity
           onPress={handleStartStop}
-          className={`${
-            !running ? "bg-blue-600" : confirmingStop ? "bg-red-800" : "bg-red-500"
-          } w-52 items-center py-4 mb-6 rounded-full`}
+          className={`${!running ? "bg-blue-600" : "bg-red-500"} w-52 items-center py-4 mb-6 rounded-full`}
         >
-          <Text className="text-white text-2xl font-semibold">
-            {!running ? "Start" : confirmingStop ? "Confirm" : "Stop"}
-          </Text>
+          <Text className="text-white text-2xl font-semibold">{!running ? "Start" : "Stop"}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Study/Rest picker */}
-      <ModePickerModal
-        visible={pickerOpen}
-        currentActivity={activity}
-        onSelect={handleSelectActivity}
+      <ModePickerModal visible={pickerOpen} currentActivity={activity} onSelect={handleSelectActivity} />
+
+      {/* Stop confirmation modal */}
+      <ConfirmStopModal
+        visible={stopModalOpen}
+        onCancel={() => setStopModalOpen(false)}
+        onConfirm={() => {
+          setStopModalOpen(false);
+          fullyStopAndReset("manual");
+        }}
       />
     </View>
   );

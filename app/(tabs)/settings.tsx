@@ -1,5 +1,5 @@
 import { ProfilePicture } from "@/components/other/ProfilePicture";
-import { useGlobalContext } from "@/lib/global-provider";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 import type { LucideIcon } from "lucide-react-native";
 import { 
   ChevronRight, 

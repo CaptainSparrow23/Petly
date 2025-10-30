@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Search, UserPlus, Users } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { useGlobalContext } from '@/lib/global-provider';
+import { useGlobalContext } from '@/lib/GlobalProvider';
 import { ProfilePicture } from '@/components/other/ProfilePicture';
 import Constants from 'expo-constants';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ScrollView, Text, TouchableOpacity, View, TextInput, Alert, ActivityIndicator, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useGlobalContext } from "@/lib/global-provider";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 import { ChevronLeft, Edit2, Check } from "lucide-react-native";
 import { router } from "expo-router";
 import Constants from 'expo-constants';

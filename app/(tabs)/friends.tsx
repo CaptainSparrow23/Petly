@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Pressable, ScrollView, Text, View, ActivityIndicator, Alert } from 'react-native'
 import { Plus, Users, Trash2, Check, Edit3 } from 'lucide-react-native'
-import { useGlobalContext } from '@/lib/global-provider'
+import { useGlobalContext } from '@/lib/GlobalProvider'
 import { router, useFocusEffect } from 'expo-router'
 import Constants from 'expo-constants'
 import Svg, { Path } from 'react-native-svg'

@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useGlobalContext } from "@/lib/global-provider";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 import Constants from "expo-constants";
 import { Check } from "lucide-react-native";
 import images from "@/constants/images";

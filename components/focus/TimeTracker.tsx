@@ -47,8 +47,8 @@ export default function TimeTracker({
   // clamp an angle to [0, 360]
   const clamp360 = (a: number) => Math.max(0, Math.min(360, a));
 
-  // snap angle to nearest 5 minutes (30°)
-  const snap5 = (a: number) => clamp360(Math.round(a / 30) * 30);
+  // snap angle to nearest 5 minutes (15°)
+  const snap5 = (a: number) => clamp360(Math.round(a / 15) * 15);
 
   // compute angle from a touch event
   const getTouchAngle = (event: GestureResponderEvent) => {
@@ -65,8 +65,8 @@ export default function TimeTracker({
   const updateAngleSmooth = (newAngle: number) => {
     const prev = prevAngleRef.current;
     let delta = newAngle - prev;
-    if (delta > 300) delta -= 360;
-    if (delta < -300) delta += 360;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
     const updated = clamp360(prev + delta);
     prevAngleRef.current = updated;
     setAngle(updated);
