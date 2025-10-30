@@ -160,7 +160,7 @@ export default function TimeTracker({
           originY={center}
         />
         {/* handle */}
-        <Circle cx={handleX} cy={handleY} r={15} fill={trackColor} stroke="#081587" strokeWidth={3} />
+        <Circle cx={handleX} cy={handleY} r={20} fill={trackColor} stroke={trackColor} strokeWidth={3} />
       </Svg>
     </View>
   );
