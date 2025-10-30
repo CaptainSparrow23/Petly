@@ -1,19 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import {
-  VictoryAxis,
-  VictoryBar,
-  VictoryChart,
-  VictoryLabel,
-} from 'victory-native';
+import { VictoryAxis, VictoryBar, VictoryChart, VictoryLabel } from 'victory-native';
 
 export type ChartRange = 'today' | 'week' | 'sixMonths';
 export type ChartDatum = { key: string; label: string; totalMinutes: number };
 
 type FocusChartProps = {
   data?: {
-    // For "today", pass 24 hourly points (00–23). If omitted, dummy data is used.
-    today?: ChartDatum[];
+    today?: ChartDatum[];  // expect 24 entries or empty
     week?: ChartDatum[];
     sixMonths?: ChartDatum[];
   };
@@ -21,19 +15,8 @@ type FocusChartProps = {
   title?: string;
 };
 
-/* ---------------- Dummy data ---------------- */
-const makeDummyToday = (): ChartDatum[] => {
-  // 24 hours of minutes (example values)
-  const mins = [5,10,0,0,0,8,12,20,25,15,5,0,0,30,40,35,0,10,5,0,0,12,18,6];
-  return Array.from({ length: 24 }, (_, h) => ({
-    key: String(h).padStart(2, '0'),
-    label: `${String(h).padStart(2, '0')}:00`,
-    totalMinutes: mins[h] ?? 0,
-  }));
-};
-
+/* Keep dummy only for week/sixMonths */
 const DUMMY_DATA = {
-  today: makeDummyToday(),
   week: [
     { key: 'Mon', label: 'Mon', totalMinutes: 60 },
     { key: 'Tue', label: 'Tue', totalMinutes: 30 },
@@ -52,7 +35,6 @@ const DUMMY_DATA = {
     { key: 'Oct', label: 'Oct', totalMinutes: 300 },
   ],
 };
-/* -------------------------------------------- */
 
 const RANGE_LABELS: Record<ChartRange, string> = {
   today: 'Today',
@@ -60,49 +42,45 @@ const RANGE_LABELS: Record<ChartRange, string> = {
   sixMonths: 'Last 6 Months',
 };
 
-// 0–23 hours -> 8 slots of 3 hours each, labeled 12am, 3am, …, 9pm
 const hourLabel = (h: number) => {
   if (h === 0) return '12am';
   if (h < 12) return `${h}am`;
   if (h === 12) return '12pm';
   return `${h - 12}pm`;
 };
+
 const groupInto3HourSlots = (hours: ChartDatum[]): ChartDatum[] => {
   const out: ChartDatum[] = [];
   for (let start = 0; start < 24; start += 3) {
-    const total = hours
-      .slice(start, start + 3)
-      .reduce((s, d) => s + d.totalMinutes, 0);
-    out.push({
-      key: `slot-${start}`,
-      label: hourLabel(start),
-      totalMinutes: total,
-    });
+    const total = hours.slice(start, start + 3).reduce((s, d) => s + d.totalMinutes, 0);
+    out.push({ key: `slot-${start}`, label: hourLabel(start), totalMinutes: total });
   }
-  return out; // 8 bars: 12am, 3am, 6am, 9am, 12pm, 3pm, 6pm, 9pm
+  return out;
 };
 
 export default function FocusChart({
   data,
-  initialRange = 'week',
+  initialRange = 'today',     // default = today
   title = 'Focused Time Distribution',
 }: FocusChartProps) {
   const [range, setRange] = useState<ChartRange>(initialRange);
   const [menuOpen, setMenuOpen] = useState(false);
   const [chartWidth, setChartWidth] = useState(0);
 
-  // pick dataset (props or dummy)
   const raw: ChartDatum[] = useMemo(() => {
-    const src = { ...DUMMY_DATA, ...(data || {}) };
-    if (range === 'today') return src.today ?? DUMMY_DATA.today;
+    const src = data || {};
+    if (range === 'today') return src.today ?? [];                     // no dummy for today
     if (range === 'sixMonths') return src.sixMonths ?? DUMMY_DATA.sixMonths;
     return src.week ?? DUMMY_DATA.week;
   }, [data, range]);
 
-  // for "today", group into 3h slots; otherwise use as-is
   const dataset: ChartDatum[] = useMemo(() => {
     if (range !== 'today') return raw;
-    const hours = raw.length === 24 ? raw : DUMMY_DATA.today;
+    // ensure we have 24 hours (zeros if missing) then group into 3h
+    const hours = Array.from({ length: 24 }, (_, h) => {
+      const found = raw[h];
+      return found ?? { key: String(h).padStart(2, '0'), label: `${String(h).padStart(2, '0')}:00`, totalMinutes: 0 };
+    });
     return groupInto3HourSlots(hours);
   }, [raw, range]);
 
@@ -116,35 +94,22 @@ export default function FocusChart({
 
   return (
     <View className="relative my-4 rounded-2xl border border-gray-200 bg-gray-50 p-3">
-      {/* Header */}
       <View className="mb-4 flex-row items-center justify-between">
         <Text className="text-m text-gray-900">{title}</Text>
 
         <View className="relative">
           <TouchableOpacity onPress={() => setMenuOpen(p => !p)} activeOpacity={0.85}>
-            <Text className="text-sm font-rubik-medium text-blue-500">
-              {RANGE_LABELS[range]}
-            </Text>
+            <Text className="text-sm font-rubik-medium text-blue-500">{RANGE_LABELS[range]}</Text>
           </TouchableOpacity>
           {menuOpen && (
-            <View
-              className="absolute right-0 top-0 w-40 rounded-xl border border-gray-200 bg-gray-50 shadow-lg"
-              style={{ zIndex: 50, elevation: 50 }}
-            >
+            <View className="absolute right-0 top-0 w-40 rounded-xl border border-gray-200 bg-gray-50 shadow-lg" style={{ zIndex: 50, elevation: 50 }}>
               {(['today', 'week', 'sixMonths'] as ChartRange[]).map(val => (
                 <TouchableOpacity
                   key={val}
-                  onPress={() => {
-                    setRange(val);
-                    setMenuOpen(false);
-                  }}
+                  onPress={() => { setRange(val); setMenuOpen(false); }}
                   className={`px-3 py-2 ${range === val ? 'bg-blue-100' : ''}`}
                 >
-                  <Text
-                    className={`text-xs font-rubik-medium ${
-                      range === val ? 'text-blue-600' : 'text-slate-900'
-                    }`}
-                  >
+                  <Text className={`text-xs font-rubik-medium ${range === val ? 'text-blue-600' : 'text-slate-900'}`}>
                     {RANGE_LABELS[val]}
                   </Text>
                 </TouchableOpacity>
@@ -154,7 +119,6 @@ export default function FocusChart({
         </View>
       </View>
 
-      {/* Chart */}
       <View
         className="relative mt-2"
         onLayout={(e) => {
@@ -166,12 +130,11 @@ export default function FocusChart({
           <VictoryChart
             width={chartWidth}
             height={250}
-            domain={{ y: [0, Math.ceil(maxY * 1.1)] }}           
-            domainPadding={{ x: 28, y: [0, 8] }}                
-            padding={{ top: 8, bottom: 30, left: 30, right: 0 }} 
+            domain={{ y: [0, Math.ceil(maxY * 1.1)] }}
+            domainPadding={{ x: 28, y: [0, 8] }}
+            padding={{ top: 8, bottom: 30, left: 30, right: 0 }}
             categories={{ x: xTickValues }}
           >
-            {/* X axis */}
             <VictoryAxis
               tickValues={xTickValues}
               style={{
@@ -181,8 +144,6 @@ export default function FocusChart({
                 grid: { stroke: 'transparent' },
               }}
             />
-
-            {/* Y axis */}
             <VictoryAxis
               dependentAxis
               style={{
@@ -192,19 +153,12 @@ export default function FocusChart({
                 grid: { stroke: '#e5e7eb', strokeDasharray: '4,4' },
               }}
             />
-
-            {/* Bars for all ranges (today already grouped into 3h slots) */}
             <VictoryBar
               data={victoryData}
               barWidth={18}
               cornerRadius={{ top: 8, bottom: 0 }}
               labels={({ datum }) => (datum.actualMinutes > 0 ? `${datum.actualMinutes}m` : '')}
-              labelComponent={
-                <VictoryLabel
-                  dy={-2}
-                  style={{ fill: '#64748b', fontSize: 11, fontFamily: 'Rubik-Medium' }}
-                />
-              }
+              labelComponent={<VictoryLabel dy={-2} style={{ fill: '#64748b', fontSize: 11, fontFamily: 'Rubik-Medium' }} />}
               style={{
                 data: {
                   fill: ({ datum }: any) => (datum.actualMinutes > 0 ? '#3B82F6' : '#e5e7eb'),
@@ -213,7 +167,6 @@ export default function FocusChart({
             />
           </VictoryChart>
         )}
-
         {!hasData && (
           <Text className="absolute top-[45%] self-center text-[14px] font-rubik-medium text-blue-200">
             No data
