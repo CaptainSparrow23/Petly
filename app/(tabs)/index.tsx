@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, Platform } from "react-native";
+import { View, Text, TouchableOpacity, Platform, AppState, AppStateStatus } from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
 import LottieView from "lottie-react-native";
 import ModePickerModal from "../../components/focus/ModePickerModal";
@@ -9,13 +9,13 @@ import { Animations } from "../../constants/animations";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useLocalSearchParams } from "expo-router";
 import CoinBadge from "@/components/other/CoinBadge";
+import { useSessionUploader } from "@/hooks/useFocus";
 
 export default function IndexScreen() {
   const [mode, setMode] = useState<"timer" | "countdown">("countdown");
   const [activity, setActivity] = useState<"Study" | "Rest">("Study");
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // 1 full rotation = 2 hours
   const TWO_HOUR_SECONDS = 2 * 60 * 60; // 7200
   const INITIAL_COUNTDOWN_SECONDS = 20 * 60;
 
@@ -23,7 +23,6 @@ export default function IndexScreen() {
   const [secondsLeft, setSecondsLeft] = useState(INITIAL_COUNTDOWN_SECONDS);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const [stopModalOpen, setStopModalOpen] = useState(false);
   const [lastCountdownTargetSec, setLastCountdownTargetSec] = useState(INITIAL_COUNTDOWN_SECONDS);
 
@@ -32,6 +31,18 @@ export default function IndexScreen() {
 
   const [dragging, setDragging] = useState(false);
   const [previewP, setPreviewP] = useState<number | null>(null);
+
+  // upload hook
+  const { upload } = useSessionUploader();
+
+  // track actual session start wall time (ms) for precise start/end
+  const sessionStartMsRef = useRef<number | null>(null);
+
+  // capture latest counters in refs so stop logic can read pre-reset values
+  const lastLeftRef = useRef(secondsLeft);
+  const lastElapsedRef = useRef(secondsElapsed);
+  useEffect(() => { lastLeftRef.current = secondsLeft; }, [secondsLeft]);
+  useEffect(() => { lastElapsedRef.current = secondsElapsed; }, [secondsElapsed]);
 
   useEffect(() => {
     if (loggedIn === "true") showBanner("Successfully logged in", "success");
@@ -45,7 +56,32 @@ export default function IndexScreen() {
     intervalRef.current = null;
   };
 
-  const fullyStopAndReset = (reason?: "timer-max" | "countdown-zero" | "manual") => {
+  // core stop -> compute elapsed, upload, then reset UI
+  const fullyStopAndReset = async (reason?: "timer-max" | "countdown-zero" | "manual" | "app-closed") => {
+    const end = new Date();
+
+    // compute elapsed seconds from what actually happened on-screen
+    const elapsedSec =
+      mode === "timer"
+        ? Math.max(0, lastElapsedRef.current)
+        : Math.max(0, lastCountdownTargetSec - lastLeftRef.current);
+
+    // if we don't have a start timestamp, infer from elapsed (still correct)
+    const startMs =
+      sessionStartMsRef.current ?? end.getTime() - elapsedSec * 1000;
+
+    // only upload if there is meaningful time
+    if (elapsedSec > 0 && userProfile?.userId) {
+      await upload({
+        userId: String(userProfile.userId),
+        activity,
+        startTs: new Date(startMs).toISOString(),
+        durationSec: Math.floor(elapsedSec),
+      }).catch(() => {
+        // don't block UX on network failures
+      });
+    }
+
     clearTicker();
     setRunning(false);
 
@@ -54,6 +90,7 @@ export default function IndexScreen() {
     } else {
       setSecondsElapsed(0);
     }
+    sessionStartMsRef.current = null;
 
     if (reason === "timer-max") {
       showBanner("Timer reached 2:00:00 — session ended.", "success");
@@ -61,6 +98,8 @@ export default function IndexScreen() {
       showBanner("Countdown finished — session ended.", "success");
     } else if (reason === "manual") {
       showBanner("Session stopped.", "info");
+    } else if (reason === "app-closed") {
+      showBanner("Session saved on app close.", "info");
     }
   };
 
@@ -70,6 +109,9 @@ export default function IndexScreen() {
       return;
     }
     setRunning(true);
+    if (!sessionStartMsRef.current) {
+      sessionStartMsRef.current = Date.now();
+    }
   };
 
   const handleStartStop = () => {
@@ -80,7 +122,7 @@ export default function IndexScreen() {
     }
   };
 
-  // ticking logic (2h cap for timer)
+  // ticker (with auto-stop at countdown 0 or timer 2h)
   useEffect(() => {
     clearTicker();
     if (!running) return;
@@ -89,7 +131,7 @@ export default function IndexScreen() {
       intervalRef.current = setInterval(() => {
         setSecondsLeft((prev) => {
           if (prev <= 1) {
-            fullyStopAndReset("countdown-zero");
+            void fullyStopAndReset("countdown-zero");
             return 0;
           }
           return prev - 1;
@@ -99,18 +141,17 @@ export default function IndexScreen() {
       intervalRef.current = setInterval(() => {
         setSecondsElapsed((prev) => {
           if (prev >= TWO_HOUR_SECONDS) {
-            fullyStopAndReset("timer-max");
+            void fullyStopAndReset("timer-max");
             return TWO_HOUR_SECONDS;
           }
           return prev + 1;
         });
       }, 1000);
     }
-
     return clearTicker;
   }, [running, mode, lastCountdownTargetSec]);
 
-  // switching modes → reset but keep sticky target for countdown
+  // mode switch: keep your original behavior (reset counters, keep sticky countdown target)
   useEffect(() => {
     clearTicker();
     setRunning(false);
@@ -119,14 +160,24 @@ export default function IndexScreen() {
     } else {
       setSecondsElapsed(0);
     }
+    // keep sessionStartMsRef clear; a new start will set it
   }, [mode, lastCountdownTargetSec]);
 
-  const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
+  // app background/close -> stop and upload
+  useEffect(() => {
+    const onState = (s: AppStateStatus) => {
+      if (running && (s === "background" || s === "inactive")) {
+        void fullyStopAndReset("app-closed");
+      }
+    };
+    const sub = AppState.addEventListener("change", onState);
+    return () => sub.remove();
+  }, [running]);
 
-  // when user sets a new countdown via tracker, remember it
+  // tracker interactions
   const handleTrackerChange = (p: number) => {
     if (!running && mode === "countdown") {
-      const SNAP_S = 300; // 5 minutes
+      const SNAP_S = 300; // 5 min
       const raw = p * TWO_HOUR_SECONDS;
       const next = Math.round(raw / SNAP_S) * SNAP_S;
       setSecondsLeft(next);
@@ -134,23 +185,21 @@ export default function IndexScreen() {
     }
   };
 
-  // preview while dragging (maps 0..1 → 2h)
+  const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
+
   const displaySeconds = useMemo(() => {
     if (dragging && previewP != null) {
+      const TWO_HOUR_SECONDS = 2 * 60 * 60;
       return Math.round(previewP * TWO_HOUR_SECONDS);
     }
     return secondsToShow;
   }, [dragging, previewP, secondsToShow]);
 
-  const hours = Math.floor(displaySeconds / 3600);
-  const minutes = Math.floor((displaySeconds % 3600) / 60);
+  const totalMinutes = Math.floor(displaySeconds / 60);
   const seconds = Math.floor(displaySeconds % 60);
 
-  const hh = Math.min(hours, 99).toString().padStart(2, "0");
-  const mm = minutes.toString().padStart(2, "0");
+  const mm = totalMinutes.toString().padStart(2, "0");
   const ss = seconds.toString().padStart(2, "0");
-  const showHours = displaySeconds >= 3600; 
-
 
   const isRest = activity === "Rest";
   const trackColor = isRest ? "#8b5cf6" : "#3b82f6";
@@ -162,10 +211,14 @@ export default function IndexScreen() {
   }, [running, activity]);
 
   const infoText = useMemo(() => {
-    if (!running) return `You have focused for ${userProfile?.timeActiveToday} minutes today.`;
+  if (!running)
+    return `You have focused for ${userProfile?.timeActiveTodayMinutes} ${
+      userProfile?.timeActiveTodayMinutes === 1 ? "minute" : "minutes"
+    } today.`;
+
     if (mode === "timer") return "Timer mode helps you track your study sessions.";
     return "Countdown mode helps you stay disciplined with time.";
-  }, [running, mode, userProfile?.timeActiveToday]);
+  }, [running, mode, userProfile?.timeActiveTodayMinutes]);
 
   const handleOpenPicker = () => {
     if (running) {
@@ -187,9 +240,8 @@ export default function IndexScreen() {
 
   return (
     <View className="flex-1 bg-white pt-14 relative">
-
       <CoinBadge />
-      {/* Top info line */}
+
       <View className="absolute top-28 left-1/2 -translate-x-1/2">
         <Text className="text-m text-gray-800">{infoText}</Text>
       </View>
@@ -209,10 +261,9 @@ export default function IndexScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Bottom section */}
       <View className="flex-1 items-center justify-end pb-8">
         <TimeTracker
-          progress={progress} // 0..1 of two hours
+          progress={progress}
           onChange={handleTrackerChange}
           disabled={running || mode === "timer"}
           trackColor={trackColor}
@@ -226,7 +277,6 @@ export default function IndexScreen() {
           }
         />
 
-        {/* Activity chip */}
         <View className="items-center mt-4">
           <TouchableOpacity
             className="flex-row items-center px-6 py-2 rounded-full border bg-blue-50 border-blue-100"
@@ -240,7 +290,6 @@ export default function IndexScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Time text — horizontal, fixed width, no jitter */}
         <View className="w-full items-center justify-center mt-20 mb-4 relative">
           <Text
             className="text-8xl tracking-widest opacity-0"
@@ -251,7 +300,7 @@ export default function IndexScreen() {
               lineHeight: 88,
             }}
           >
-            {showHours ? "00:00:00" : "00:00"}
+            00:00
           </Text>
 
           <Text
@@ -264,11 +313,10 @@ export default function IndexScreen() {
               lineHeight: 88,
             }}
           >
-            {showHours ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`}
+            {`${mm}:${ss}`}
           </Text>
         </View>
 
-        {/* Start / Stop */}
         <TouchableOpacity
           onPress={handleStartStop}
           className={`${!running ? "bg-blue-600" : "bg-red-500"} w-52 items-center py-4 mb-6 rounded-full`}
@@ -277,16 +325,14 @@ export default function IndexScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Study/Rest picker */}
       <ModePickerModal visible={pickerOpen} currentActivity={activity} onSelect={handleSelectActivity} />
 
-      {/* Stop confirmation modal */}
       <ConfirmStopModal
         visible={stopModalOpen}
         onCancel={() => setStopModalOpen(false)}
         onConfirm={() => {
           setStopModalOpen(false);
-          fullyStopAndReset("manual");
+          void fullyStopAndReset("manual");
         }}
       />
     </View>

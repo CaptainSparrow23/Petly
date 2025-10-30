@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { getCurrentUser, logout as appwriteLogout } from "./appwrite";
 import Constants from "expo-constants";
 import { Banner } from "@/components/other/Banner";
@@ -11,18 +11,19 @@ interface UserProfile {
     displayName: string | null;
     email: string | null;
     profileId: number | null;
-    timeActiveToday: number;
+    timeActiveToday: number; // stored in seconds from backend
+    timeActiveTodayMinutes: number; // derived value (rounded down)
     coins: number;
     ownedPets: string[];
     selectedPet: string | null;
 }
 
-type BannerType = 'success' | 'error' | 'info' | 'warning';
+type BannerType = "success" | "error" | "info" | "warning";
 
 interface GlobalContextType {
     isLoggedIn: boolean;
     userProfile: UserProfile | null;
-    loading: boolean
+    loading: boolean;
     refetch: () => Promise<void>;
     logout: () => Promise<boolean>;
     showBanner: (message: string, type?: BannerType) => void;
@@ -31,61 +32,63 @@ interface GlobalContextType {
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
-const GlobalProvider = ({children}: {children: React.ReactNode}) => {
+const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [isCheckingAuth, setIsCheckingAuth] = useState(false);
     const [bannerVisible, setBannerVisible] = useState(false);
-    const [bannerMessage, setBannerMessage] = useState('');
-    const [bannerType, setBannerType] = useState<BannerType>('info');
+    const [bannerMessage, setBannerMessage] = useState("");
+    const [bannerType, setBannerType] = useState<BannerType>("info");
 
-    // Fetch user profile from backend - this also serves as our auth check
     const fetchUserProfile = async () => {
         try {
-            // First check if user is authenticated with Appwrite
             const currentUser = await getCurrentUser();
-            
             if (!currentUser?.$id) {
                 setUserProfile(null);
                 setLoading(false);
                 return;
             }
 
-            // User is authenticated, fetch their full profile
-            const response = await fetch(`${API_BASE_URL}/api/user/get_profile/${currentUser.$id}`);
+            const response = await fetch(`${API_BASE_URL}/api/get_user_profile/${currentUser.$id}`);
             const data = await response.json();
 
             if (data.success) {
                 const profile = data.data as UserProfile;
+
+                // Compute minutes (rounded down)
+                const timeActiveTodayMinutes = Math.floor((profile.timeActiveToday ?? 0) / 60);
+
                 setUserProfile({
                     ...profile,
+                    timeActiveTodayMinutes,
                     coins: typeof profile.coins === "number" ? profile.coins : 0,
-                    ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ['pet_skye'],
+                    ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_skye"],
                 });
-                console.log('✅ User profile loaded:', profile);
+
+                console.log("✅ User profile loaded:", profile);
             } else {
-                console.warn('⚠️ Failed to load user profile:', data.error);
+                console.warn("⚠️ Failed to load user profile:", data.error);
                 setUserProfile(null);
             }
         } catch (error) {
-            console.error('❌ Error fetching user profile:', error);
+            console.error("❌ Error fetching user profile:", error);
             setUserProfile(null);
         } finally {
             setLoading(false);
         }
     };
 
-    // Refetch user profile, not sure where this is being used
     const refetch = async () => {
         setLoading(true);
         await fetchUserProfile();
     };
 
     const updateUserProfile = (patch: Partial<UserProfile>) => {
-        setUserProfile(prev => (prev ? { ...prev, ...patch } : prev));
+        setUserProfile((prev) =>
+            prev ? { ...prev, ...patch } : prev
+        );
     };
 
-    // Check auth and load profile on mount
     useEffect(() => {
         if (!isCheckingAuth) {
             setIsCheckingAuth(true);
@@ -97,36 +100,36 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
         try {
             const success = await appwriteLogout();
             if (success) {
-                // Clear the user profile
                 setUserProfile(null);
                 return true;
             }
             return false;
         } catch (error) {
-            console.error('Error during logout:', error);
+            console.error("Error during logout:", error);
             return false;
         }
     };
 
-    const showBanner = (message: string, type: BannerType = 'info') => {
+    const showBanner = (message: string, type: BannerType = "info") => {
         setBannerMessage(message);
         setBannerType(type);
         setBannerVisible(true);
     };
 
-
     const isLoggedIn = !!userProfile;
 
-    return(
-        <GlobalContext.Provider value={{
-            isLoggedIn,
-            userProfile,
-            loading,
-            refetch,
-            logout,
-            showBanner,
-            updateUserProfile,
-        }}>
+    return (
+        <GlobalContext.Provider
+            value={{
+                isLoggedIn,
+                userProfile,
+                loading,
+                refetch,
+                logout,
+                showBanner,
+                updateUserProfile,
+            }}
+        >
             <Banner
                 message={bannerMessage}
                 type={bannerType}
@@ -136,15 +139,15 @@ const GlobalProvider = ({children}: {children: React.ReactNode}) => {
             />
             {children}
         </GlobalContext.Provider>
-    )
-}
+    );
+};
 
-export const useGlobalContext = () : GlobalContextType => {
+export const useGlobalContext = (): GlobalContextType => {
     const context = useContext(GlobalContext);
-    if(!context){
-        throw new Error('useGlobalContext must be used within a GlobalProvider');
+    if (!context) {
+        throw new Error("useGlobalContext must be used within a GlobalProvider");
     }
     return context;
-}
+};
 
 export default GlobalProvider;

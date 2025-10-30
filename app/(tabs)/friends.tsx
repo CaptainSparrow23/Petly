@@ -14,7 +14,7 @@ interface Friend {
   displayName: string
   profileId: number | null
   userId: string
-  timeActiveToday: number
+  timeActiveTodayMinutes: number
 }
 
 
@@ -91,8 +91,8 @@ const FriendCard = ({
       onPress={handlePress}
       disabled={!isEditMode}
     >
-      <TopDropdownBadge 
-        labelTop={`${friend.timeActiveToday}m`}
+      <TopDropdownBadge
+        labelTop={`${friend.timeActiveTodayMinutes}m`}
         labelBottom="today"
         width={50}
         height={65}
@@ -316,20 +316,20 @@ const Friends = () => {
           {/* the angled blue background */}
           <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}>
             <Svg height="100%" width="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <Path d="M 0 100 L 0 0 L 80 0 L 20 100 L 0 100 Z" fill="#3b82f6" />
+              <Path d="M 0 100 L 0 0 L 90 0 L 35 100 L 0 100 Z" fill="#3b82f6" />
             </Svg>
           </View>
 
           {/* the white dropdown coming from the top center */}
-          <TopDropdownBadge labelTop={`${userProfile.timeActiveToday}m`}labelBottom="today" top={15} />
+          <TopDropdownBadge labelTop={`${userProfile.timeActiveTodayMinutes}m`}labelBottom="today" top={15} />
 
           {/* content row */}
           <View className="px-6 pt-4 pb-8">
             <View className="flex-row items-center">
               <ProfilePicture profileId={userProfile.profileId} size={54} />
               <View className="ml-3 flex-1">
-                <Text className="font-bold text-lg text-white">{userProfile.displayName || 'You'}</Text>
-                {userProfile.username && <Text className="text-sm text-gray-100">@{userProfile.username}</Text>}
+                <Text className="font-bold text-xl mb-1 text-white">{userProfile.displayName || 'You'}</Text>
+                {userProfile.username && <Text className="text-m text-gray-100">@{userProfile.username}</Text>}
               </View>
             </View>
           </View>
