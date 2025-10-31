@@ -47,7 +47,7 @@ const CustomDrawerContent = (props: any) => {
             className="border-4 border-white shadow-lg"
           />
           <Text className="text-2xl mt-2 font-semibold text-black-300">{displayName}</Text>
-          <Text className="text-sm mt-1 text-gray-500">
+          <Text className="text-m mt-1 text-gray-600 mb-5">
             {username ? `@${username}` : 'No username set'}
           </Text>
         </TouchableOpacity>
