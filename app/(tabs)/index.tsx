@@ -239,25 +239,25 @@ export default function IndexScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white pt-14 relative">
+    <View className="flex-1 bg-white relative">
       <CoinBadge />
 
-      <View className="absolute top-28 left-1/2 -translate-x-1/2">
+      <View className="absolute top-32 left-1/2 -translate-x-1/2">
         <Text className="text-m text-gray-800">{infoText}</Text>
       </View>
 
-      <View className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 flex-row w-28 border border-blue-200 rounded-full bg-blue-50 overflow-hidden">
+      <View className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 flex-row w-22 rounded-full bg-gray-200 overflow-hidden">
         <TouchableOpacity
           onPress={() => setMode("countdown")}
-          className={`w-14 items-center py-2.5 ${mode === "countdown" ? "bg-blue-600" : "bg-transparent"}`}
+          className={`w-12 items-center py-2 ${mode === "countdown" ? "bg-black-300" : "bg-transparent"}`}
         >
-          <Hourglass size={22} color={mode === "countdown" ? "#ffffff" : "#1d4ed8"} />
+          <Hourglass size={20} color={mode === "countdown" ? "#ffffff" : "#191d31"} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setMode("timer")}
-          className={`w-14 items-center py-2.5 ${mode === "timer" ? "bg-blue-600" : "bg-transparent"}`}
+          className={`w-12 items-center py-2 ${mode === "timer" ? "bg-black-300" : "bg-transparent"}`}
         >
-          <Timer size={22} color={mode === "timer" ? "#ffffff" : "#1d4ed8"} />
+          <Timer size={20} color={mode === "timer" ? "#ffffff" : "#191d31"} />
         </TouchableOpacity>
       </View>
 
@@ -277,9 +277,9 @@ export default function IndexScreen() {
           }
         />
 
-        <View className="items-center mt-4">
+        <View className="items-center mt-6">
           <TouchableOpacity
-            className="flex-row items-center px-6 py-2 rounded-full border bg-blue-50 border-blue-100"
+            className="flex-row items-center px-6 py-2 rounded-full bg-gray-200"
             onPress={handleOpenPicker}
           >
             <View
@@ -290,7 +290,7 @@ export default function IndexScreen() {
           </TouchableOpacity>
         </View>
 
-        <View className="w-full items-center justify-center mt-20 mb-4 relative">
+        <View className="w-full items-center justify-center mt-10 mb-4 relative">
           <Text
             className="text-8xl tracking-widest opacity-0"
             style={{
@@ -319,7 +319,7 @@ export default function IndexScreen() {
 
         <TouchableOpacity
           onPress={handleStartStop}
-          className={`${!running ? "bg-blue-600" : "bg-red-500"} w-52 items-center py-4 mb-6 rounded-full`}
+          className={`${!running ? "bg-black-300" : "bg-red-500"} w-52 items-center py-4 mb-6 mt-2 rounded-full`}
         >
           <Text className="text-white text-2xl font-semibold">{!running ? "Start" : "Stop"}</Text>
         </TouchableOpacity>
