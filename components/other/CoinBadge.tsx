@@ -7,7 +7,7 @@ export default function CoinBadge() {
   const { userProfile } = useGlobalContext();
 
   return (
-    <View className="absolute -top-11 right-0 z-20 mt-2 mr-4 flex-row items-center rounded-full bg-gray-200">
+    <View className="absolute -top-11 right-0 z-20 mt-1 mr-4 flex-row items-center rounded-full bg-gray-200">
         <View className="mr-2 h-9 w-9 items-center justify-center rounded-full bg-amber-400">
             <MaterialCommunityIcons name="currency-usd" size={18} color="#92400e" />
         </View>
