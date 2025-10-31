@@ -10,7 +10,7 @@ export default function GoalsCard() {
       <View className="flex-row items-center justify-between">
         <Text className="text-m text-gray-700">Goals</Text>
         <TouchableOpacity>
-          <Text className="text-sm font-rubik-medium" style={{ color: '#3B82F6' }}>
+          <Text className="text-sm font-rubik-medium text-black-300" style={{ color: '#3B82F6' }}>
             Edit Goals
           </Text>
         </TouchableOpacity>
