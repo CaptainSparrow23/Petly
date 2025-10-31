@@ -1,12 +1,9 @@
 import Filters, { type SpeciesValue } from "@/components/store/Filters";
-import {
-  Tile,
-  PetTileItem,
-} from "@/components/store/Tiles";
+import { Tile, PetTileItem } from "@/components/store/Tiles";
 import { useStoreCatalog } from "@/hooks/useStore";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import Constants from "expo-constants";
-import React, { use, useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -17,14 +14,6 @@ import {
 import { SheetManager } from "react-native-actions-sheet";
 import { useFocusEffect } from "@react-navigation/native";
 import CoinBadge from "@/components/other/CoinBadge";
-
-// Simple rarity ordering used for sorting the catalog grid
-const rarityRank: Record<PetTileItem["rarity"], number> = {
-  common: 0,
-  rare: 1,
-  epic: 2,
-  legendary: 3,
-};
 
 // Backend endpoint injected via Expo config
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
@@ -44,7 +33,7 @@ const Store = () => {
   } = useStoreCatalog(userProfile?.ownedPets, { autoFetch: false });
 
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesValue>("all");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] =
     useState<string | null>(null);
@@ -215,7 +204,7 @@ const Store = () => {
 
   const keyExtractor = useCallback((item: PetTileItem) => item.id, []);
 
-  // Apply species filtering and rarity sorting before rendering.
+  // Apply species filtering and alphabetical sorting before rendering.
   const visiblePets = useMemo(() => {
     const narrowed =
       selectedSpecies === "all"
@@ -223,11 +212,8 @@ const Store = () => {
         : availablePets.filter((pet) => pet.species === selectedSpecies);
 
     return [...narrowed].sort((a, b) => {
-      const diff = rarityRank[a.rarity] - rarityRank[b.rarity];
-      if (diff === 0) {
-        return a.name.localeCompare(b.name);
-      }
-      return sortOrder === "asc" ? diff : -diff;
+      const comparison = a.name.localeCompare(b.name);
+      return sortOrder === "asc" ? comparison : -comparison;
     });
   }, [availablePets, selectedSpecies, sortOrder]);
 
@@ -302,9 +288,9 @@ const Store = () => {
                     <Text
                       className="text-sm font-rubik-medium text-gray-600"
                     >
-                      {sortOrder === "desc"
-                        ? "Sort: High → Low"
-                        : "Sort: Low → High"}
+                      {sortOrder === "asc"
+                        ? "Sort: A → Z"
+                        : "Sort: Z → A"}
                     </Text>
                   </TouchableOpacity>
                 </View>

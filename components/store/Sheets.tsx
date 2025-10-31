@@ -1,12 +1,7 @@
 import React from "react";
 import { Text, TouchableOpacity, View, Image } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
-import {
-  PetTileItem,
-  PetStars,
-  resolvePetImage,
-  formatSpeciesUtil,
-} from "./Tiles";
+import { PetTileItem, resolvePetImage, formatSpeciesUtil } from "./Tiles";
 
 type PetPreviewCardProps = {
   pet: PetTileItem | null;
@@ -44,14 +39,8 @@ export const PetPreviewCard = ({
         {pet?.name}
       </Text>
       <Text className="px-6 mt-3 text-sm font-rubik text-slate-500">
-        {pet?.rarity?.toUpperCase() ?? ""} ·{" "}
         {pet?.species ? formatSpeciesUtil(pet.species) : ""}
       </Text>
-      {pet && (
-        <View className="px-6 mt-3">
-          <PetStars rarity={pet.rarity} />
-        </View>
-      )}
       {!!pet?.description && (
         <Text className="px-6 mt-3 text-sm leading-5 text-slate-600">
           {pet.description}
