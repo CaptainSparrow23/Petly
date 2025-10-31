@@ -277,7 +277,7 @@ export default function IndexScreen() {
           }
         />
 
-        <View className="items-center mt-6">
+        <View className="items-center mt-7">
           <TouchableOpacity
             className="flex-row items-center px-6 py-2 rounded-full bg-gray-200"
             onPress={handleOpenPicker}
