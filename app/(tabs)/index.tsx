@@ -1,5 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, Platform, AppState, AppStateStatus } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Platform,
+  AppState,
+  AppStateStatus,
+  StatusBar,
+  Animated,
+  Easing,
+} from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
 import LottieView from "lottie-react-native";
 import ModePickerModal from "../../components/focus/ModePickerModal";
@@ -7,7 +17,7 @@ import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
 import TimeTracker from "../../components/focus/TimeTracker";
 import { Animations } from "../../constants/animations";
 import { useGlobalContext } from "@/lib/GlobalProvider";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useNavigation } from "expo-router";
 import CoinBadge from "@/components/other/CoinBadge";
 import { useSessionUploader } from "@/hooks/useFocus";
 
@@ -16,7 +26,7 @@ export default function IndexScreen() {
   const [activity, setActivity] = useState<"Study" | "Rest">("Study");
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const TWO_HOUR_SECONDS = 2 * 60 * 60; // 7200
+  const TWO_HOUR_SECONDS = 2 * 60 * 60;
   const INITIAL_COUNTDOWN_SECONDS = 20 * 60;
 
   const [running, setRunning] = useState(false);
@@ -28,17 +38,14 @@ export default function IndexScreen() {
 
   const { loggedIn } = useLocalSearchParams();
   const { showBanner, userProfile } = useGlobalContext();
+  const navigation = useNavigation();
 
   const [dragging, setDragging] = useState(false);
   const [previewP, setPreviewP] = useState<number | null>(null);
 
-  // upload hook
   const { upload } = useSessionUploader();
-
-  // track actual session start wall time (ms) for precise start/end
   const sessionStartMsRef = useRef<number | null>(null);
 
-  // capture latest counters in refs so stop logic can read pre-reset values
   const lastLeftRef = useRef(secondsLeft);
   const lastElapsedRef = useRef(secondsElapsed);
   useEffect(() => { lastLeftRef.current = secondsLeft; }, [secondsLeft]);
@@ -56,51 +63,54 @@ export default function IndexScreen() {
     intervalRef.current = null;
   };
 
-  // core stop -> compute elapsed, upload, then reset UI
-  const fullyStopAndReset = async (reason?: "timer-max" | "countdown-zero" | "manual" | "app-closed") => {
-    const end = new Date();
+  // Fullscreen controls what hides and what nudges
+  const isFullscreen = running;
 
-    // compute elapsed seconds from what actually happened on-screen
+  // Simple animation driver
+  const focusAnim = useRef(new Animated.Value(0)).current;
+  const topFade = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+  const topSlideY = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -24] });
+  const contentTranslateY = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -60] });
+
+  useEffect(() => {
+    navigation.setOptions?.({ headerShown: !isFullscreen });
+    Animated.timing(focusAnim, {
+      toValue: isFullscreen ? 1 : 0,
+      duration: 250,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [isFullscreen, navigation, focusAnim]);
+
+  const fullyStopAndReset = async (
+    reason?: "timer-max" | "countdown-zero" | "manual" | "app-closed"
+  ) => {
+    const end = new Date();
     const elapsedSec =
       mode === "timer"
         ? Math.max(0, lastElapsedRef.current)
         : Math.max(0, lastCountdownTargetSec - lastLeftRef.current);
+    const startMs = sessionStartMsRef.current ?? end.getTime() - elapsedSec * 1000;
 
-    // if we don't have a start timestamp, infer from elapsed (still correct)
-    const startMs =
-      sessionStartMsRef.current ?? end.getTime() - elapsedSec * 1000;
-
-    // only upload if there is meaningful time
     if (elapsedSec > 0 && userProfile?.userId) {
       await upload({
         userId: String(userProfile.userId),
         activity,
         startTs: new Date(startMs).toISOString(),
         durationSec: Math.floor(elapsedSec),
-      }).catch(() => {
-        // don't block UX on network failures
-      });
+      }).catch(() => {});
     }
 
     clearTicker();
     setRunning(false);
-
-    if (mode === "countdown") {
-      setSecondsLeft(lastCountdownTargetSec);
-    } else {
-      setSecondsElapsed(0);
-    }
+    if (mode === "countdown") setSecondsLeft(lastCountdownTargetSec);
+    else setSecondsElapsed(0);
     sessionStartMsRef.current = null;
 
-    if (reason === "timer-max") {
-      showBanner("Timer reached 2:00:00 — session ended.", "success");
-    } else if (reason === "countdown-zero") {
-      showBanner("Countdown finished — session ended.", "success");
-    } else if (reason === "manual") {
-      showBanner("Session stopped.", "info");
-    } else if (reason === "app-closed") {
-      showBanner("Session saved on app close.", "info");
-    }
+    if (reason === "timer-max") showBanner("Timer reached 2:00:00 — session ended.", "success");
+    else if (reason === "countdown-zero") showBanner("Countdown finished — session ended.", "success");
+    else if (reason === "manual") showBanner("Session stopped.", "info");
+    else if (reason === "app-closed") showBanner("Session saved on app close.", "info");
   };
 
   const handleStart = () => {
@@ -109,20 +119,15 @@ export default function IndexScreen() {
       return;
     }
     setRunning(true);
-    if (!sessionStartMsRef.current) {
-      sessionStartMsRef.current = Date.now();
-    }
+    if (!sessionStartMsRef.current) sessionStartMsRef.current = Date.now();
   };
 
   const handleStartStop = () => {
-    if (running) {
-      setStopModalOpen(true);
-    } else {
-      handleStart();
-    }
+    if (running) setStopModalOpen(true);
+    else handleStart();
   };
 
-  // ticker (with auto-stop at countdown 0 or timer 2h)
+  // ticker
   useEffect(() => {
     clearTicker();
     if (!running) return;
@@ -151,19 +156,15 @@ export default function IndexScreen() {
     return clearTicker;
   }, [running, mode, lastCountdownTargetSec]);
 
-  // mode switch: keep your original behavior (reset counters, keep sticky countdown target)
+  // mode switch reset
   useEffect(() => {
     clearTicker();
     setRunning(false);
-    if (mode === "countdown") {
-      setSecondsLeft(lastCountdownTargetSec);
-    } else {
-      setSecondsElapsed(0);
-    }
-    // keep sessionStartMsRef clear; a new start will set it
+    if (mode === "countdown") setSecondsLeft(lastCountdownTargetSec);
+    else setSecondsElapsed(0);
   }, [mode, lastCountdownTargetSec]);
 
-  // app background/close -> stop and upload
+  // background stop/upload
   useEffect(() => {
     const onState = (s: AppStateStatus) => {
       if (running && (s === "background" || s === "inactive")) {
@@ -174,10 +175,10 @@ export default function IndexScreen() {
     return () => sub.remove();
   }, [running]);
 
-  // tracker interactions
+  // tracker interaction
   const handleTrackerChange = (p: number) => {
     if (!running && mode === "countdown") {
-      const SNAP_S = 300; // 5 min
+      const SNAP_S = 300;
       const raw = p * TWO_HOUR_SECONDS;
       const next = Math.round(raw / SNAP_S) * SNAP_S;
       setSecondsLeft(next);
@@ -186,7 +187,6 @@ export default function IndexScreen() {
   };
 
   const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
-
   const displaySeconds = useMemo(() => {
     if (dragging && previewP != null) {
       const TWO_HOUR_SECONDS = 2 * 60 * 60;
@@ -197,7 +197,6 @@ export default function IndexScreen() {
 
   const totalMinutes = Math.floor(displaySeconds / 60);
   const seconds = Math.floor(displaySeconds % 60);
-
   const mm = totalMinutes.toString().padStart(2, "0");
   const ss = seconds.toString().padStart(2, "0");
 
@@ -211,11 +210,10 @@ export default function IndexScreen() {
   }, [running, activity]);
 
   const infoText = useMemo(() => {
-  if (!running)
-    return `You have focused for ${userProfile?.timeActiveTodayMinutes} ${
-      userProfile?.timeActiveTodayMinutes === 1 ? "minute" : "minutes"
-    } today.`;
-
+    if (!running)
+      return `You have focused for ${userProfile?.timeActiveTodayMinutes} ${
+        userProfile?.timeActiveTodayMinutes === 1 ? "minute" : "minutes"
+      } today.`;
     if (mode === "timer") return "Timer mode helps you track your study sessions.";
     return "Countdown mode helps you stay disciplined with time.";
   }, [running, mode, userProfile?.timeActiveTodayMinutes]);
@@ -240,28 +238,80 @@ export default function IndexScreen() {
 
   return (
     <View className="flex-1 bg-white relative">
-      <CoinBadge />
+      {/* Status bar hidden only in fullscreen */}
+      <StatusBar hidden={isFullscreen} animated />
 
-      <View className="absolute top-32 left-1/2 -translate-x-1/2">
-        <Text className="text-m text-gray-800">{infoText}</Text>
-      </View>
+      {/* Coins:
+          - Normal mode: render as-is (no wrapper, no transform).
+          - Fullscreen: render inside Animated.View that fades/slides it out. */}
+      {!isFullscreen ? (
+        <CoinBadge />
+      ) : (
+        <Animated.View style={{ opacity: topFade, transform: [{ translateY: topSlideY }] }} pointerEvents="none">
+          <CoinBadge />
+        </Animated.View>
+      )}
 
-      <View className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 flex-row w-22 rounded-full bg-gray-200 overflow-hidden">
-        <TouchableOpacity
-          onPress={() => setMode("countdown")}
-          className={`w-12 items-center py-2 ${mode === "countdown" ? "bg-black-300" : "bg-transparent"}`}
+      {/* Toggle:
+          - Normal mode: original element unchanged.
+          - Fullscreen: animated clone that fades/slides up. */}
+      {!isFullscreen ? (
+        <View className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 flex-row w-22 rounded-full bg-gray-200 overflow-hidden">
+          <TouchableOpacity
+            onPress={() => setMode("countdown")}
+            disabled={running}
+            className={`w-12 items-center py-2 ${mode === "countdown" ? "bg-black-300" : "bg-transparent"} ${running ? "opacity-60" : ""}`}
+          >
+            <Hourglass size={20} color={mode === "countdown" ? "#ffffff" : "#191d31"} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setMode("timer")}
+            disabled={running}
+            className={`w-12 items-center py-2 ${mode === "timer" ? "bg-black-300" : "bg-transparent"} ${running ? "opacity-60" : ""}`}
+          >
+            <Timer size={20} color={mode === "timer" ? "#ffffff" : "#191d31"} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <Animated.View
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 0,
+            opacity: topFade,
+            transform: [{ translateY: topSlideY }],
+          }}
+          pointerEvents="none"
         >
-          <Hourglass size={20} color={mode === "countdown" ? "#ffffff" : "#191d31"} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setMode("timer")}
-          className={`w-12 items-center py-2 ${mode === "timer" ? "bg-black-300" : "bg-transparent"}`}
-        >
-          <Timer size={20} color={mode === "timer" ? "#ffffff" : "#191d31"} />
-        </TouchableOpacity>
-      </View>
+          <View className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 flex-row w-22 rounded-full bg-gray-200 overflow-hidden">
+            <TouchableOpacity
+              onPress={() => setMode("countdown")}
+              disabled
+              className={`w-12 items-center py-2 ${mode === "countdown" ? "bg-black-300" : "bg-transparent"} opacity-60`}
+            >
+              <Hourglass size={20} color={mode === "countdown" ? "#ffffff" : "#191d31"} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setMode("timer")}
+              disabled
+              className={`w-12 items-center py-2 ${mode === "timer" ? "bg-black-300" : "bg-transparent"} opacity-60`}
+            >
+              <Timer size={20} color={mode === "timer" ? "#ffffff" : "#191d31"} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
 
-      <View className="flex-1 items-center justify-end pb-8">
+      {/* Main content — nudge up only in fullscreen */}
+      <Animated.View
+        style={{ flex: 1, transform: [{ translateY: contentTranslateY }] }}
+        className="items-center justify-end pb-8"
+      >
+        <View className="mb-[12%]">
+          <Text className="text-m text-gray-800">{infoText}</Text>
+        </View>
+
         <TimeTracker
           progress={progress}
           onChange={handleTrackerChange}
@@ -277,10 +327,11 @@ export default function IndexScreen() {
           }
         />
 
-        <View className="items-center mt-7">
+        <View className="items-center mt-2">
           <TouchableOpacity
-            className="flex-row items-center px-6 py-2 rounded-full bg-gray-200"
+            className={`flex-row items-center px-6 py-2 rounded-full bg-gray-200 ${running ? "opacity-60" : ""}`}
             onPress={handleOpenPicker}
+            disabled={running}
           >
             <View
               className="w-3 h-3 rounded-full mr-2"
@@ -290,9 +341,9 @@ export default function IndexScreen() {
           </TouchableOpacity>
         </View>
 
-        <View className="w-full items-center justify-center mt-10 mb-4 relative">
+        <View className="w-full items-center justify-center mt-[12%] mb-4 relative">
           <Text
-            className="text-8xl tracking-widest opacity-0"
+            className="text-7xl tracking-widest opacity-0"
             style={{
               ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
               fontFamily: Platform.select({ ios: undefined, android: "monospace", default: undefined }),
@@ -304,7 +355,7 @@ export default function IndexScreen() {
           </Text>
 
           <Text
-            className="text-8xl tracking-widest text-gray-900 absolute left-0 right-0 text-center"
+            className="text-7xl tracking-widest text-gray-900 absolute left-0 right-0 text-center"
             selectable={false}
             style={{
               ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
@@ -319,13 +370,18 @@ export default function IndexScreen() {
 
         <TouchableOpacity
           onPress={handleStartStop}
-          className={`${!running ? "bg-black-300" : "bg-red-500"} w-52 items-center py-4 mb-6 mt-2 rounded-full`}
+          className={`${!running ? "bg-black-300" : "bg-red-500"} w-72 items-center py-4 mb-3 mt-2 rounded-full`}
         >
           <Text className="text-white text-2xl font-semibold">{!running ? "Start" : "Stop"}</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
-      <ModePickerModal visible={pickerOpen} currentActivity={activity} onSelect={handleSelectActivity} />
+      <ModePickerModal
+        visible={pickerOpen}
+        currentActivity={activity}
+        onSelect={setActivity}
+        onClose={() => setPickerOpen(false)}
+      />
 
       <ConfirmStopModal
         visible={stopModalOpen}

@@ -137,7 +137,7 @@ const EditProfile = () => {
       >
         {/* Profile Picture Section */}
         <View className="mb-8">
-          <Text className="text-base font-rubik-medium text-gray-500 uppercase tracking-wide mb-3 px-4">
+          <Text className="text-sm font-rubik-medium text-gray-600 uppercase tracking-wide mb-3 px-4">
             Profile Photo
           </Text>
           <View className="rounded-xl bg-gray-50 overflow-hidden shadow-sm border border-gray-200 py-4 px-4 flex-row items-center">
@@ -146,7 +146,7 @@ const EditProfile = () => {
             </View>
             <View className="flex-1 ml-5">
               <Text className="text-lg font-rubik-medium text-gray-900">Change Photo</Text>
-              <Text className="text-base font-rubik text-gray-500">
+              <Text className="text-base font-rubik text-gray-600">
                 Tap to update your profile picture
               </Text>
             </View>
@@ -158,9 +158,8 @@ const EditProfile = () => {
           </View>
         </View>
 
-        {/* Profile Information Section */}
         <View className="mb-8">
-          <Text className="text-base font-rubik-medium text-gray-500 uppercase tracking-wide mb-3 px-4">
+          <Text className="text-sm font-rubik-medium text-gray-600 uppercase tracking-wide mb-3 px-4">
             Profile Information
           </Text>
           <View className="rounded-xl bg-gray-50 overflow-hidden shadow-sm border border-gray-200">
@@ -178,7 +177,7 @@ const EditProfile = () => {
                 autoCorrect={false}
                 placeholderTextColor="#9ca3af"
               />
-              <Text className="text-base font-rubik text-gray-500 mt-2.5">
+              <Text className="text-base font-rubik text-gray-600 mt-2.5">
                 This is how others will see you on Petly
               </Text>
             </View>
@@ -191,7 +190,7 @@ const EditProfile = () => {
                   {userProfile?.displayName || "No name provided"}
                 </Text>
               </View>
-              <Text className="text-base font-rubik text-gray-500 mt-2">
+              <Text className="text-base font-rubik text-gray-600 mt-2">
                 Name is managed by your Google account
               </Text>
             </View>
@@ -204,7 +203,7 @@ const EditProfile = () => {
                   {userProfile?.email || "No email provided"}
                 </Text>
               </View>
-              <Text className="text-base font-rubik text-gray-500 mt-2">
+              <Text className="text-base font-rubik text-gray-600 mt-2">
                 Email cannot be changed here
               </Text>
             </View>

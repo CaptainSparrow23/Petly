@@ -1,4 +1,3 @@
-// hooks/useInsights.ts
 import { useCallback, useEffect, useState } from "react";
 
 type StreakResponse = {
@@ -25,6 +24,15 @@ type WeekResponse = {
     tz: string;
     weekStart: string; // YYYY-MM-DD
     days: { date: string; label: string; totalMinutes: number }[];
+    sixWeekSummary?: {
+      weekId: string;        // e.g. "2025-W41"
+      start: string;         // YYYY-MM-DD
+      end: string;           // YYYY-MM-DD
+      totalMinutes: number;
+      sessionsCount: number;
+      isCurrentWeek?: boolean;
+      label: string;         // e.g. "6th Jun" (from backend)
+    }[];
   };
   error?: string;
 };
@@ -34,24 +42,24 @@ const API_BASE =
 const LONDON_TZ = "Europe/London";
 
 export function useDailyStreak(userId?: string) {
+  // streak
   const [streak, setStreak] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(!!userId);
-  const [error, setError] = useState<string | null>(null);
+  const [streakLoading, setStreakLoading] = useState<boolean>(!!userId);
+  const [streakError, setStreakError] = useState<string | null>(null);
 
-  // --------------------- 1) DAILY STREAK ---------------------
   const getStreak = useCallback(async () => {
     if (!userId) return;
-    setLoading(true);
-    setError(null);
+    setStreakLoading(true);
+    setStreakError(null);
     try {
       const res = await fetch(`${API_BASE}/api/get_streak/${encodeURIComponent(userId)}`);
       const json: StreakResponse = await res.json();
       if (!res.ok || !json.success || !json.data) throw new Error(json.error || `HTTP ${res.status}`);
       setStreak(json.data.dailyStreak ?? 0);
     } catch (e: any) {
-      setError(e?.message || "Failed to load streak");
+      setStreakError(e?.message || "Failed to load streak");
     } finally {
-      setLoading(false);
+      setStreakLoading(false);
     }
   }, [userId]);
 
@@ -59,7 +67,7 @@ export function useDailyStreak(userId?: string) {
     if (userId) getStreak();
   }, [userId, getStreak]);
 
-  // --------------------- 2) TODAY INSIGHTS ---------------------
+  // today
   const [today, setToday] = useState<ChartDatum[]>([]);
   const [insightsLoading, setInsightsLoading] = useState<boolean>(!!userId);
   const [insightsError, setInsightsError] = useState<string | null>(null);
@@ -94,8 +102,9 @@ export function useDailyStreak(userId?: string) {
     if (userId) getTodayInsights();
   }, [userId, getTodayInsights]);
 
-
+  // week + six weeks (same endpoint)
   const [week, setWeek] = useState<ChartDatum[]>([]);
+  const [sixWeeks, setSixWeeks] = useState<ChartDatum[]>([]);
   const [weekLoading, setWeekLoading] = useState<boolean>(false);
   const [weekError, setWeekError] = useState<string | null>(null);
 
@@ -103,41 +112,50 @@ export function useDailyStreak(userId?: string) {
     if (!userId) return;
     setWeekLoading(true);
     setWeekError(null);
+
     try {
       const url = `${API_BASE}/api/get_week_focus/${encodeURIComponent(userId)}?tz=${encodeURIComponent(LONDON_TZ)}`;
       const res = await fetch(url);
       const json: WeekResponse = await res.json();
       if (!res.ok || !json.success || !json.data) throw new Error(json.error || `HTTP ${res.status}`);
 
-      // Map to ChartDatum for the chart (keys = Mon/Tue/… labels)
-      const rows: ChartDatum[] = json.data.days.map(d => ({
-        key: d.label,       // "Mon"
-        label: d.label,     // "Mon"
+      const weekRows: ChartDatum[] = json.data.days.map((d) => ({
+        key: d.label,
+        label: d.label,
         totalMinutes: Math.max(0, Math.floor(d.totalMinutes || 0)),
       }));
+      setWeek(weekRows);
 
-      setWeek(rows);
+      const sixRows: ChartDatum[] = (json.data.sixWeekSummary ?? []).map((w) => ({
+        key: w.weekId,
+        label: w.label,
+        totalMinutes: Math.max(0, Math.floor(w.totalMinutes || 0)),
+      }));
+      setSixWeeks(sixRows);
     } catch (e: any) {
       setWeekError(e?.message || "Failed to load week data");
       setWeek([]);
+      setSixWeeks([]);
     } finally {
       setWeekLoading(false);
     }
   }, [userId]);
 
-  // Fetch week data in the background once the screen mounts
   useEffect(() => {
     if (userId) {
-      // don't block rendering; no need to await
       getWeekFocus();
     }
   }, [userId, getWeekFocus]);
 
+  // expose a single page-level loading helper if you want it
+  const pageLoadingAll = insightsLoading && weekLoading; // loader shows until either finishes -> parent can invert logic if desired
+  const anyLoading = insightsLoading || weekLoading || streakLoading;
+
   return {
     // streak
     streak,
-    loading,
-    error,
+    streakLoading,
+    streakError,
     refreshStreak: getStreak,
 
     // today
@@ -146,10 +164,15 @@ export function useDailyStreak(userId?: string) {
     insightsError,
     refreshToday: getTodayInsights,
 
-    //week
+    // week + six-week
     week,
+    sixWeeks,
     weekLoading,
     weekError,
     refreshWeek: getWeekFocus,
+
+    // page-level helpers
+    pageLoadingAll,
+    anyLoading,
   };
 }
