@@ -1,4 +1,3 @@
-import icons from "@/constants/icons";
 import images from "@/constants/images";
 import { login } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/GlobalProvider";
@@ -19,7 +18,7 @@ import { Banner } from "@/components/other/Banner";
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 const SignIn = () => {
-  const { refetch, loading, isLoggedIn, userProfile } = useGlobalContext();
+  const { refetchUserProfile, loading, isLoggedIn, userProfile } = useGlobalContext();
   const { loggedOut } = useLocalSearchParams();
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [needsProfileSetup, setNeedsProfileSetup] = useState<boolean | null>(null);
@@ -114,7 +113,7 @@ const SignIn = () => {
     const result = await login();
 
     if (result) {
-      await refetch();
+      await refetchUserProfile();
     } else {
       Alert.alert("Login failed", "Please try again");
     }
@@ -155,7 +154,7 @@ const SignIn = () => {
               ) : (
                 <>
                   <Image
-                    source={icons.google}
+                    source={images.google}
                     className="w-5 h-5"
                     resizeMode="contain"
                   />

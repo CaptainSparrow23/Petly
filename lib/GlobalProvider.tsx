@@ -11,8 +11,8 @@ interface UserProfile {
     displayName: string | null;
     email: string | null;
     profileId: number | null;
-    timeActiveToday: number; // stored in seconds from backend
-    timeActiveTodayMinutes: number; // derived value (rounded down)
+    timeActiveToday: number; 
+    timeActiveTodayMinutes: number; 
     coins: number;
     ownedPets: string[];
     selectedPet: string | null;
@@ -24,7 +24,7 @@ interface GlobalContextType {
     isLoggedIn: boolean;
     userProfile: UserProfile | null;
     loading: boolean;
-    refetch: () => Promise<void>;
+    refetchUserProfile: () => Promise<void>;
     logout: () => Promise<boolean>;
     showBanner: (message: string, type?: BannerType) => void;
     updateUserProfile: (patch: Partial<UserProfile>) => void;
@@ -78,7 +78,8 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const refetch = async () => {
+    //only used when we login
+    const refetchUserProfile = async () => {
         setLoading(true);
         await fetchUserProfile();
     };
@@ -124,7 +125,7 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                 isLoggedIn,
                 userProfile,
                 loading,
-                refetch,
+                refetchUserProfile,
                 logout,
                 showBanner,
                 updateUserProfile,

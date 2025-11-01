@@ -1,8 +1,3 @@
-import Filters, { type SpeciesValue } from "@/components/store/Filters";
-import { Tile, PetTileItem } from "@/components/store/Tiles";
-import { useStoreCatalog } from "@/hooks/useStore";
-import { useGlobalContext } from "@/lib/GlobalProvider";
-import Constants from "expo-constants";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -10,20 +5,33 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
-import { SheetManager } from "react-native-actions-sheet";
 import { useFocusEffect } from "@react-navigation/native";
+import Constants from "expo-constants";
+import { SheetManager } from "react-native-actions-sheet";
+
+import Filters, { type SpeciesValue } from "@/components/store/Filters";
+import { Tile, PetTileItem } from "@/components/store/Tiles";
+import { useStoreCatalog } from "@/hooks/useStore";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 import CoinBadge from "@/components/other/CoinBadge";
 
-// Backend endpoint injected via Expo config
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
+// layout constants
+const HORIZONTAL_PADDING = 24; // matches header px-6
+const HORIZONTAL_GAP = 20;
+const VERTICAL_GAP = 20;
+
 const Store = () => {
-  const {
-    refetch: refetchProfile,
-    userProfile,
-    updateUserProfile,
-  } = useGlobalContext();
+  const { userProfile, updateUserProfile } = useGlobalContext();
+  const { width } = useWindowDimensions();
+
+  // perfect pixel width per tile
+  const itemWidth = Math.floor(
+    (width - HORIZONTAL_PADDING * 2 - HORIZONTAL_GAP) / 2
+  );
 
   const {
     availablePets,
@@ -34,11 +42,10 @@ const Store = () => {
 
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesValue>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-
   const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] =
     useState<string | null>(null);
 
-  // Refresh the catalog whenever the store tab gains focus.
+  // refresh data when screen gains focus
   useFocusEffect(
     useCallback(() => {
       void refetchCatalog();
@@ -46,175 +53,137 @@ const Store = () => {
     }, [refetchCatalog])
   );
 
-  // Handle the full purchase flow for the currently previewed pet.
-  const handleConfirmPurchase = useCallback(async (pet: PetTileItem) => {
-    try {
-      if (userProfile?.coins && userProfile.coins < pet.priceCoins) {
+  // confirm purchase flow
+  const handleConfirmPurchase = useCallback(
+    async (pet: PetTileItem) => {
+      try {
+        if (userProfile?.coins && userProfile.coins < pet.priceCoins) {
+          await SheetManager.hide("store-confirmation");
+          setTimeout(() => {
+            void SheetManager.show("store-insufficient", {
+              payload: {
+                petName: pet.name,
+                onCloseRequest: () => void SheetManager.hide("store-insufficient"),
+                onGetMoreCoins: () => {},
+                onClosed: () => {},
+              },
+            });
+          }, 0);
+          return;
+        }
+
+        const userId = userProfile?.userId;
+        if (!API_BASE_URL || !userId) {
+          throw new Error("We couldn't complete your purchase. Please try again shortly.");
+        }
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/store/purchase/${userId}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ petId: pet.id, priceCoins: pet.priceCoins }),
+          }
+        );
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.error || payload?.message || "Purchase failed");
+        }
+
+        setRecentlyPurchasedPetName(pet.name);
+
+        // update user profile locally
+        updateUserProfile({
+          coins: Math.max(0, (userProfile?.coins ?? 0) - pet.priceCoins),
+          ownedPets: userProfile?.ownedPets.includes(pet.id)
+            ? userProfile?.ownedPets
+            : [...(userProfile?.ownedPets || []), pet.id],
+        });
+
+        void refetchCatalog();
         await SheetManager.hide("store-confirmation");
-        // Allow the confirmation sheet to close before presenting the insufficient coins sheet.
+
         setTimeout(() => {
-          void SheetManager.show("store-insufficient", {
+          void SheetManager.show("store-success", {
             payload: {
               petName: pet.name,
-              onCloseRequest: () => {
-                void SheetManager.hide("store-insufficient");
+              onCloseRequest: () => void SheetManager.hide("store-success"),
+              onClosed: () => {
+                void SheetManager.hide("store-preview");
+                setRecentlyPurchasedPetName(null);
               },
-              onGetMoreCoins: () => {},
-              onClosed: () => {},
             },
-        });
-      }, 0);
-      return;
-    }
-
-      const userId = userProfile?.userId;
-      if (!API_BASE_URL || !userId) {
+          });
+        }, 0);
+      } catch (error) {
         const message =
-          "We couldn't complete your purchase. Please try again shortly.";
-        console.warn("[Store] ", message);
+          error instanceof Error
+            ? error.message
+            : "We could not complete your purchase. Please try again.";
+        console.warn("[Store]", message);
         throw new Error(message);
       }
+    },
+    [
+      userProfile?.coins,
+      userProfile?.ownedPets,
+      updateUserProfile,
+      refetchCatalog,
+      userProfile?.userId,
+    ]
+  );
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/store/purchase/${userId}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            petId: pet.id,
-            priceCoins: pet.priceCoins,
-          }),
+  const handlePurchasePress = useCallback(
+    (pet: PetTileItem) => {
+      void SheetManager.show("store-confirmation", {
+        payload: {
+          petName: pet.name,
+          petPrice: pet.priceCoins,
+          onConfirm: () => handleConfirmPurchase(pet),
+          onCancel: () => void SheetManager.hide("store-confirmation"),
         },
-      );
-
-      const payload: {
-        success?: boolean;
-        message?: string;
-        error?: string;
-      } | null = await response.json().catch(() => null);
-
-      if (!response.ok || !payload?.success) {
-        throw new Error(
-          payload?.error || payload?.message || "Purchase failed",
-        );
-      }
-
-      setRecentlyPurchasedPetName(pet.name);
-      updateUserProfile({
-        coins: Math.max(0, userProfile?.coins - pet.priceCoins),
-        ownedPets: userProfile?.ownedPets.includes(pet.id)
-          ? userProfile?.ownedPets
-          : [...(userProfile?.ownedPets || []), pet.id],
       });
-      void refetchCatalog();
-      await SheetManager.hide("store-confirmation");
-      // Queue the success sheet so it appears after the confirmation sheet finishes closing.
-      setTimeout(() => {
-        void SheetManager.show("store-success", {
-          payload: {
-            petName: pet.name,
-            onCloseRequest: () => {
-              void SheetManager.hide("store-success");
-            },
-            onClosed: () => {
-              if (recentlyPurchasedPetName) {
-                void refetchProfile();
-              }
-              void SheetManager.hide("store-preview");
-              setRecentlyPurchasedPetName(null);
-            },
-          },
-        });
-      }, 0);
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "We could not complete your purchase. Please try again.";
-      console.warn("[Store] ", message);
-      throw new Error(message);
-    }
-  }, [
-    userProfile?.coins,
-    userProfile?.ownedPets,
-    recentlyPurchasedPetName,
-    refetchCatalog,
-    refetchProfile,
-    updateUserProfile,
-    userProfile?.userId,
-  ]);
+    },
+    [handleConfirmPurchase]
+  );
 
-  // Open the confirmation sheet for the tapped pet.
-  const handlePurchasePress = useCallback((pet: PetTileItem) => {
-    void SheetManager.show("store-confirmation", {
-      payload: {
-        petName: pet.name,
-        petPrice: pet.priceCoins,
-        onConfirm: () => handleConfirmPurchase(pet),
-        onCancel: () => {
-          void SheetManager.hide("store-confirmation");
+  const handleTilePress = useCallback(
+    (pet: PetTileItem) => {
+      setRecentlyPurchasedPetName(null);
+      void SheetManager.show("store-preview", {
+        payload: {
+          pet,
+          onPurchase: handlePurchasePress,
+          onClosed: () => setRecentlyPurchasedPetName(null),
         },
-      },
-    });
-  }, [handleConfirmPurchase]);
+      });
+    },
+    [handlePurchasePress]
+  );
 
-  // Show the pet details preview sheet when a tile is pressed.
-  const handleTilePress = useCallback((pet: PetTileItem) => {
-    setRecentlyPurchasedPetName(null);
-    void SheetManager.show("store-preview", {
-      payload: {
-        pet,
-        onPurchase: handlePurchasePress,
-        onClosed: () => {
-          setRecentlyPurchasedPetName(null);
-        },
-      },
-    });
-  }, [handlePurchasePress]);
-
-  const tileContainerStyle = useCallback((index: number) => {
-    const baseSpacing = {
-      flexBasis: "48%",
-      maxWidth: "48%",
-      marginBottom: 16,
-    } as const;
-
-    const isLeftColumn = index % 2 === 0;
-    const marginTop = index < 2 ? 12 : 16;
-
-    return {
-      ...baseSpacing,
-      marginRight: isLeftColumn ? 12 : 0,
-      marginLeft: isLeftColumn ? 0 : 12,
-      marginTop,
-    };
-  }, []);
-
-  const renderTile = ({
-    item,
-    index,
-  }: {
-    item: PetTileItem;
-    index: number;
-  }) => (
-    <View style={tileContainerStyle(index)}>
-      <Tile item={item} onPress={() => handleTilePress(item)} />
-    </View>
+  const renderTile = useCallback(
+    ({ item }: { item: PetTileItem }) => (
+      <View style={{ width: itemWidth, flexGrow: 0 }}>
+        <Tile item={item} onPress={() => handleTilePress(item)} />
+      </View>
+    ),
+    [handleTilePress, itemWidth]
   );
 
   const keyExtractor = useCallback((item: PetTileItem) => item.id, []);
 
-  // Apply species filtering and alphabetical sorting before rendering.
   const visiblePets = useMemo(() => {
-    const narrowed =
+    const filtered =
       selectedSpecies === "all"
         ? availablePets
         : availablePets.filter((pet) => pet.species === selectedSpecies);
 
-    return [...narrowed].sort((a, b) => {
-      const comparison = a.name.localeCompare(b.name);
-      return sortOrder === "asc" ? comparison : -comparison;
-    });
+    return [...filtered].sort((a, b) =>
+      sortOrder === "asc"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name)
+    );
   }, [availablePets, selectedSpecies, sortOrder]);
 
   const toggleSortOrder = useCallback(() => {
@@ -222,101 +191,81 @@ const Store = () => {
   }, []);
 
   if (loading) {
-    // Loading state: show a centered spinner while the catalog fetch is in flight.
     return (
-      <View className="flex-1 bg-white">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#191d31" />
-        </View>
+      <View className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#191d31" />
       </View>
     );
   }
 
   if (error) {
-    // Error state: surface the message in a simple fallback view.
     return (
-      <View className="flex-1 bg-white">
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-base font-rubik-medium text-black-300">
-            Something went wrong
-          </Text>
-          <Text className="text-sm text-black-200 mt-2 text-center">
-            {error}
-          </Text>
-        </View>
+      <View className="flex-1 bg-white items-center justify-center px-6">
+        <Text className="text-base font-rubik-medium text-black-300">
+          Something went wrong
+        </Text>
+        <Text className="text-sm text-black-200 mt-2 text-center">{error}</Text>
       </View>
     );
   }
 
-  // Empty-state fallback for when the filtered list has no pets.
   const EmptyState = () => (
-    <View className="flex-1 bg-white">
-      <View className="flex-1 items-center justify-center px-6">
-        <Text className="text-base font-rubik-medium text-black-300">
-          No pets found
-        </Text>
-        <Text className="text-sm text-black-200 mt-2 text-center">
-          Check back later for new companions.
-        </Text>
-      </View>
+    <View className="flex-1 bg-white items-center justify-center px-6">
+      <Text className="text-base font-rubik-medium text-black-300">
+        No pets found
+      </Text>
+      <Text className="text-sm text-black-200 mt-2 text-center">
+        Check back later for new companions.
+      </Text>
     </View>
   );
 
   return (
     <View className="flex-1 bg-white">
       <CoinBadge />
-      {/* Main catalog grid */}
+
+      {/* header */}
+      <View className="bg-gray-100 pt-5 mt-3 pb-5 border-b border-gray-300">
+        <View className="px-6">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-2xl font-bold text-black-300">All Pets</Text>
+            <TouchableOpacity onPress={toggleSortOrder} activeOpacity={0.7}>
+              <Text className="text-sm font-rubik-medium text-gray-600">
+                {sortOrder === "asc" ? "Sort: A → Z" : "Sort: Z → A"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text className="text-sm text-black-200 mt-1">
+            Browse every pet available in the store.
+          </Text>
+        </View>
+        <View className="mt-3 mb-2">
+          <Filters
+            selectedSpecies={selectedSpecies}
+            onSpeciesChange={setSelectedSpecies}
+          />
+        </View>
+      </View>
+
+      {/* grid */}
       <FlatList
+        className="mt-5"
         data={visiblePets}
         keyExtractor={keyExtractor}
         renderItem={renderTile}
         numColumns={2}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <>
-            <View>
-              <View className="px-7">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-2xl font-bold text-black-300">
-                    All Pets
-                  </Text>
-                  <TouchableOpacity
-                    onPress={toggleSortOrder}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      className="text-sm font-rubik-medium text-gray-600"
-                    >
-                      {sortOrder === "asc"
-                        ? "Sort: A → Z"
-                        : "Sort: Z → A"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                <Text className="text-sm text-black-200 mt-1">
-                  Browse every pet available in the store.
-                </Text>
-              </View>
-              <View className="mt-3 mb-2">
-                <Filters
-                  selectedSpecies={selectedSpecies}
-                  onSpeciesChange={setSelectedSpecies}
-                />
-              </View>
-            </View>
-          </>
-        }
-        columnWrapperStyle={{
-          paddingHorizontal: 24,
-          paddingBottom: 6,
-          justifyContent: "space-between",
-        }}
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingBottom: 32,
-          paddingTop: 8,
-        }}
         ListEmptyComponent={EmptyState}
+        contentContainerStyle={{
+          paddingHorizontal: HORIZONTAL_PADDING,
+          paddingTop: 8,
+          paddingBottom: 32,
+        }}
+        columnWrapperStyle={{
+          columnGap: HORIZONTAL_GAP,
+          justifyContent: "flex-start",
+        }}
+        ItemSeparatorComponent={() => <View style={{ height: VERTICAL_GAP }} />}
       />
     </View>
   );

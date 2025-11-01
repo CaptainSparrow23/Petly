@@ -28,7 +28,7 @@ const DEFAULT_AVATARS = [
 
 export default function SetProfile() {
   const router = useRouter();
-  const { userProfile, refetch } = useGlobalContext();
+  const { userProfile, refetchUserProfile } = useGlobalContext();
   const [username, setUsername] = useState("");
   const [selectedAvatarId, setSelectedAvatarId] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,7 +79,7 @@ export default function SetProfile() {
       console.log("✅ Profile setup successfully:", data);
 
       // Refetch user data to update global state
-      await refetch();
+      await refetchUserProfile();
 
       // Redirect to main app with loggedIn flag to show welcome banner
       router.replace({

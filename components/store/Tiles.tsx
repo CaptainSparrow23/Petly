@@ -1,25 +1,10 @@
-import icons from "@/constants/icons";
-import images from "@/constants/images";
-import React from "react";
+import React, { useMemo } from "react";
 import { Image, ImageSourcePropType, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import images from "@/constants/images";
 
 export type PetSpecies =
-  | "cat"
-  | "dog"
-  | "fox"
-  | "bunny"
-  | "owl"
-  | "dragon"
-  | "phoenix"
-  | "griffin"
-  | "unicorn"
-  | "kraken"
-  | "kitsune"
-  | "sphinx"
-  | "pegasus"
-  | "leviathan"
-  | "wyvern";
+  | "cat" | "dog" | "rabbit" | "bird";
 
 export interface PetTileItem {
   id: string;
@@ -37,56 +22,19 @@ interface TileProps {
   onPress?: () => void;
 }
 
-interface BaseTileProps extends TileProps {
-  containerClassName: string;
-  imageClassName: string;
-  children: React.ReactNode;
-  overlay?: React.ReactNode;
-}
-
-const BaseTile = ({
-  item,
-  onPress,
-  containerClassName,
-  imageClassName,
-  overlay,
-  children,
-}: BaseTileProps) => {
-  const imageSource = resolvePetImage(item);
-
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.9}
-      className={containerClassName}
-      style={{
-        backgroundColor: "#fff",
-        borderWidth: 0,
-      }}
-    >
-      <Image source={imageSource} className={imageClassName} resizeMode="cover" />
-      {overlay}
-      {children}
-    </TouchableOpacity>
-  );
-};
-
+/* exports kept for other modules (e.g., Sheets.tsx) */
 export const resolvePetImage = (item: PetTileItem): ImageSourcePropType => {
-  if (item.imageUrl) {
-    return { uri: item.imageUrl };
-  }
+  if (item.imageUrl) return { uri: item.imageUrl };
 
-  const fromKey =
+  const byKey =
     item.imageKey &&
-    (icons[item.imageKey as keyof typeof icons] as ImageSourcePropType | undefined);
-  if (fromKey) {
-    return fromKey;
-  }
+    (images[item.imageKey as keyof typeof images] as ImageSourcePropType | undefined);
+  if (byKey) return byKey;
 
-  const fallback =
-    (icons[item.species as keyof typeof icons] as ImageSourcePropType | undefined) ??
-    (images[item.species as keyof typeof images] as ImageSourcePropType | undefined);
-  return fallback ?? images.lighting;
+  const bySpecies =
+    images[item.species as keyof typeof images] as ImageSourcePropType | undefined;
+
+  return bySpecies ?? images.lighting;
 };
 
 const formatSpecies = (species: PetSpecies) =>
@@ -94,25 +42,40 @@ const formatSpecies = (species: PetSpecies) =>
 
 export const formatSpeciesUtil = formatSpecies;
 
-export const Tile = ({ item, onPress }: TileProps) => {
+export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
   const { name, species, priceCoins } = item;
+  const imageSource = useMemo(() => resolvePetImage(item), [item]);
 
   return (
-    <BaseTile
-      item={item}
+    <TouchableOpacity
+
       onPress={onPress}
-      containerClassName="flex-1 w-full px-3 py-4 rounded-2xl shadow-lg shadow-black/10 relative"
-      imageClassName="w-full h-40 rounded-xl"
+      accessibilityRole="button"
+      accessibilityLabel={`${name}, ${formatSpecies(species)}, costs ${priceCoins} coins`}
+      className="flex-1 w-full rounded-2xl bg-white shadow-lg shadow-black relative border border-gray-300"
+      style={{
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: 7,
+      }}
     >
-      <View className="flex flex-col mt-3 ml-2">
-        <Text className="text-base font-bold text-black-300">
-          {name}
-        </Text>
-        <Text className="text-xs font-rubik text-black-200 mt-0.5">
-          {formatSpecies(species)}
-        </Text>
-        <View className="flex flex-row items-center justify-between mt-3">
-          <View className="flex-row items-center">
+      {/* Rounded clipping so top image & bottom bg align with corners */}
+      <View className="rounded-2xl overflow-hidden">
+        {/* Top image area (centered, not cropped) */}
+        <View className="w-full items-center justify-center bg-white h-48">
+          <Image source={imageSource} resizeMode="contain" style={{ width: 136, height: 136 }} />
+        </View>
+
+        {/* Bottom section full-width different background */}
+        <View className="w-full bg-gray-100 px-4 py-4">
+          <Text className="text-base font-bold text-black-300" numberOfLines={1}>
+            {name}
+          </Text>
+          <Text className="text-xs font-rubik text-black-200 mt-0.5">
+            {formatSpecies(species)}
+          </Text>
+
+          <View className="flex-row items-center mt-3">
             <View className="h-6 w-6 items-center justify-center rounded-full bg-amber-400">
               <MaterialCommunityIcons name="currency-usd" size={14} color="#92400e" />
             </View>
@@ -122,6 +85,8 @@ export const Tile = ({ item, onPress }: TileProps) => {
           </View>
         </View>
       </View>
-    </BaseTile>
+    </TouchableOpacity>
   );
 };
+
+export default Tile;

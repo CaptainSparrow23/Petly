@@ -15,13 +15,8 @@ const PROFILE_OPTIONS = [
   { id: 2, name: "Profile 2" },
 ];
 
-interface UserProfile {
-  username: string | null;
-  email: string;
-}
-
 const EditProfile = () => {
-  const { userProfile, refetch } = useGlobalContext();
+  const { userProfile, updateUserProfile } = useGlobalContext();
   const [username, setUsername] = useState("");
   const [selectedProfileId, setSelectedProfileId] = useState<number>(1);
   const [showProfilePicker, setShowProfilePicker] = useState(false);
@@ -90,8 +85,11 @@ const EditProfile = () => {
       const result = await response.json();
       console.log("✅ Profile updated successfully:", result.data);
       
-      // Refetch user profile to update global state
-      await refetch();
+      
+      updateUserProfile({
+        username: username.trim(),
+        profileId: selectedProfileId,
+      });
       
       Alert.alert("Success", "Profile updated successfully!", [
         { text: "OK", onPress: () => router.back() }
