@@ -1,5 +1,3 @@
-import { ProfilePicture } from "@/components/other/ProfilePicture";
-import { useGlobalContext } from "@/lib/GlobalProvider";
 import type { LucideIcon } from "lucide-react-native";
 import { 
   ChevronRight, 
@@ -42,11 +40,11 @@ const SettingsItem = ({
       <Icon size={22} color="#6b7280" />
     </View>
     <View className="flex-1">
-      <Text className="text-base font-rubik-medium" style={{ color: textColor }}>
+      <Text className="text-base font-rubik-medium text-black">
         {title}
       </Text>
       {subtitle && (
-        <Text className="text-sm font-rubik text-gray-500 mt-1">
+        <Text className="text-sm font-rubik text-gray-600 mt-1">
           {subtitle}
         </Text>
       )}
@@ -68,8 +66,8 @@ const SettingsSection = ({ title, children }: SettingsSectionProps) => {
   const childrenArray = React.Children.toArray(children);
   
   return (
-    <View className="mb-8 ">
-      <Text className="text-sm font-rubik-medium text-gray-500 uppercase tracking-wide mb-3 px-4">
+    <View className="mb-8">
+      <Text className="text-sm font-rubik-medium text-gray-600 uppercase tracking-wide mb-3 px-4">
         {title}
       </Text>
       <View className="rounded-xl bg-gray-200 overflow-hidden shadow-sm border border-gray-200">
@@ -85,7 +83,6 @@ const SettingsSection = ({ title, children }: SettingsSectionProps) => {
 };
 
 const Settings = () => {
-  const { userProfile, refetch } = useGlobalContext();
 
   return (
     <View className="flex-1 bg-white">

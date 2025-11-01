@@ -227,7 +227,6 @@ const Store = () => {
       <View className="flex-1 bg-white">
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#191d31" />
-          <Text className="mt-3 text-sm text-black-300">Loading catalog…</Text>
         </View>
       </View>
     );

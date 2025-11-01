@@ -28,7 +28,6 @@ const TopDropdownBadge = ({ labelBottom, top, labelTop, width = 60, height = 70,
     <View style={{ position: 'absolute', top: 0, right: 20, alignSelf: 'center' }}>
       <View style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>
         <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-          {/* pentagon path: top-left → top-right → rect-bottom-right → point → rect-bottom-left → close */}
           <Path
             d={`M 0 0 L ${width} 0 L ${width} ${rectH} L ${midX} ${pointY} L 0 ${rectH} Z`}
             fill="#f2f2f2"
@@ -46,7 +45,7 @@ const TopDropdownBadge = ({ labelBottom, top, labelTop, width = 60, height = 70,
               style={{
                 fontFamily: 'Rubik-Bold',
                 fontSize: fontSize,
-                color: '#2563eb', // Tailwind blue-600
+                color: '#191d31', // Tailwind blue-600
                 lineHeight: fontSize + 2,
               }}
             >
@@ -56,7 +55,7 @@ const TopDropdownBadge = ({ labelBottom, top, labelTop, width = 60, height = 70,
               style={{
                 fontFamily: 'Rubik-Medium',
                 fontSize: smallFontSize,
-                color: '#60a5fa', // Tailwind blue-400 (lighter)
+                color: '#8C8E98', // Tailwind blue-400 (lighter)
                 marginTop: 1,
               }}
             >
@@ -222,7 +221,6 @@ const Friends = () => {
     return (
       <View className="flex-1 bg-gray-50 items-center justify-center">
         <ActivityIndicator size="large" color="#3b82f6" />
-        <Text className="mt-4 text-gray-600 font-rubik">Loading friends...</Text>
       </View>
     )
   }
@@ -236,12 +234,12 @@ const Friends = () => {
             {friends.length > 0 && (
               <Pressable
                 onPress={handleToggleEdit}
-                className="bg-white rounded-full w-9 h-9 items-center justify-center border border-blue-500"
+                className="bg-white rounded-full w-9 h-9 items-center justify-center border border-black-500"
               >
                 <Edit3 size={18} color="#3b82f6" />
               </Pressable>
             )}
-            <Pressable onPress={handleAddFriend} className="bg-blue-500 rounded-full w-9 h-9 items-center justify-center">
+            <Pressable onPress={handleAddFriend} className="bg-black-300 rounded-full w-9 h-9 items-center justify-center">
               <Plus size={24} color="#ffffff" />
             </Pressable>
           </>
@@ -273,25 +271,25 @@ const Friends = () => {
 
       <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Toggle between Friends and Global */}
-        <View className="flex-row items-center gap-2 mt-12 mb-5">
-          <View className="flex-row bg-blue-100 rounded-full p-1 border-gray-300 border flex-1">
-            <Pressable className="flex-1 py-2.5 rounded-full bg-blue-500 px-4">
+        <View className="flex-row items-center gap-2 mt-6 mb-5">
+          <View className="flex-row bg-black-100 rounded-full p-1.5 flex-1">
+            <Pressable className="flex-1 py-2.5 rounded-full bg-black-300 px-4">
               <Text className="text-center font-rubik-semibold text-white">Friends</Text>
             </Pressable>
-            <Pressable className="flex-1 py-2.5 rounded-full bg-blue-100 px-4">
-              <Text className="text-center font-rubik-semibold text-gray-900">Global</Text>
+            <Pressable className="flex-1 py-2.5 rounded-full bg-black-100 px-4">
+              <Text className="text-center font-rubik-semibold text-white">Global</Text>
             </Pressable>
           </View>
         </View>
 
         {friends.length === 0 ? (
-          <View className="bg-white rounded-2xl p-6 items-center">
+          <View className="bg-white rounded-2xl p-6 mt-10 items-center">
             <Users size={48} color="#9ca3af" />
             <Text className="font-rubik-bold text-gray-900 text-lg mt-4">No Friends Yet</Text>
             <Text className="text-gray-600 font-rubik text-center mt-2">
               Start building your focus community by adding friends!
             </Text>
-            <Pressable className="bg-blue-500 rounded-xl px-6 py-3 mt-4" onPress={handleAddFriend}>
+            <Pressable className="bg-black-500 rounded-xl px-6 py-3 mt-4" onPress={handleAddFriend}>
               <Text className="text-white font-rubik-medium">Find Friends</Text>
             </Pressable>
           </View>
@@ -310,31 +308,27 @@ const Friends = () => {
         <View className="h-6" />
       </ScrollView>
 
-      {/* Bottom profile section */} 
-      {userProfile && (
-        <View className="absolute bottom-0 left-0 right-0 overflow-hidden bg-blue-300">
-          {/* the angled blue background */}
-          <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}>
-            <Svg height="100%" width="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <Path d="M 0 100 L 0 0 L 90 0 L 35 100 L 0 100 Z" fill="#3b82f6" />
-            </Svg>
-          </View>
+      <View className="absolute bottom-0 left-0 right-0 overflow-hidden bg-black-100">
+        <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}>
+          <Svg height="100%" width="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <Path d="M 0 100 L 0 0 L 90 0 L 35 100 L 0 100 Z" fill="#191d31" />
+          </Svg>
+        </View>
 
-          {/* the white dropdown coming from the top center */}
-          <TopDropdownBadge labelTop={`${userProfile.timeActiveTodayMinutes}m`}labelBottom="today" top={15} />
+        {/* the white dropdown coming from the top center */}
+        <TopDropdownBadge labelTop={`${userProfile?.timeActiveTodayMinutes}m`}labelBottom="today" top={15} />
 
-          {/* content row */}
-          <View className="px-6 pt-4 pb-8">
-            <View className="flex-row items-center">
-              <ProfilePicture profileId={userProfile.profileId} size={54} />
-              <View className="ml-3 flex-1">
-                <Text className="font-bold text-xl mb-1 text-white">{userProfile.displayName || 'You'}</Text>
-                {userProfile.username && <Text className="text-m text-gray-100">@{userProfile.username}</Text>}
-              </View>
+        {/* content row */}
+        <View className="px-6 pt-4 pb-8">
+          <View className="flex-row items-center">
+            <ProfilePicture profileId={userProfile?.profileId || null} size={54} />
+            <View className="ml-3 flex-1">
+              <Text className="font-bold text-xl mb-1 text-white">{userProfile?.displayName || 'You'}</Text>
+              {userProfile?.username && <Text className="text-m text-gray-100">@{userProfile?.username}</Text>}
             </View>
           </View>
         </View>
-      )}
+      </View>
     </View>
   )
 }
