@@ -44,7 +44,8 @@
       "reactCompiler": true
     },
     "extra": {
-      "backendUrl": "http://localhost:3000"
+      "backendUrl": "https://petly-backend-d2dg.onrender.com"
+      
     }
   }
 }
