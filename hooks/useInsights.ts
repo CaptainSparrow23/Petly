@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 
 type StreakResponse = {
   success: boolean;
@@ -11,12 +11,6 @@ type StreakResponse = {
 };
 
 export type ChartDatum = { key: string; label: string; totalMinutes: number };
-
-type TodayResponse = {
-  success: boolean;
-  data?: { minutesByHour: number[]; totalMinutes: number };
-  error?: string;
-};
 
 type WeekResponse = {
   success: boolean;
@@ -33,6 +27,16 @@ type WeekResponse = {
       isCurrentWeek?: boolean;
       label: string;         // e.g. "6th Jun" (from backend)
     }[];
+    currentWeekTotal?: number; // Total minutes for current week
+  };
+  error?: string;
+};
+
+type GoalsResponse = {
+  success: boolean;
+  data?: {
+    dailyGoalMinutes: number;
+    weeklyGoalMinutes: number;
   };
   error?: string;
 };
@@ -41,7 +45,11 @@ const API_BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:4000";
 const LONDON_TZ = "Europe/London";
 
-export function useDailyStreak(userId?: string) {
+export function useInsights(
+  userId?: string, 
+  todayMinutesFromProfile?: number,
+  minutesByHourFromProfile?: number[]
+) {
   // streak
   const [streak, setStreak] = useState<number>(0);
   const [streakLoading, setStreakLoading] = useState<boolean>(!!userId);
@@ -67,54 +75,36 @@ export function useDailyStreak(userId?: string) {
     if (userId) getStreak();
   }, [userId, getStreak]);
 
-  // today
-  const [today, setToday] = useState<ChartDatum[]>([]);
-  const [insightsLoading, setInsightsLoading] = useState<boolean>(!!userId);
-  const [insightsError, setInsightsError] = useState<string | null>(null);
-
-  const getTodayInsights = useCallback(async () => {
-    if (!userId) return;
-    setInsightsLoading(true);
-    setInsightsError(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/get_today_focus/${encodeURIComponent(userId)}`);
-      const json: TodayResponse = await res.json();
-      if (!res.ok || !json.success || !json.data || !Array.isArray(json.data.minutesByHour)) {
-        throw new Error(json.error || `HTTP ${res.status}`);
-      }
-
-      const mins = json.data.minutesByHour;
-      const rows: ChartDatum[] = Array.from({ length: 24 }, (_, h) => ({
-        key: String(h).padStart(2, "0"),
-        label: `${String(h).padStart(2, "0")}:00`,
-        totalMinutes: Math.max(0, Math.floor(mins[h] ?? 0)),
-      }));
-      setToday(rows);
-    } catch (e: any) {
-      setInsightsError(e?.message || "Failed to load insights");
-      setToday([]);
-    } finally {
-      setInsightsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (userId) getTodayInsights();
-  }, [userId, getTodayInsights]);
+  // today chart data - from profile
+  const today: ChartDatum[] = useMemo(() => {
+    const mins = minutesByHourFromProfile ?? Array(24).fill(0);
+    return Array.from({ length: 24 }, (_, h) => ({
+      key: String(h).padStart(2, "0"),
+      label: `${String(h).padStart(2, "0")}:00`,
+      totalMinutes: Math.max(0, Math.floor(mins[h] ?? 0)),
+    }));
+  }, [minutesByHourFromProfile]);
 
   // week + six weeks (same endpoint)
   const [week, setWeek] = useState<ChartDatum[]>([]);
   const [sixWeeks, setSixWeeks] = useState<ChartDatum[]>([]);
+  const [currentWeekTotal, setCurrentWeekTotal] = useState<number>(0);
   const [weekLoading, setWeekLoading] = useState<boolean>(false);
   const [weekError, setWeekError] = useState<string | null>(null);
 
-  const getWeekFocus = useCallback(async () => {
+  const getWeekFocus = useCallback(async (todayMins?: number | null) => {
     if (!userId) return;
     setWeekLoading(true);
     setWeekError(null);
 
     try {
-      const url = `${API_BASE}/api/get_week_focus/${encodeURIComponent(userId)}?tz=${encodeURIComponent(LONDON_TZ)}`;
+      // Use todayMinutesFromProfile first, then fallback to parameter, then let backend calculate
+      const minutesToUse = todayMinutesFromProfile ?? todayMins;
+      const todayParam = minutesToUse !== undefined && minutesToUse !== null 
+        ? `&todayMinutes=${encodeURIComponent(minutesToUse)}` 
+        : '';
+      
+      const url = `${API_BASE}/api/get_week_focus/${encodeURIComponent(userId)}?tz=${encodeURIComponent(LONDON_TZ)}${todayParam}`;
       const res = await fetch(url);
       const json: WeekResponse = await res.json();
       if (!res.ok || !json.success || !json.data) throw new Error(json.error || `HTTP ${res.status}`);
@@ -132,24 +122,79 @@ export function useDailyStreak(userId?: string) {
         totalMinutes: Math.max(0, Math.floor(w.totalMinutes || 0)),
       }));
       setSixWeeks(sixRows);
+      
+      setCurrentWeekTotal(json.data.currentWeekTotal ?? 0);
     } catch (e: any) {
       setWeekError(e?.message || "Failed to load week data");
       setWeek([]);
       setSixWeeks([]);
+      setCurrentWeekTotal(0);
     } finally {
       setWeekLoading(false);
+    }
+  }, [userId, todayMinutesFromProfile]);
+
+  // Fetch week data with today's minutes from profile
+  useEffect(() => {
+    if (!userId) return;
+    getWeekFocus(todayMinutesFromProfile);
+  }, [userId, todayMinutesFromProfile, getWeekFocus]);
+
+  // goals
+  const [dailyGoal, setDailyGoal] = useState<number>(120);
+  const [weeklyGoal, setWeeklyGoal] = useState<number>(600);
+  const [goalsLoading, setGoalsLoading] = useState<boolean>(!!userId);
+  const [goalsError, setGoalsError] = useState<string | null>(null);
+
+  const getGoals = useCallback(async () => {
+    if (!userId) return;
+    setGoalsLoading(true);
+    setGoalsError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/get_goals/${encodeURIComponent(userId)}`);
+      const json: GoalsResponse = await res.json();
+      if (!res.ok || !json.success || !json.data) throw new Error(json.error || `HTTP ${res.status}`);
+      setDailyGoal(json.data.dailyGoalMinutes);
+      setWeeklyGoal(json.data.weeklyGoalMinutes);
+    } catch (e: any) {
+      setGoalsError(e?.message || "Failed to load goals");
+    } finally {
+      setGoalsLoading(false);
+    }
+  }, [userId]);
+
+  const updateGoals = useCallback(async (dailyGoalMinutes: number, weeklyGoalMinutes: number) => {
+    if (!userId) throw new Error("User ID is required");
+    
+    setGoalsLoading(true);
+    setGoalsError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/update_goals/${encodeURIComponent(userId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dailyGoalMinutes, weeklyGoalMinutes }),
+      });
+      
+      const json: GoalsResponse = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
+      
+      setDailyGoal(dailyGoalMinutes);
+      setWeeklyGoal(weeklyGoalMinutes);
+      return true;
+    } catch (e: any) {
+      setGoalsError(e?.message || "Failed to update goals");
+      throw e;
+    } finally {
+      setGoalsLoading(false);
     }
   }, [userId]);
 
   useEffect(() => {
-    if (userId) {
-      getWeekFocus();
-    }
-  }, [userId, getWeekFocus]);
+    if (userId) getGoals();
+  }, [userId, getGoals]);
 
-  // expose a single page-level loading helper if you want it
-  const pageLoadingAll = insightsLoading && weekLoading; // loader shows until either finishes -> parent can invert logic if desired
-  const anyLoading = insightsLoading || weekLoading || streakLoading;
+  // expose a single page-level loading helper
+  const anyLoading = weekLoading || streakLoading || goalsLoading;
 
   return {
     // streak
@@ -158,21 +203,26 @@ export function useDailyStreak(userId?: string) {
     streakError,
     refreshStreak: getStreak,
 
-    // today
+    // today (from profile)
     today,
-    insightsLoading,
-    insightsError,
-    refreshToday: getTodayInsights,
 
     // week + six-week
     week,
     sixWeeks,
+    currentWeekTotal,
     weekLoading,
     weekError,
     refreshWeek: getWeekFocus,
 
+    // goals
+    dailyGoal,
+    weeklyGoal,
+    goalsLoading,
+    goalsError,
+    updateGoals,
+    refreshGoals: getGoals,
+
     // page-level helpers
-    pageLoadingAll,
     anyLoading,
   };
 }
