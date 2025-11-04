@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { getCurrentUser, logout as appwriteLogout } from "./appwrite";
+import { getCurrentUser, logout as firebaseLogout, onAuthStateChanged } from "./firebase";
 import Constants from "expo-constants";
 import { Banner } from "@/components/other/Banner";
 
@@ -44,13 +44,13 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
     const fetchUserProfile = async () => {
         try {
             const currentUser = await getCurrentUser();
-            if (!currentUser?.$id) {
+            if (!currentUser?.uid) {
                 setUserProfile(null);
                 setLoading(false);
                 return;
             }
 
-            const response = await fetch(`${API_BASE_URL}/api/get_user_profile/${currentUser.$id}`);
+            const response = await fetch(`${API_BASE_URL}/api/get_user_profile/${currentUser.uid}`);
             const data = await response.json();
 
             if (data.success) {
@@ -101,7 +101,7 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = async () => {
         try {
-            const success = await appwriteLogout();
+            const success = await firebaseLogout();
             if (success) {
                 setUserProfile(null);
                 return true;

@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "Petly",
-    "slug": "Petly",
+    "name": "petly",
+    "slug": "petly",
+    "owner": "bobbydavidson", 
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "petly",
