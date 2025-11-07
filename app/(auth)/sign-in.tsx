@@ -20,8 +20,8 @@ import Constants from "expo-constants";
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 const GOOGLE_CLIENT_ID =
-  "1003587548441-pam82dcadi8gmitp0hmunkbrv5alo5h7.apps.googleusercontent.com";
-const REDIRECT_URI = "https://auth.expo.io/@bobbydavidson/petly";
+  "1003587548441-2pngh6notc42r4mp58f2nflton6lgg43.apps.googleusercontent.com";
+const REDIRECT_URI = "https://auth.expo.io/@captainsparrow23/petly";
 
 const SignIn = () => {
   const { refetchUserProfile, loading, isLoggedIn, userProfile } = useGlobalContext();
