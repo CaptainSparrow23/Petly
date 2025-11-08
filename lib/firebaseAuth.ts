@@ -9,23 +9,11 @@ import {
 } from "firebase/auth";
 import { auth } from "@/utils/firebase";
 
-type GoogleClientConfig = {
-  webClientId?: string;
-  iosClientId?: string;
-};
-
-const googleClientConfig: GoogleClientConfig = {
-  webClientId: Constants.expoConfig?.extra?.googleWebClientId,
-  iosClientId: Constants.expoConfig?.extra?.googleIosClientId,
-};
-
-const { webClientId, iosClientId } = googleClientConfig;
+const webClientId = Constants.expoConfig?.extra?.googleWebClientId;
+const iosClientId = Constants.expoConfig?.extra?.googleIosClientId;
 
 if (__DEV__) {
-  console.log("[firebaseAuth] Google client IDs", {
-    webClientId,
-    iosClientId,
-  });
+  console.log("[firebaseAuth] Google client IDs", { webClientId, iosClientId });
 }
 
 GoogleSignin.configure({
@@ -35,21 +23,21 @@ GoogleSignin.configure({
   forceCodeForRefreshToken: false,
 });
 
-function ensureGoogleConfig() {
-  if (!googleClientConfig.webClientId) {
+const assertClientConfig = () => {
+  if (!webClientId) {
     throw new Error(
-      "Missing Google web client ID. Set expo.extra.googleWebClientId in app.json."
+      "Missing googleWebClientId. Update expo.extra.googleWebClientId in app.json."
     );
   }
-  if (Platform.OS === "ios" && !googleClientConfig.iosClientId) {
+  if (Platform.OS === "ios" && !iosClientId) {
     throw new Error(
-      "Missing Google iOS client ID. Set expo.extra.googleIosClientId in app.json."
+      "Missing googleIosClientId. Update expo.extra.googleIosClientId in app.json."
     );
   }
-}
+};
 
 export async function signInWithGoogle(): Promise<UserCredential> {
-  ensureGoogleConfig();
+  assertClientConfig();
 
   if (Platform.OS === "android") {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -57,8 +45,7 @@ export async function signInWithGoogle(): Promise<UserCredential> {
 
   const userInfo = await GoogleSignin.signIn();
 
-  let idToken = userInfo.idToken;
-  let accessToken = userInfo.accessToken;
+  let { idToken, accessToken } = userInfo;
 
   if (!idToken) {
     try {
