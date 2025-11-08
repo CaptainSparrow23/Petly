@@ -135,12 +135,6 @@ export default function TimeTracker({
 
   return (
     <View style={{ width: 350, height: 350 }} {...panResponder.panHandlers}>
-      {centerContent ? (
-        <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
-          {centerContent}
-        </View>
-      ) : null}
-
       <Svg width={350} height={350} viewBox={`${-PAD} ${-PAD} ${350 + PAD * 2} ${350 + PAD * 2}`}>
         {/* background ring */}
         <Circle cx={center} cy={center} r={radius} stroke={trackBgColor} strokeWidth={25} fill="none" />
@@ -162,6 +156,12 @@ export default function TimeTracker({
         {/* handle */}
         <Circle cx={handleX} cy={handleY} r={20} fill={trackColor} stroke={trackColor} strokeWidth={3} />
       </Svg>
+
+      {centerContent ? (
+        <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+          {centerContent}
+        </View>
+      ) : null}
     </View>
   );
 }
