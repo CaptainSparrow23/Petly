@@ -15,7 +15,6 @@ import LottieView from "lottie-react-native";
 import ModePickerModal from "../../components/focus/ModePickerModal";
 import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
 import TimeTracker from "../../components/focus/TimeTracker";
-import { Animations } from "../../constants/animations";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import CoinBadge from "@/components/other/CoinBadge";
@@ -205,9 +204,9 @@ export default function IndexScreen() {
   const trackBgColor = isRest ? "#e9d5ff" : "#bfdbfe";
 
   const skyeSource = useMemo(() => {
-    if (!running) return Animations.skyeIdle;
-    return activity === "Study" ? Animations.skyeStudy : Animations.skyeRest;
-  }, [running, activity]);
+    if (!running) return "skye_idle";
+    return activity === "Study" ? "skye_idle" : "skye_idle";
+  }, [running, activity]); // Edit when rest and study animations are ready
 
   const infoText = useMemo(() => {
     if (!running)
@@ -322,7 +321,7 @@ export default function IndexScreen() {
           onDragStateChange={setDragging}
           centerContent={
             <View style={{ width: "130%", height: "130%" }} pointerEvents="none">
-              <LottieView source={skyeSource} autoPlay loop style={{ width: "100%", height: "100%" }} />
+
             </View>
           }
         />

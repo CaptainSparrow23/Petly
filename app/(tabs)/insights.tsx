@@ -5,29 +5,42 @@ import StreakCard from "@/components/insights/StreakCard";
 import GoalsCard from "@/components/insights/GoalsCard";
 import FocusChart from "@/components/insights/FocusChart";
 import { useGlobalContext } from "@/lib/GlobalProvider";
-import { useDailyStreak } from "@/hooks/useInsights";
+import { useInsights } from "@/hooks/useInsights";
 
 export default function FocusScreen() {
-  const { userProfile } = useGlobalContext();
+  const { userProfile, showBanner } = useGlobalContext();
   const userId = String(userProfile?.userId || "");
+  
+  // Get today's data from global profile
+  const todayMinutesFromProfile = userProfile?.timeActiveTodayMinutes ?? 0;
+  const minutesByHourFromProfile = userProfile?.minutesByHour ?? Array(24).fill(0);
 
   const {
     streak,
-    // individual loading flags (kept for logic only)
-    streakLoading,
-    insightsLoading,
-    weekLoading,
     today,
     week,
     sixWeeks,
+    currentWeekTotal,
+    dailyGoal,
+    weeklyGoal,
+    updateGoals,
+    anyLoading,
+  } = useInsights(userId, todayMinutesFromProfile, minutesByHourFromProfile);
 
-    // derived helpers
-    // pageLoading: show big loader until either route completes (today OR week)
-    // i.e., show only if BOTH are still loading
-    pageLoadingAll,
-  } = useDailyStreak(userId);
+  const handleUpdateGoals = async (daily: number, weekly: number) => {
+    try {
+      const result = await updateGoals(daily, weekly);
+      if (result) {
+        showBanner('Goals updated successfully!', 'success');
+      }
+      return result;
+    } catch (error) {
+      showBanner('Failed to update goals', 'error');
+      throw error;
+    }
+  };
 
-  const showBigLoader = pageLoadingAll; // change to `insightsLoading || weekLoading || streakLoading` if you want "until everything finishes"
+  const showBigLoader = anyLoading;
 
   return (
     <View className="bg-white flex-1">
@@ -43,7 +56,13 @@ export default function FocusScreen() {
             <StreakCard streak={streak} />
           </View>
 
-          <GoalsCard />
+          <GoalsCard 
+            todayTotalMinutes={todayMinutesFromProfile} 
+            currentWeekTotal={currentWeekTotal}
+            dailyGoal={dailyGoal}
+            weeklyGoal={weeklyGoal}
+            onUpdateGoals={handleUpdateGoals}
+          />
 
           <FocusChart
             data={{ today, week, sixWeeks }}

@@ -12,6 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.petly"
     },
+    "icon": "./assets/images/petly_icon.png",
     "android": {
       "package": "com.petly",
       "adaptiveIcon": {
@@ -30,7 +31,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash_icon.png",
+          "image": "./assets/images/cat_splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

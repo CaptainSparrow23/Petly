@@ -14,7 +14,8 @@ interface UserProfile {
     email: string | null;
     profileId: number | null;
     timeActiveToday: number; 
-    timeActiveTodayMinutes: number; 
+    timeActiveTodayMinutes: number;
+    minutesByHour: number[]; // 24-element array for hourly chart
     coins: number;
     ownedPets: string[];
     selectedPet: string | null;
@@ -63,6 +64,7 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                 setUserProfile({
                     ...profile,
                     timeActiveTodayMinutes,
+                    minutesByHour: Array.isArray(profile.minutesByHour) ? profile.minutesByHour : Array(24).fill(0),
                     coins: typeof profile.coins === "number" ? profile.coins : 0,
                     ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_skye"],
                 });
