@@ -67,7 +67,7 @@ export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
         </View>
 
         {/* Bottom section full-width different background */}
-        <View className="w-full bg-gray-100 px-4 py-4">
+        <View className="w-full bg-white px-4 py-4">
           <Text className="text-base font-bold text-black-300" numberOfLines={1}>
             {name}
           </Text>
