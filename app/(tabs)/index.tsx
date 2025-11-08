@@ -11,7 +11,7 @@ import {
   Easing,
 } from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
-import LottieView from "lottie-react-native";
+import Rive, { Fit } from "rive-react-native";
 import ModePickerModal from "../../components/focus/ModePickerModal";
 import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
 import TimeTracker from "../../components/focus/TimeTracker";
@@ -19,6 +19,7 @@ import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import CoinBadge from "@/components/other/CoinBadge";
 import { useSessionUploader } from "@/hooks/useFocus";
+import { getPetAnimation } from "@/constants/animations";
 
 export default function IndexScreen() {
   const [mode, setMode] = useState<"timer" | "countdown">("countdown");
@@ -203,10 +204,8 @@ export default function IndexScreen() {
   const trackColor = isRest ? "#8b5cf6" : "#3b82f6";
   const trackBgColor = isRest ? "#e9d5ff" : "#bfdbfe";
 
-  const skyeSource = useMemo(() => {
-    if (!running) return "skye_idle";
-    return activity === "Study" ? "skye_idle" : "skye_idle";
-  }, [running, activity]); // Edit when rest and study animations are ready
+  const idleAnimationSource = getPetAnimation(userProfile?.selectedPet, "idle");
+  const showIdleAnimation = !running && !!idleAnimationSource;
 
   const infoText = useMemo(() => {
     if (!running)
@@ -320,9 +319,11 @@ export default function IndexScreen() {
           onPreviewProgress={setPreviewP}
           onDragStateChange={setDragging}
           centerContent={
-            <View style={{ width: "130%", height: "130%" }} pointerEvents="none">
-
-            </View>
+            showIdleAnimation && idleAnimationSource ? (
+              <View style={{ width: "100%", height: "100%" }} className="items-center justify-center">
+                <Rive source={idleAnimationSource} style={{ width: "65%", height: "65%" }} fit={Fit.Contain} autoplay />
+              </View>
+            ) : null
           }
         />
 
@@ -369,7 +370,7 @@ export default function IndexScreen() {
 
         <TouchableOpacity
           onPress={handleStartStop}
-          className={`${!running ? "bg-black-300" : "bg-red-500"} w-72 items-center py-4 mb-3 mt-2 rounded-full`}
+          className={`${!running ? "bg-black-300" : "bg-red-500"} w-48 items-center py-4 mb-3 mt-2 rounded-full`}
         >
           <Text className="text-white text-2xl font-semibold">{!running ? "Start" : "Stop"}</Text>
         </TouchableOpacity>
