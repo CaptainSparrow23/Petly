@@ -1,5 +1,4 @@
 import images from "@/constants/images";
-import { login } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect } from "react";
@@ -14,15 +13,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { Banner } from "@/components/other/Banner";
+import { signInWithGoogle } from "@/lib/firebaseAuth";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 const SignIn = () => {
-  const { refetchUserProfile, loading, isLoggedIn, userProfile } = useGlobalContext();
+  const {
+    refetchUserProfile,
+    loading,
+    isLoggedIn,
+    authUser,
+  } = useGlobalContext();
   const { loggedOut } = useLocalSearchParams();
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [needsProfileSetup, setNeedsProfileSetup] = useState<boolean | null>(null);
   const [showBanner, setShowBanner] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   // Show banner if user just logged out
   useEffect(() => {
@@ -33,72 +39,85 @@ const SignIn = () => {
 
   // After login, check if user has username and redirect accordingly
   useEffect(() => {
+    if (!authUser) {
+      setNeedsProfileSetup(null);
+      return;
+    }
+
     const checkUserStatus = async () => {
-      // Only run this check if we're logged in AND don't have a status yet
-      if (isLoggedIn && userProfile?.userId && needsProfileSetup === null) {
-        setIsCheckingStatus(true);
-        try {
-          // Save user info to Firestore
-          console.log('💾 Saving user info to Firestore...');
-          await fetch(`${API_BASE_URL}/api/auth/save-user-info`, {
-            method: 'POST',
+      if (needsProfileSetup !== null || isCheckingStatus) return;
+
+      setIsCheckingStatus(true);
+      try {
+        console.log("💾 Saving user info to Firestore...");
+        await fetch(`${API_BASE_URL}/api/auth/save-user-info`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: authUser.uid,
+            email: authUser.email,
+            displayName: authUser.displayName,
+          }),
+        });
+
+        console.log(`🔍 Checking if user has username: ${authUser.uid}`);
+        const response = await fetch(
+          `${API_BASE_URL}/api/auth/check-user-status`,
+          {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              userId: userProfile.userId,
-              email: userProfile.email,
-              displayName: userProfile.displayName,
-            }),
-          });
-          
-          // Check if user has username set
-          console.log(`🔍 Checking if user has username: ${userProfile.userId}`);
-          const response = await fetch(
-            `${API_BASE_URL}/api/auth/check-user-status`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ userId: userProfile.userId }),
-            }
-          );
-          const data = await response.json();
-          
-          if (data.success) {
-            const needsSetup = data.data.needsProfileSetup;
-            console.log(`${needsSetup ? '🆕 User needs to set username' : '✅ User has username - profile complete'}`);
-            setNeedsProfileSetup(needsSetup);
-          } else {
-            console.log("⚠️ Status check failed, assuming needs setup");
-            setNeedsProfileSetup(true);
+            body: JSON.stringify({ userId: authUser.uid }),
           }
-        } catch (error) {
-          console.error("❌ Error checking user status:", error);
+        );
+        const data = await response.json();
+
+        if (data.success) {
+          const needsSetup = data.data.needsProfileSetup;
+          console.log(
+            `${
+              needsSetup
+                ? "🆕 User needs to set username"
+                : "✅ User has username - profile complete"
+            }`
+          );
+          setNeedsProfileSetup(needsSetup);
+          if (!needsSetup) {
+            await refetchUserProfile();
+          }
+        } else {
+          console.log("⚠️ Status check failed, assuming needs setup");
           setNeedsProfileSetup(true);
-        } finally {
-          setIsCheckingStatus(false);
         }
+      } catch (error) {
+        console.error("❌ Error checking user status:", error);
+        setNeedsProfileSetup(true);
+      } finally {
+        setIsCheckingStatus(false);
       }
     };
 
     checkUserStatus();
-  }, [isLoggedIn, userProfile?.userId, needsProfileSetup]);
+  }, [authUser, needsProfileSetup, isCheckingStatus, refetchUserProfile]);
 
   // Redirect logic - only after we've checked the status
-  if (!loading && isLoggedIn && needsProfileSetup !== null) {
+  if (!loading && authUser && needsProfileSetup !== null) {
     if (needsProfileSetup) {
       console.log("🔄 Redirecting to set-profile (user needs username)");
       return <Redirect href="/(auth)/set-profile" />;
     }
     
-    console.log("✅ Redirecting to main app (user has username)");
-    return <Redirect href={{ pathname: "/(tabs)", params: { loggedIn: "true" } }} />;
+    if (isLoggedIn) {
+      console.log("✅ Redirecting to main app (user has username)");
+      return <Redirect href={{ pathname: "/(tabs)", params: { loggedIn: "true" } }} />;
+    }
   }
 
   // Show loading while checking status
-  if (isCheckingStatus || (isLoggedIn && needsProfileSetup === null)) {
+  if (isCheckingStatus || (authUser && needsProfileSetup === null)) {
     return (
       <SafeAreaView className="bg-white h-full items-center justify-center">
         <ActivityIndicator size="large" color="#0066FF" />
@@ -110,12 +129,17 @@ const SignIn = () => {
   }
 
   const handleLogin = async () => {
-    const result = await login();
+    if (isSigningIn) return;
 
-    if (result) {
+    try {
+      setIsSigningIn(true);
+      await signInWithGoogle();
       await refetchUserProfile();
-    } else {
+    } catch (error) {
+      console.error("❌ Google Sign-In failed:", error);
       Alert.alert("Login failed", "Please try again");
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
@@ -146,10 +170,10 @@ const SignIn = () => {
           <TouchableOpacity
             className="bg-white shadow-md shadow-zinc-300 rounded-full w-full py-4 px-4 mt-10"
             onPress={handleLogin}
-            disabled={loading}
+            disabled={isSigningIn}
           >
             <View className="flex flex-row items-center justify-center">
-              {loading ? (
+              {isSigningIn ? (
                 <ActivityIndicator color="#000" />
               ) : (
                 <>

@@ -1,12 +1,13 @@
 {
   "expo": {
     "name": "Petly",
-    "slug": "Petly",
+    "slug": "petly",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "petly",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "icon": "./assets/images/petly_icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.petly"
@@ -38,6 +39,12 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.992118540403-mle506j12qb2feirctju62q5ra74qa8n"
+        }
       ]
     ],
     "experiments": {
@@ -45,7 +52,10 @@
       "reactCompiler": true
     },
     "extra": {
-      "backendUrl": "https://petly-backend-d2dg.onrender.com"
+      "backendUrl": "http://localhost:3000",
+      "googleWebClientId": "992118540403-l5kre9ulblv1i7uu5kmkhrbgvp470esv.apps.googleusercontent.com",
+      "googleIosClientId": "992118540403-mle506j12qb2feirctju62q5ra74qa8n.apps.googleusercontent.com",
+      "googleAndroidClientId": ""
     }
   }
 }

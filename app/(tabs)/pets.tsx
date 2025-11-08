@@ -92,7 +92,7 @@ const Profile = () => {
         resizeMode="cover"
       >
         <View className="flex-1 items-center justify-center mt-14">
-          //add rive file here
+          {/* TODO: add Rive file here */}
         </View>
       </ImageBackground>
 
