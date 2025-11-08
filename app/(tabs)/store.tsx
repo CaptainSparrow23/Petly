@@ -9,13 +9,14 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import Constants from "expo-constants";
-import { SheetManager } from "react-native-actions-sheet";
+import { ScrollView, SheetManager } from "react-native-actions-sheet";
 
 import Filters, { type SpeciesValue } from "@/components/store/Filters";
 import { Tile, PetTileItem } from "@/components/store/Tiles";
 import { useStoreCatalog } from "@/hooks/useStore";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import CoinBadge from "@/components/other/CoinBadge";
+import { Scroll } from "lucide-react-native";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
@@ -224,37 +225,39 @@ const Store = () => {
     <View className="flex-1 bg-white">
       <CoinBadge />
 
-      {/* header */}
-      <View className="bg-gray-100 pt-5 mt-3 pb-5 border-b border-gray-300">
-        <View className="px-6">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-2xl font-bold text-black-300">All Pets</Text>
-            <TouchableOpacity onPress={toggleSortOrder} activeOpacity={0.7}>
-              <Text className="text-sm font-rubik-medium text-gray-600">
-                {sortOrder === "asc" ? "Sort: A → Z" : "Sort: Z → A"}
-              </Text>
-            </TouchableOpacity>
+      <ScrollView
+      showsVerticalScrollIndicator={false}>
+        <View className="bg-white-100 pt-3 mt-3 ml-2">
+          <View className="px-6">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-2xl font-bold text-black-300">All Pets</Text>
+              <TouchableOpacity onPress={toggleSortOrder} activeOpacity={0.7}>
+                <Text className="text-sm font-rubik-medium text-gray-600">
+                  {sortOrder === "asc" ? "Sort: A → Z" : "Sort: Z → A"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <Text className="text-sm text-black-200 mt-1">
+              Browse every pet available in the store.
+            </Text>
           </View>
-          <Text className="text-sm text-black-200 mt-1">
-            Browse every pet available in the store.
-          </Text>
+          <View className="mt-3 mb-2">
+            <Filters
+              selectedSpecies={selectedSpecies}
+              onSpeciesChange={setSelectedSpecies}
+            />
+          </View>
         </View>
-        <View className="mt-3 mb-2">
-          <Filters
-            selectedSpecies={selectedSpecies}
-            onSpeciesChange={setSelectedSpecies}
-          />
-        </View>
-      </View>
 
-      {/* grid */}
-      <FlatList
-        className="mt-5"
-        data={visiblePets}
-        keyExtractor={keyExtractor}
-        renderItem={renderTile}
-        numColumns={2}
+        {/* grid */}
+        <FlatList
+          className="mt-5"
+          data={visiblePets}
+          keyExtractor={keyExtractor}
+          renderItem={renderTile}
+          numColumns={2}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={false}
         ListEmptyComponent={EmptyState}
         contentContainerStyle={{
           paddingHorizontal: HORIZONTAL_PADDING,
@@ -267,6 +270,7 @@ const Store = () => {
         }}
         ItemSeparatorComponent={() => <View style={{ height: VERTICAL_GAP }} />}
       />
+      </ScrollView>
     </View>
   );
 };
