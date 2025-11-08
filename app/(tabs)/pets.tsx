@@ -11,7 +11,6 @@ import {
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation } from 'expo-router';
 import images from '@/constants/images';
-import { Animations } from '@/constants/animations';
 import { useGlobalContext } from '@/lib/GlobalProvider';
 import LottieView from 'lottie-react-native';
 import { Star } from 'lucide-react-native';
@@ -83,7 +82,6 @@ const Profile = () => {
   }, [handleMenuPress, isSaving, navigation]);
 
   // Always show Skye animation since it's the only one we have
-  const animation = { source: Animations.skyeIdle, width: 380 };
 
   return (
     <View className="flex-1 bg-white">
@@ -94,12 +92,7 @@ const Profile = () => {
         resizeMode="cover"
       >
         <View className="flex-1 items-center justify-center mt-14">
-          <LottieView
-            source={animation.source}
-            autoPlay
-            loop
-            style={{ width: animation.width, aspectRatio: 1 }}
-          />
+          //add rive file here
         </View>
       </ImageBackground>
 
