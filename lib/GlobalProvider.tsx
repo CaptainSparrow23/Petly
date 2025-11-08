@@ -1,7 +1,9 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import { getCurrentUser, logout as appwriteLogout } from "./appwrite";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import Constants from "expo-constants";
 import { Banner } from "@/components/other/Banner";
+import { auth } from "@/utils/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { signOutFromFirebase } from "./firebaseAuth";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
@@ -22,6 +24,7 @@ type BannerType = "success" | "error" | "info" | "warning";
 
 interface GlobalContextType {
     isLoggedIn: boolean;
+    authUser: User | null;
     userProfile: UserProfile | null;
     loading: boolean;
     refetchUserProfile: () => Promise<void>;
@@ -33,23 +36,22 @@ interface GlobalContextType {
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
 const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
+    const [authUser, setAuthUser] = useState<User | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
-    const [isCheckingAuth, setIsCheckingAuth] = useState(false);
     const [bannerVisible, setBannerVisible] = useState(false);
     const [bannerMessage, setBannerMessage] = useState("");
     const [bannerType, setBannerType] = useState<BannerType>("info");
 
-    const fetchUserProfile = async () => {
+    const fetchUserProfile = useCallback(async (userId?: string) => {
         try {
-            const currentUser = await getCurrentUser();
-            if (!currentUser?.$id) {
+            const targetUserId = userId ?? auth.currentUser?.uid;
+            if (!targetUserId) {
                 setUserProfile(null);
-                setLoading(false);
                 return;
             }
 
-            const response = await fetch(`${API_BASE_URL}/api/get_user_profile/${currentUser.$id}`);
+            const response = await fetch(`${API_BASE_URL}/api/get_user_profile/${targetUserId}`);
             const data = await response.json();
 
             if (data.success) {
@@ -76,46 +78,51 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    //only used when we login
-    const refetchUserProfile = async () => {
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setAuthUser(user);
+            if (!user) {
+                setUserProfile(null);
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
+            fetchUserProfile(user.uid);
+        });
+
+        return unsubscribe;
+    }, [fetchUserProfile]);
+
+    const refetchUserProfile = useCallback(async () => {
         setLoading(true);
-        await fetchUserProfile();
-    };
+        await fetchUserProfile(authUser?.uid);
+    }, [authUser?.uid, fetchUserProfile]);
 
-    const updateUserProfile = (patch: Partial<UserProfile>) => {
+    const updateUserProfile = useCallback((patch: Partial<UserProfile>) => {
         setUserProfile((prev) =>
             prev ? { ...prev, ...patch } : prev
         );
-    };
-
-    useEffect(() => {
-        if (!isCheckingAuth) {
-            setIsCheckingAuth(true);
-            fetchUserProfile();
-        }
     }, []);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         try {
-            const success = await appwriteLogout();
-            if (success) {
-                setUserProfile(null);
-                return true;
-            }
-            return false;
+            await signOutFromFirebase();
+            setUserProfile(null);
+            setAuthUser(null);
+            return true;
         } catch (error) {
             console.error("Error during logout:", error);
             return false;
         }
-    };
+    }, []);
 
-    const showBanner = (message: string, type: BannerType = "info") => {
+    const showBanner = useCallback((message: string, type: BannerType = "info") => {
         setBannerMessage(message);
         setBannerType(type);
         setBannerVisible(true);
-    };
+    }, []);
 
     const isLoggedIn = !!userProfile;
 
@@ -123,6 +130,7 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         <GlobalContext.Provider
             value={{
                 isLoggedIn,
+                authUser,
                 userProfile,
                 loading,
                 refetchUserProfile,

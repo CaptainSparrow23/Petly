@@ -1,12 +1,13 @@
 {
   "expo": {
     "name": "Petly",
-    "slug": "Petly",
+    "slug": "petly",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "petly",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "icon": "./assets/images/petly_icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.petly"
@@ -29,7 +30,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash_icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -44,7 +45,10 @@
       "reactCompiler": true
     },
     "extra": {
-      "backendUrl": "http://localhost:3000"
+      "backendUrl": "http://localhost:3000",
+      "googleWebClientId": "992118540403-l5kre9ulblv1i7uu5kmkhrbgvp470esv.apps.googleusercontent.com",
+      "googleIosClientId": "992118540403-mle506j12qb2feirctju62q5ra74qa8n.apps.googleusercontent.com",
+      "googleAndroidClientId": ""
     }
   }
 }
