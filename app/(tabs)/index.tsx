@@ -321,7 +321,7 @@ export default function IndexScreen() {
           centerContent={
             showIdleAnimation && idleAnimationSource ? (
               <View style={{ width: "100%", height: "100%" }} className="items-center justify-center">
-                <Rive source={idleAnimationSource} style={{ width: "65%", height: "65%" }} fit={Fit.Contain} autoplay />
+                <Rive source={idleAnimationSource} style={{ width: "60%", height: "60%" }} fit={Fit.Contain} autoplay />
               </View>
             ) : null
           }
