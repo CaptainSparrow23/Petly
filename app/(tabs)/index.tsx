@@ -205,7 +205,29 @@ export default function IndexScreen() {
   const trackBgColor = isRest ? "#e9d5ff" : "#bfdbfe";
 
   const idleAnimationSource = getPetAnimation(userProfile?.selectedPet, "idle");
-  const showIdleAnimation = !running && !!idleAnimationSource;
+  const focusAnimationSource = getPetAnimation(userProfile?.selectedPet, "focus");
+
+  const idleAnimationView = idleAnimationSource ? (
+    <View style={{ width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>
+      <Rive source={idleAnimationSource} style={{ width: "60%", height: "60%" }} fit={Fit.Contain} autoplay />
+    </View>
+  ) : null;
+
+  const focusAnimationView = focusAnimationSource ? (
+    <View
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingLeft: 28,
+      }}
+    >
+      <Rive source={focusAnimationSource} style={{ width: "78%", height: "78%" }} fit={Fit.Contain} autoplay />
+    </View>
+  ) : null;
+
+  const restAnimationView = null; // ready for future rest animation
 
   const infoText = useMemo(() => {
     if (!running)
@@ -318,13 +340,7 @@ export default function IndexScreen() {
           trackBgColor={trackBgColor}
           onPreviewProgress={setPreviewP}
           onDragStateChange={setDragging}
-          centerContent={
-            showIdleAnimation && idleAnimationSource ? (
-              <View style={{ width: "100%", height: "100%" }} className="items-center justify-center">
-                <Rive source={idleAnimationSource} style={{ width: "65%", height: "65%" }} fit={Fit.Contain} autoplay />
-              </View>
-            ) : null
-          }
+          centerContent={running ? (isRest ? restAnimationView : focusAnimationView) : idleAnimationView}
         />
 
         <View className="items-center mt-2">
