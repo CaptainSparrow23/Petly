@@ -23,13 +23,14 @@ import { getPetAnimation } from "@/constants/animations";
 
 export default function IndexScreen() {
   const [mode, setMode] = useState<"timer" | "countdown">("countdown");
-  const [activity, setActivity] = useState<"Study" | "Rest">("Study");
+  const [activity, setActivity] = useState<"Focus" | "Rest">("Focus");
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const TWO_HOUR_SECONDS = 2 * 60 * 60;
   const INITIAL_COUNTDOWN_SECONDS = 20 * 60;
 
   const [running, setRunning] = useState(false);
+  const [fullscreenVisible, setFullscreenVisible] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(INITIAL_COUNTDOWN_SECONDS);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -63,24 +64,38 @@ export default function IndexScreen() {
     intervalRef.current = null;
   };
 
+  const FOCUS_TRANSITION_MS = 250;
+
   // Fullscreen controls what hides and what nudges
-  const isFullscreen = running;
+  const isFullscreen = fullscreenVisible;
 
   // Simple animation driver
   const focusAnim = useRef(new Animated.Value(0)).current;
   const topFade = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
   const topSlideY = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -24] });
   const contentTranslateY = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -60] });
+  const idleLayerOpacity = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+
+  useEffect(() => {
+    if (running) setFullscreenVisible(true);
+    else {
+      const id = setTimeout(() => setFullscreenVisible(false), FOCUS_TRANSITION_MS);
+      return () => clearTimeout(id);
+    }
+  }, [running]);
 
   useEffect(() => {
     navigation.setOptions?.({ headerShown: !isFullscreen });
+  }, [isFullscreen, navigation]);
+
+  useEffect(() => {
     Animated.timing(focusAnim, {
-      toValue: isFullscreen ? 1 : 0,
-      duration: 250,
+      toValue: running ? 1 : 0,
+      duration: FOCUS_TRANSITION_MS,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [isFullscreen, navigation, focusAnim]);
+  }, [running, focusAnim]);
 
   const fullyStopAndReset = async (
     reason?: "timer-max" | "countdown-zero" | "manual" | "app-closed"
@@ -223,18 +238,28 @@ export default function IndexScreen() {
         paddingLeft: 28,
       }}
     >
-      <Rive source={focusAnimationSource} style={{ width: "78%", height: "78%" }} fit={Fit.Contain} autoplay />
+      <Rive source={focusAnimationSource} style={{ width: "100%", height: "100%" }} fit={Fit.Contain} autoplay />
     </View>
   ) : null;
 
   const restAnimationView = null; // ready for future rest animation
+  const activeAnimationView = isRest ? restAnimationView : focusAnimationView;
+  const focusOverlay =
+    activeAnimationView ? (
+      <Animated.View
+        pointerEvents="none"
+        style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, opacity: focusAnim }}
+      >
+        {activeAnimationView}
+      </Animated.View>
+    ) : null;
 
   const infoText = useMemo(() => {
     if (!running)
       return `You have focused for ${userProfile?.timeActiveTodayMinutes} ${
         userProfile?.timeActiveTodayMinutes === 1 ? "minute" : "minutes"
       } today.`;
-    if (mode === "timer") return "Timer mode helps you track your study sessions.";
+    if (mode === "timer") return "Timer mode helps you track your focus sessions.";
     return "Countdown mode helps you stay disciplined with time.";
   }, [running, mode, userProfile?.timeActiveTodayMinutes]);
 
@@ -246,7 +271,7 @@ export default function IndexScreen() {
     setPickerOpen(true);
   };
 
-  const handleSelectActivity = (newActivity: "Study" | "Rest") => {
+  const handleSelectActivity = (newActivity: "Focus" | "Rest") => {
     if (running) {
       showBanner("End your session before changing activity.", "error");
       setPickerOpen(false);
@@ -332,18 +357,23 @@ export default function IndexScreen() {
           <Text className="text-m text-gray-800">{infoText}</Text>
         </View>
 
-        <TimeTracker
-          progress={progress}
-          onChange={handleTrackerChange}
-          disabled={running || mode === "timer"}
-          trackColor={trackColor}
-          trackBgColor={trackBgColor}
-          onPreviewProgress={setPreviewP}
-          onDragStateChange={setDragging}
-          centerContent={running ? (isRest ? restAnimationView : focusAnimationView) : idleAnimationView}
-        />
+        <View style={{ width: 350, height: 350 }} className="items-center justify-center">
+          {focusOverlay}
+          <Animated.View style={{ width: "100%", height: "100%", opacity: idleLayerOpacity }}>
+            <TimeTracker
+              progress={progress}
+              onChange={handleTrackerChange}
+              disabled={running || mode === "timer"}
+              trackColor={trackColor}
+              trackBgColor={trackBgColor}
+              onPreviewProgress={setPreviewP}
+              onDragStateChange={setDragging}
+              centerContent={idleAnimationView}
+            />
+          </Animated.View>
+        </View>
 
-        <View className="items-center mt-2">
+        <View className="items-center mt-6 -mb-6">
           <TouchableOpacity
             className={`flex-row items-center px-6 py-2 rounded-full bg-gray-200 ${running ? "opacity-60" : ""}`}
             onPress={handleOpenPicker}
@@ -351,7 +381,7 @@ export default function IndexScreen() {
           >
             <View
               className="w-3 h-3 rounded-full mr-2"
-              style={{ backgroundColor: activity === "Study" ? "#3b82f6" : "#8b5cf6" }}
+              style={{ backgroundColor: activity === "Focus" ? "#3b82f6" : "#8b5cf6" }}
             />
             <Text className="text-base font-medium text-gray-800">{activity}</Text>
           </TouchableOpacity>
@@ -386,7 +416,7 @@ export default function IndexScreen() {
 
         <TouchableOpacity
           onPress={handleStartStop}
-          className={`${!running ? "bg-black-300" : "bg-red-500"} w-48 items-center py-4 mb-3 mt-2 rounded-full`}
+          className={`${!running ? "bg-black-300" : "bg-yellow-400"} w-48 items-center py-4 mb-6 mt-2 rounded-full`}
         >
           <Text className="text-white text-2xl font-semibold">{!running ? "Start" : "Stop"}</Text>
         </TouchableOpacity>
