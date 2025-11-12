@@ -221,10 +221,11 @@ export default function IndexScreen() {
 
   const idleAnimationSource = getPetAnimation(userProfile?.selectedPet, "idle");
   const focusAnimationSource = getPetAnimation(userProfile?.selectedPet, "focus");
+  const restAnimationSource = getPetAnimation(userProfile?.selectedPet, "rest");
 
   const idleAnimationView = idleAnimationSource ? (
-    <View style={{ width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>
-      <Rive source={idleAnimationSource} style={{ width: "60%", height: "60%" }} fit={Fit.Contain} autoplay />
+    <View style={{ width: "100%", height: "100%", alignItems: "center", justifyContent: "center", paddingTop: 10 }}>
+      <Rive source={idleAnimationSource} style={{ width: "64%", height: "64%" }} fit={Fit.Contain} autoplay />
     </View>
   ) : null;
 
@@ -242,7 +243,19 @@ export default function IndexScreen() {
     </View>
   ) : null;
 
-  const restAnimationView = null; // ready for future rest animation
+  const restAnimationView = restAnimationSource ? (
+    <View
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingRight: 24,
+      }}
+    >
+      <Rive source={restAnimationSource} style={{ width: "100%", height: "100%" }} fit={Fit.Contain} autoplay />
+    </View>
+  ) : null;
   const activeAnimationView = isRest ? restAnimationView : focusAnimationView;
   const focusOverlay =
     activeAnimationView ? (
