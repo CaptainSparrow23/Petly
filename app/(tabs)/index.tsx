@@ -30,7 +30,6 @@ export default function IndexScreen() {
   const INITIAL_COUNTDOWN_SECONDS = 20 * 60;
 
   const [running, setRunning] = useState(false);
-  const [fullscreenVisible, setFullscreenVisible] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(INITIAL_COUNTDOWN_SECONDS);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -64,38 +63,61 @@ export default function IndexScreen() {
     intervalRef.current = null;
   };
 
-  const FOCUS_TRANSITION_MS = 250;
-
   // Fullscreen controls what hides and what nudges
-  const isFullscreen = fullscreenVisible;
+  const isFullscreen = running;
 
   // Simple animation driver
   const focusAnim = useRef(new Animated.Value(0)).current;
   const topFade = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
   const topSlideY = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -24] });
   const contentTranslateY = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -60] });
-  const idleLayerOpacity = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
-
-  useEffect(() => {
-    if (running) setFullscreenVisible(true);
-    else {
-      const id = setTimeout(() => setFullscreenVisible(false), FOCUS_TRANSITION_MS);
-      return () => clearTimeout(id);
-    }
-  }, [running]);
+  const idleTrackerOpacity = useRef(new Animated.Value(1)).current;
+  const activeTrackerOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     navigation.setOptions?.({ headerShown: !isFullscreen });
-  }, [isFullscreen, navigation]);
-
-  useEffect(() => {
     Animated.timing(focusAnim, {
-      toValue: running ? 1 : 0,
-      duration: FOCUS_TRANSITION_MS,
+      toValue: isFullscreen ? 1 : 0,
+      duration: 250,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [running, focusAnim]);
+  }, [isFullscreen, navigation, focusAnim]);
+
+  useEffect(() => {
+    const duration = 200;
+    const first = running
+      ? Animated.timing(idleTrackerOpacity, {
+          toValue: 0,
+          duration,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        })
+      : Animated.timing(activeTrackerOpacity, {
+          toValue: 0,
+          duration,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        });
+    const second = running
+      ? Animated.timing(activeTrackerOpacity, {
+          toValue: 1,
+          duration,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        })
+      : Animated.timing(idleTrackerOpacity, {
+          toValue: 1,
+          duration,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        });
+    first.start(() => second.start());
+    return () => {
+      first.stop();
+      second.stop();
+    };
+  }, [running, idleTrackerOpacity, activeTrackerOpacity]);
 
   const fullyStopAndReset = async (
     reason?: "timer-max" | "countdown-zero" | "manual" | "app-closed"
@@ -225,7 +247,7 @@ export default function IndexScreen() {
 
   const idleAnimationView = idleAnimationSource ? (
     <View style={{ width: "100%", height: "100%", alignItems: "center", justifyContent: "center", paddingTop: 10 }}>
-      <Rive source={idleAnimationSource} style={{ width: "64%", height: "64%" }} fit={Fit.Contain} autoplay />
+      <Rive source={idleAnimationSource} style={{ width: "60%", height: "60%" }} fit={Fit.Contain} autoplay />
     </View>
   ) : null;
 
@@ -250,18 +272,19 @@ export default function IndexScreen() {
         height: "100%",
         alignItems: "center",
         justifyContent: "center",
-        paddingRight: 24,
+        marginTop: 10,
+        marginLeft: 10,
       }}
     >
-      <Rive source={restAnimationSource} style={{ width: "100%", height: "100%" }} fit={Fit.Contain} autoplay />
+      <Rive source={restAnimationSource} style={{ width: "120%", height: "120%" }} fit={Fit.Contain} autoplay />
     </View>
   ) : null;
   const activeAnimationView = isRest ? restAnimationView : focusAnimationView;
-  const focusOverlay =
+  const activeAnimationLayer =
     activeAnimationView ? (
       <Animated.View
         pointerEvents="none"
-        style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, opacity: focusAnim }}
+        style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, opacity: activeTrackerOpacity }}
       >
         {activeAnimationView}
       </Animated.View>
@@ -270,11 +293,11 @@ export default function IndexScreen() {
   const infoText = useMemo(() => {
     if (!running)
       return `You have focused for ${userProfile?.timeActiveTodayMinutes} ${
-        userProfile?.timeActiveTodayMinutes === 1 ? "minute" : "minutes"
+        userProfile?.timeActiveTodayMinutes === 1 ? "min" : "mins"
       } today.`;
-    if (mode === "timer") return "Timer mode helps you track your focus sessions.";
-    return "Countdown mode helps you stay disciplined with time.";
-  }, [running, mode, userProfile?.timeActiveTodayMinutes]);
+    if (activity === "Focus") return "Work hard and stay focused!";
+    return "Getting some rest...";
+  }, [running, activity, userProfile?.timeActiveTodayMinutes]);
 
   const handleOpenPicker = () => {
     if (running) {
@@ -367,12 +390,12 @@ export default function IndexScreen() {
         className="items-center justify-end pb-8"
       >
         <View className="mb-[12%]">
-          <Text className="text-m text-gray-800">{infoText}</Text>
+          <Text className="text-lg">{infoText}</Text>
         </View>
 
         <View style={{ width: 350, height: 350 }} className="items-center justify-center">
-          {focusOverlay}
-          <Animated.View style={{ width: "100%", height: "100%", opacity: idleLayerOpacity }}>
+          {activeAnimationLayer}
+          <Animated.View style={{ width: "100%", height: "100%", opacity: idleTrackerOpacity }}>
             <TimeTracker
               progress={progress}
               onChange={handleTrackerChange}
