@@ -137,14 +137,14 @@ export default function TimeTracker({
     <View style={{ width: 350, height: 350 }} {...panResponder.panHandlers}>
       <Svg width={350} height={350} viewBox={`${-PAD} ${-PAD} ${350 + PAD * 2} ${350 + PAD * 2}`}>
         {/* background ring */}
-        <Circle cx={center} cy={center} r={radius} stroke={trackBgColor} strokeWidth={25} fill="none" />
+        <Circle cx={center} cy={center} r={radius} stroke={trackBgColor} strokeWidth={20} fill="none" />
         {/* progress arc */}
         <Circle
           cx={center}
           cy={center}
           r={radius}
           stroke={trackColor}
-          strokeWidth={25}
+          strokeWidth={20}
           fill="none"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
