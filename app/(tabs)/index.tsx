@@ -11,10 +11,10 @@ import {
   Easing,
 } from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
-import Rive, { Fit } from "rive-react-native";
 import ModePickerModal from "../../components/focus/ModePickerModal";
 import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
 import TimeTracker from "../../components/focus/TimeTracker";
+import PetAnimation from "../../components/focus/PetAnimation";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import CoinBadge from "@/components/other/CoinBadge";
@@ -84,39 +84,25 @@ export default function IndexScreen() {
     }).start();
   }, [isFullscreen, navigation, focusAnim]);
 
+
   useEffect(() => {
     const duration = 200;
-    const first = running
-      ? Animated.timing(idleTrackerOpacity, {
-          toValue: 0,
-          duration,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        })
-      : Animated.timing(activeTrackerOpacity, {
-          toValue: 0,
-          duration,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        });
-    const second = running
-      ? Animated.timing(activeTrackerOpacity, {
-          toValue: 1,
-          duration,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        })
-      : Animated.timing(idleTrackerOpacity, {
-          toValue: 1,
-          duration,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        });
-    first.start(() => second.start());
-    return () => {
-      first.stop();
-      second.stop();
-    };
+    const animation = Animated.parallel([
+      Animated.timing(idleTrackerOpacity, {
+        toValue: running ? 0 : 1,
+        duration,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(activeTrackerOpacity, {
+        toValue: running ? 1 : 0,
+        duration,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]);
+    animation.start();
+    return () => animation.stop();
   }, [running, idleTrackerOpacity, activeTrackerOpacity]);
 
   const fullyStopAndReset = async (
@@ -222,6 +208,12 @@ export default function IndexScreen() {
       setLastCountdownTargetSec(next);
     }
   };
+  const handleDragStateChange = (dragState: boolean) => {
+    setDragging(dragState);
+  };
+  const handlePreviewProgress = (p: number) => {
+    setPreviewP(p);
+  };
 
   const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
   const displaySeconds = useMemo(() => {
@@ -245,40 +237,26 @@ export default function IndexScreen() {
   const focusAnimationSource = getPetAnimation(userProfile?.selectedPet, "focus");
   const restAnimationSource = getPetAnimation(userProfile?.selectedPet, "rest");
 
-  const idleAnimationView = idleAnimationSource ? (
-    <View style={{ width: "100%", height: "100%", alignItems: "center", justifyContent: "center", paddingTop: 10 }}>
-      <Rive source={idleAnimationSource} style={{ width: "60%", height: "60%" }} fit={Fit.Contain} autoplay />
-    </View>
-  ) : null;
+  const idleAnimationView = (
+    <PetAnimation
+      source={idleAnimationSource}
+      containerStyle={{ marginTop: 50 }}
+      animationStyle={{ width: "105%", height: "105%" }}
+    />
+  );
 
-  const focusAnimationView = focusAnimationSource ? (
-    <View
-      style={{
-        width: "100%",
-        height: "100%",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingLeft: 28,
-      }}
-    >
-      <Rive source={focusAnimationSource} style={{ width: "100%", height: "100%" }} fit={Fit.Contain} autoplay />
-    </View>
-  ) : null;
+  const focusAnimationView = (
+    <PetAnimation source={focusAnimationSource} containerStyle={{ paddingLeft: 28 }} />
+  );
 
-  const restAnimationView = restAnimationSource ? (
-    <View
-      style={{
-        width: "100%",
-        height: "100%",
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: 10,
-        marginLeft: 10,
-      }}
-    >
-      <Rive source={restAnimationSource} style={{ width: "120%", height: "120%" }} fit={Fit.Contain} autoplay />
-    </View>
-  ) : null;
+  const restAnimationView = (
+    <PetAnimation
+      source={restAnimationSource}
+      containerStyle={{ marginTop: 10, marginLeft: 10 }}
+      animationStyle={{ width: "120%", height: "120%" }}
+    />
+  );
+
   const activeAnimationView = isRest ? restAnimationView : focusAnimationView;
   const activeAnimationLayer =
     activeAnimationView ? (
@@ -402,8 +380,8 @@ export default function IndexScreen() {
               disabled={running || mode === "timer"}
               trackColor={trackColor}
               trackBgColor={trackBgColor}
-              onPreviewProgress={setPreviewP}
-              onDragStateChange={setDragging}
+              onPreviewProgress={handlePreviewProgress}
+              onDragStateChange={handleDragStateChange}
               centerContent={idleAnimationView}
             />
           </Animated.View>
