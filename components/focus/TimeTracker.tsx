@@ -11,6 +11,7 @@ interface TimeTrackerProps {
   centerContent?: React.ReactNode; 
   onPreviewProgress?: (progress: number) => void;    
   onDragStateChange?: (dragging: boolean) => void;   
+  showHandle?: boolean;
 }
 
 export default function TimeTracker({
@@ -22,6 +23,7 @@ export default function TimeTracker({
   centerContent,
   onPreviewProgress,
   onDragStateChange,
+  showHandle = true,
 }: TimeTrackerProps) {
   const [angle, setAngle] = useState(progress * 360);
   const prevAngleRef = useRef(angle);
@@ -154,7 +156,9 @@ export default function TimeTracker({
           originY={center}
         />
         {/* handle */}
-        <Circle cx={handleX} cy={handleY} r={20} fill={trackColor} stroke={trackColor} strokeWidth={3} />
+        {showHandle ? (
+          <Circle cx={handleX} cy={handleY} r={20} fill={trackColor} stroke={trackColor} strokeWidth={3} />
+        ) : null}
       </Svg>
 
       {centerContent ? (

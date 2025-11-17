@@ -91,7 +91,7 @@ const Profile = () => {
       <ImageBackground source={images.roomBackGround} style={{ flex: 3 }} resizeMode="cover">
         <View className="flex-1 items-center justify-center mt-40 mr-2">
           {showSkyeAnimation && skyeIdleAnimation ? (
-            <Rive source={skyeIdleAnimation} style={{ width: '80%', height: '80%' }} fit={Fit.Contain} autoplay />
+            <Rive source={skyeIdleAnimation} style={{ width: '120%', height: '120%' }} fit={Fit.Contain} autoplay />
           ) : (
             <Image source={images.skyeHead} className="w-48 h-48" resizeMode="contain" />
           )}

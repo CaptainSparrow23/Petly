@@ -1,7 +1,8 @@
 // hooks/useSessionUploader.ts
+// Responsible solely for POSTing finished sessions to the backend and guarding against duplicate uploads.
 import { useCallback, useRef, useState } from "react";
 
-export type SessionActivity = "Study" | "Rest";
+export type SessionActivity = "Focus" | "Rest";
 
 export interface SessionPayload {
   userId: string;
@@ -13,6 +14,10 @@ export interface SessionPayload {
 const API_BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:4000";
 
+/**
+ * Small helper hook that uploads a single focus/rest session and prevents accidental duplicate requests
+ * (for example if fullyStopAndReset fires twice). Returns upload + pending flag.
+ */
 export function useSessionUploader() {
   const [pending, setPending] = useState(false);
   const inflightKey = useRef<string | null>(null);

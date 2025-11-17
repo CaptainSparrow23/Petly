@@ -21,7 +21,13 @@ import CoinBadge from "@/components/other/CoinBadge";
 import { useSessionUploader } from "@/hooks/useFocus";
 import { getPetAnimation } from "@/constants/animations";
 
+/**
+ * Focus & Rest dashboard. Handles timer/countdown modes, session tracking, and
+ * UI transitions into fullscreen when a focus session is running. All timer math,
+ * upload logic, and feedback banners live here.
+ */
 export default function IndexScreen() {
+  // UI mode/timer state
   const [mode, setMode] = useState<"timer" | "countdown">("countdown");
   const [activity, setActivity] = useState<"Focus" | "Rest">("Focus");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -37,15 +43,17 @@ export default function IndexScreen() {
   const [lastCountdownTargetSec, setLastCountdownTargetSec] = useState(INITIAL_COUNTDOWN_SECONDS);
 
   const { loggedIn } = useLocalSearchParams();
-  const { showBanner, userProfile } = useGlobalContext();
+  const { showBanner, userProfile, refetchUserProfile } = useGlobalContext();
   const navigation = useNavigation();
 
+  // Tracker drag state for previewing countdown adjustments
   const [dragging, setDragging] = useState(false);
   const [previewP, setPreviewP] = useState<number | null>(null);
 
   const { upload } = useSessionUploader();
   const sessionStartMsRef = useRef<number | null>(null);
 
+  // We keep pointer refs so uploads always use the last persisted time
   const lastLeftRef = useRef(secondsLeft);
   const lastElapsedRef = useRef(secondsElapsed);
   useEffect(() => { lastLeftRef.current = secondsLeft; }, [secondsLeft]);
@@ -86,7 +94,7 @@ export default function IndexScreen() {
 
 
   useEffect(() => {
-    const duration = 200;
+    const duration = 300;
     const animation = Animated.parallel([
       Animated.timing(idleTrackerOpacity, {
         toValue: running ? 0 : 1,
@@ -105,6 +113,10 @@ export default function IndexScreen() {
     return () => animation.stop();
   }, [running, idleTrackerOpacity, activeTrackerOpacity]);
 
+  /**
+   * Stops a session, posts it to the backend, and resets the UI.
+   * Handles all exit reasons (timer done, manual stop, background, etc.).
+   */
   const fullyStopAndReset = async (
     reason?: "timer-max" | "countdown-zero" | "manual" | "app-closed"
   ) => {
@@ -121,7 +133,9 @@ export default function IndexScreen() {
         activity,
         startTs: new Date(startMs).toISOString(),
         durationSec: Math.floor(elapsedSec),
-      }).catch(() => {});
+      })
+        .then(() => refetchUserProfile().catch(() => {}))
+        .catch(() => {});
     }
 
     clearTicker();
@@ -136,6 +150,9 @@ export default function IndexScreen() {
     else if (reason === "app-closed") showBanner("Session saved on app close.", "info");
   };
 
+  /**
+   * Ensures a session can only start with a valid countdown value.
+   */
   const handleStart = () => {
     if (mode === "countdown" && secondsLeft <= 0) {
       showBanner("Set a countdown above 0:00 to start.", "warning");
@@ -145,12 +162,15 @@ export default function IndexScreen() {
     if (!sessionStartMsRef.current) sessionStartMsRef.current = Date.now();
   };
 
+  /**
+   * Central start/stop handler, wired to both Start button and confirmation modals.
+   */
   const handleStartStop = () => {
     if (running) setStopModalOpen(true);
     else handleStart();
   };
 
-  // ticker
+  // Main timer ticker: updates either the countdown or stopwatch every second
   useEffect(() => {
     clearTicker();
     if (!running) return;
@@ -179,7 +199,7 @@ export default function IndexScreen() {
     return clearTicker;
   }, [running, mode, lastCountdownTargetSec]);
 
-  // mode switch reset
+  // Whenever timer vs countdown switches, stop everything and reset displayed time
   useEffect(() => {
     clearTicker();
     setRunning(false);
@@ -187,7 +207,7 @@ export default function IndexScreen() {
     else setSecondsElapsed(0);
   }, [mode, lastCountdownTargetSec]);
 
-  // background stop/upload
+  // If the app backgrounds during a run, we automatically close and upload the session
   useEffect(() => {
     const onState = (s: AppStateStatus) => {
       if (running && (s === "background" || s === "inactive")) {
@@ -198,7 +218,7 @@ export default function IndexScreen() {
     return () => sub.remove();
   }, [running]);
 
-  // tracker interaction
+  // Countdown scrubber helpers
   const handleTrackerChange = (p: number) => {
     if (!running && mode === "countdown") {
       const SNAP_S = 300;
@@ -215,6 +235,7 @@ export default function IndexScreen() {
     setPreviewP(p);
   };
 
+  // Derived display values for the digital clock
   const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
   const displaySeconds = useMemo(() => {
     if (dragging && previewP != null) {
@@ -240,8 +261,8 @@ export default function IndexScreen() {
   const idleAnimationView = (
     <PetAnimation
       source={idleAnimationSource}
-      containerStyle={{ marginTop: 50 }}
-      animationStyle={{ width: "105%", height: "105%" }}
+      containerStyle={{ marginTop: 20 }}
+      animationStyle={{ width: "230%", height: "230%" }}
     />
   );
 
@@ -377,7 +398,8 @@ export default function IndexScreen() {
             <TimeTracker
               progress={progress}
               onChange={handleTrackerChange}
-              disabled={running || mode === "timer"}
+          disabled={running || mode === "timer"}
+          showHandle={mode === "countdown"}
               trackColor={trackColor}
               trackBgColor={trackBgColor}
               onPreviewProgress={handlePreviewProgress}
