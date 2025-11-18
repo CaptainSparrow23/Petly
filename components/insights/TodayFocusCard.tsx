@@ -40,9 +40,9 @@ export default function TodayFocusCard() {
     <View className="w-[65%] relative rounded-2xl border border-gray-200 bg-gray-50 p-3">
       <Text className="text-m text-gray-700">Today's Focus</Text>
       {totalSeconds > 0 ? (
-          <Text className="absolute bottom-2 right-3 text-3xl font-semibold text-blue-600">{durationLabel}</Text>
+          <Text className="absolute bottom-2 right-3 text-3xl font-semibold text-black-300">{durationLabel}</Text>
       ) : (
-          <Text className="absolute bottom-2 right-3 text-3xl font-semibold text-blue-600">0 mins 0 secs</Text>
+          <Text className="absolute bottom-2 right-3 text-3xl font-semibold text-black-300">0 mins 0 secs</Text>
       )}
     </View>
   );

@@ -42,7 +42,7 @@ type GoalsResponse = {
 };
 
 const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:4000";
+  process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://petly-gsxb.onrender.com";
 const LONDON_TZ = "Europe/London";
 
 export function useInsights(

@@ -77,7 +77,7 @@ export default function GoalsCard({
         <View className="flex-row justify-between">
           <Text className="text-m text-gray-700">Goals</Text>
           <TouchableOpacity onPress={handleEditPress}>
-            <Text className="text-sm p-2 bg-white border border-gray-200 rounded-xl" style={{ color: '#3B82F6' }}>
+            <Text className="text-sm p-2 bg-white border border-gray-200 text-black-300 rounded-xl">
               Edit Goals
             </Text>
           </TouchableOpacity>
@@ -89,9 +89,9 @@ export default function GoalsCard({
             <Text className="text-sm text-gray-600">{dailyGoal} mins</Text>
           </View>
           <View className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
-            <View className="h-full rounded-full" style={{ width: `${dailyProgress}%`, backgroundColor: '#3B82F6' }} />
+            <View className="h-full rounded-full" style={{ width: `${dailyProgress}%`, backgroundColor: '#191d31' }} />
           </View>
-          <Text className="mt-2 text-xs text-gray-500">{dailyProgress}% complete</Text>
+          <Text className="mt-2 text-xs text-gray-600">{dailyProgress}% complete</Text>
         </View>
 
         <View className="mt-5">
@@ -100,9 +100,9 @@ export default function GoalsCard({
             <Text className="text-sm text-gray-600">{weeklyGoal} mins</Text>
           </View>
           <View className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
-            <View className="h-full rounded-full" style={{ width: `${weeklyProgress}%`, backgroundColor: '#3B82F6' }} />
+            <View className="h-full rounded-full" style={{ width: `${weeklyProgress}%`, backgroundColor: '#191d31' }} />
           </View>
-          <Text className="mt-2 text-xs text-gray-500">{weeklyProgress}% complete</Text>
+          <Text className="mt-2 text-xs text-gray-600">{weeklyProgress}% complete</Text>
         </View>
       </View>
 
@@ -160,7 +160,7 @@ export default function GoalsCard({
 
               <TouchableOpacity
                 className="flex-1 rounded-xl py-3 items-center"
-                style={{ backgroundColor: '#3B82F6' }}
+                style={{ backgroundColor: '#191d31' }}
                 onPress={handleSave}
                 disabled={saving}
               >
