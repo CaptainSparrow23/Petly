@@ -87,7 +87,8 @@ const Profile = () => {
   const skyeIdleAnimation = showSkyeAnimation ? getPetAnimation('pet_skye', 'idle') : undefined;
 
   return (
-    <View className="flex-1 mt-6 bg-gray-500">
+    <View className="flex-1 bg-white">
+    <View className="flex-1 mt-3 bg-gray-500">
       <ImageBackground source={images.roomBackGround} style={{ flex: 3 }} resizeMode="cover">
         <View className="flex-1 items-center justify-center mt-40 mr-2">
           {showSkyeAnimation && skyeIdleAnimation ? (
@@ -148,6 +149,7 @@ const Profile = () => {
           />
         </View>
     </View>
+  </View>
   );
 };
 

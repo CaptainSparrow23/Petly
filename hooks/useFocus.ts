@@ -12,7 +12,9 @@ export interface SessionPayload {
 }
 
 const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:4000";
+  process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://petly-gsxb.onrender.com";
+
+console.log("[useSessionUploader] API_BASE:", API_BASE);
 
 /**
  * Small helper hook that uploads a single focus/rest session and prevents accidental duplicate requests
@@ -27,6 +29,8 @@ export function useSessionUploader() {
     if (inflightKey.current === key) return;
     inflightKey.current = key;
 
+    console.log('[useSessionUploader] Posting session to', `${API_BASE}/api/post_focus_session`, payload);
+
     setPending(true);
     try {
       const res = await fetch(`${API_BASE}/api/post_focus_session`, {
@@ -36,6 +40,7 @@ export function useSessionUploader() {
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
+        console.error('Upload failed', res.status, text);
         throw new Error(`Upload failed (${res.status}): ${text || res.statusText}`);
       }
     } finally {

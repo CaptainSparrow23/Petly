@@ -134,8 +134,17 @@ export default function IndexScreen() {
         startTs: new Date(startMs).toISOString(),
         durationSec: Math.floor(elapsedSec),
       })
-        .then(() => refetchUserProfile().catch(() => {}))
-        .catch(() => {});
+        .then(async () => {
+          console.log("✅ Session uploaded successfully, refetching profile...");
+          // Add a small delay to ensure backend has processed the data
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await refetchUserProfile().catch((err) => {
+            console.error("❌ Failed to refetch profile:", err);
+          });
+        })
+        .catch((err) => {
+          console.error("❌ Failed to upload session:", err);
+        });
     }
 
     clearTicker();
@@ -452,9 +461,9 @@ export default function IndexScreen() {
 
         <TouchableOpacity
           onPress={handleStartStop}
-          className={`${!running ? "bg-black-300" : "bg-yellow-400"} w-48 items-center py-4 mb-6 mt-2 rounded-full`}
+          className={`${!running ? "bg-black-300" : "bg-yellow-400"} w-40 items-center py-3 mb-4 mt-2 rounded-full`}
         >
-          <Text className="text-white text-2xl font-semibold">{!running ? "Start" : "Stop"}</Text>
+          <Text className="text-white text-xl font-semibold">{!running ? "Start" : "Stop"}</Text>
         </TouchableOpacity>
       </Animated.View>
 

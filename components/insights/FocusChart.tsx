@@ -85,7 +85,7 @@ export default function FocusChart({
         <Text className="text-m text-gray-900">{title}</Text>
         <View className="relative">
           <TouchableOpacity className="rounded-xl p-2 bg-white border border-gray-200" onPress={() => setMenuOpen((p) => !p)} activeOpacity={0.85}>
-            <Text className="text-sm font-rubik-medium text-blue-500">{RANGE_LABELS[range]}</Text>
+            <Text className="text-sm font-rubik-medium text-black-300">{RANGE_LABELS[range]}</Text>
           </TouchableOpacity>
           {menuOpen && (
             <View
@@ -97,11 +97,11 @@ export default function FocusChart({
                     setRange(val);
                     setMenuOpen(false);
                   }}
-                  className={`px-3 py-2 ${range === val ? "bg-blue-100" : ""}`}
+                  className={`px-3 py-2 ${range === val ? "bg-black-300" : ""}`}
                 >
                   <Text
                     className={`text-xs font-rubik-medium ${
-                      range === val ? "text-blue-600" : "text-slate-900"
+                      range === val ? "text-black-300" : "text-slate-900"
                     }`}
                   >
                     {RANGE_LABELS[val]}
@@ -155,7 +155,7 @@ export default function FocusChart({
               labelComponent={<VictoryLabel dy={-2} style={{ fill: "#64748b", fontSize: 11, fontFamily: "Rubik-Medium" }} />}
               style={{
                 data: {
-                  fill: ({ datum }: any) => (datum.actualMinutes > 0 ? "#3B82F6" : "#e5e7eb"),
+                  fill: ({ datum }: any) => (datum.actualMinutes > 0 ? "#191d31" : "#e5e7eb"),
                 },
               }}
             />

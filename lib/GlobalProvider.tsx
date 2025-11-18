@@ -6,6 +6,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { signOutFromFirebase } from "./firebaseAuth";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
+console.log("[GlobalProvider] API_BASE_URL:", API_BASE_URL);
 
 interface UserProfile {
     userId: string;
@@ -48,30 +49,47 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             const targetUserId = userId ?? auth.currentUser?.uid;
             if (!targetUserId) {
+                console.warn("⚠️ No user ID available for profile fetch");
                 setUserProfile(null);
+                setLoading(false);
                 return;
             }
 
-            const response = await fetch(`${API_BASE_URL}/api/get_user_profile/${targetUserId}`);
-            const data = await response.json();
+            // Get user's timezone
+            const tzOffset = new Date().getTimezoneOffset();
+            const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London';
+            
+            console.log(`📍 Fetching profile for user: ${targetUserId}, TZ: ${tzName} (offset: ${tzOffset})`);
+            const response = await fetch(`${API_BASE_URL}/api/get_user_profile/${targetUserId}?tz=${encodeURIComponent(tzName)}`);
+            
+            if (!response.ok) {
+                console.error(`❌ HTTP Error: ${response.status}`);
+                setUserProfile(null);
+                setLoading(false);
+                return;
+            }
 
-            if (data.success) {
+            const data = await response.json();
+            console.log("📦 Backend response:", data);
+
+            if (data.success && data.data) {
                 const profile = data.data as UserProfile;
 
-                // Compute minutes (rounded down)
+                // Compute minutes (rounded down) - note: backend returns timeActiveToday in SECONDS
                 const timeActiveTodayMinutes = Math.floor((profile.timeActiveToday ?? 0) / 60);
 
-                setUserProfile({
+                const updatedProfile = {
                     ...profile,
                     timeActiveTodayMinutes,
                     minutesByHour: Array.isArray(profile.minutesByHour) ? profile.minutesByHour : Array(24).fill(0),
                     coins: typeof profile.coins === "number" ? profile.coins : 0,
                     ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_skye"],
-                });
+                };
 
-                console.log("✅ User profile loaded:", profile);
+                setUserProfile(updatedProfile);
+                console.log("✅ User profile updated:", updatedProfile);
             } else {
-                console.warn("⚠️ Failed to load user profile:", data.error);
+                console.warn("⚠️ Failed to load user profile:", data.error || "No data returned");
                 setUserProfile(null);
             }
         } catch (error) {
@@ -98,9 +116,14 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
     }, [fetchUserProfile]);
 
     const refetchUserProfile = useCallback(async () => {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            console.warn("⚠️ No authenticated user for refetch");
+            return;
+        }
         setLoading(true);
-        await fetchUserProfile(authUser?.uid);
-    }, [authUser?.uid, fetchUserProfile]);
+        await fetchUserProfile(currentUser.uid);
+    }, [fetchUserProfile]);
 
     const updateUserProfile = useCallback((patch: Partial<UserProfile>) => {
         setUserProfile((prev) =>

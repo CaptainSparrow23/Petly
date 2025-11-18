@@ -37,7 +37,7 @@ const CustomDrawerContent = (props: any) => {
     <View style={{ flex: 1 }}>
       <DrawerContentScrollView {...props}>
         <TouchableOpacity
-          className="py-5 bg-primary-100 items-center"
+          className="py-5 bg-white items-center"
           onPress={() => router.replace('/(tabs)/settings')}
           activeOpacity={0.7}
         >
