@@ -1,5 +1,5 @@
-import React from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
 import TodayFocusCard from "@/components/insights/TodayFocusCard";
 import StreakCard from "@/components/insights/StreakCard";
 import GoalsCard from "@/components/insights/GoalsCard";
@@ -25,6 +25,9 @@ export default function FocusScreen() {
     weeklyGoal,
     updateGoals,
     anyLoading,
+    refreshStreak,
+    refreshWeek,
+    refreshGoals,
   } = useInsights(userId, todayMinutesFromProfile, minutesByHourFromProfile);
 
   const handleUpdateGoals = async (daily: number, weekly: number) => {
@@ -40,7 +43,23 @@ export default function FocusScreen() {
     }
   };
 
-  const showBigLoader = anyLoading;
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    if (!userId) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refreshStreak(),
+        refreshWeek(todayMinutesFromProfile),
+        refreshGoals(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [userId, refreshStreak, refreshWeek, refreshGoals, todayMinutesFromProfile]);
+
+  const showBigLoader = anyLoading && !refreshing;
 
   return (
     <View className="bg-white flex-1">
@@ -49,7 +68,13 @@ export default function FocusScreen() {
           <ActivityIndicator size="large" />
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} className="w-full px-6">
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          className="w-full px-6"
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        >
           <View className="mt-6 mb-4 flex-row gap-4">
             <TodayFocusCard />
             {/* StreakCard no longer handles loading; parent chooses when to show loader */}

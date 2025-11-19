@@ -43,7 +43,7 @@ export default function ModePickerModal({
                   : "bg-white border-gray-200"
               }`}
             >
-              <View className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: "#3b82f6" }} />
+              <View className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: "#2f5168" }} />
               <Text className="text-base font-medium">Focus</Text>
             </Pressable>
 
@@ -55,7 +55,7 @@ export default function ModePickerModal({
                   : "bg-white border-gray-200"
               }`}
             >
-              <View className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: "#8b5cf6" }} />
+              <View className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: "#7e85ff" }} />
               <Text className="text-base font-medium">Rest</Text>
             </Pressable>
           </View>

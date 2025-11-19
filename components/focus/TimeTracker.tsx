@@ -12,6 +12,7 @@ interface TimeTrackerProps {
   onPreviewProgress?: (progress: number) => void;    
   onDragStateChange?: (dragging: boolean) => void;   
   showHandle?: boolean;
+  centerFillColor?: string;
 }
 
 export default function TimeTracker({
@@ -24,6 +25,7 @@ export default function TimeTracker({
   onPreviewProgress,
   onDragStateChange,
   showHandle = true,
+  centerFillColor,
 }: TimeTrackerProps) {
   const [angle, setAngle] = useState(progress * 360);
   const prevAngleRef = useRef(angle);
@@ -41,6 +43,8 @@ export default function TimeTracker({
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - angle / 360);
   const PAD = 17; // padding in viewBox so stroke/handle never clip
+  const DEADZONE_INNER = radius - 30;
+  const DEADZONE_OUTER = radius + 30;
 
   // drag state refs
   const isDraggingRef = useRef(false);
@@ -63,6 +67,14 @@ export default function TimeTracker({
     return deg;
   };
 
+  const isTouchOnRing = (event: GestureResponderEvent) => {
+    const { locationX, locationY } = event.nativeEvent;
+    const dx = locationX - center;
+    const dy = locationY - center;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return dist >= DEADZONE_INNER && dist <= DEADZONE_OUTER;
+  };
+
   // update angle smoothly while dragging (no snap)
   const updateAngleSmooth = (newAngle: number) => {
     const prev = prevAngleRef.current;
@@ -79,8 +91,10 @@ export default function TimeTracker({
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => !disabled,
-        onMoveShouldSetPanResponder: () => !disabled,
+        onStartShouldSetPanResponder: (e) =>
+          !disabled && isTouchOnRing(e),
+        onMoveShouldSetPanResponder: (e) =>
+          !disabled && isTouchOnRing(e),
 
         // record touch; don't move handle yet
         onPanResponderGrant: (e) => {
@@ -138,6 +152,10 @@ export default function TimeTracker({
   return (
     <View style={{ width: 350, height: 350 }} {...panResponder.panHandlers}>
       <Svg width={350} height={350} viewBox={`${-PAD} ${-PAD} ${350 + PAD * 2} ${350 + PAD * 2}`}>
+        {/* center fill */}
+        {centerFillColor ? (
+          <Circle cx={center} cy={center} r={radius - 10} fill={centerFillColor} />
+        ) : null}
         {/* background ring */}
         <Circle cx={center} cy={center} r={radius} stroke={trackBgColor} strokeWidth={20} fill="none" />
         {/* progress arc */}

@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useGlobalContext } from "@/lib/GlobalProvider";
+import { auth } from "@/utils/firebase";
 import Constants from "expo-constants";
 import { Check } from "lucide-react-native";
 import images from "@/constants/images";
@@ -46,7 +47,8 @@ export default function SetProfile() {
       return;
     }
 
-    if (!userProfile?.userId) {
+    const uid = userProfile?.userId || auth.currentUser?.uid;
+    if (!uid) {
       Alert.alert("Error", "User not found. Please try again.");
       return;
     }
@@ -63,7 +65,7 @@ export default function SetProfile() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ 
-            userId: userProfile.userId,
+            userId: uid,
             username: username.trim(),
             profileId: selectedAvatar?.id || 1
           }),
@@ -142,6 +144,7 @@ export default function SetProfile() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={!isLoading}
+                  style={{ lineHeight: 0 }}
                 />
             </View>
 

@@ -89,17 +89,22 @@ const Profile = () => {
   return (
     <View className="flex-1 bg-white">
     <View className="flex-1 mt-3 bg-gray-500">
-      <ImageBackground source={images.roomBackGround} style={{ flex: 3 }} resizeMode="cover">
-        <View className="flex-1 items-center justify-center mt-40 mr-2">
+      <ImageBackground
+        source={images.roomBackGround}
+        style={{ flex: 6 }}
+        resizeMode="cover"
+        imageStyle={{ transform: [{ translateY: -100 }] }}
+      >
+        <View className="flex-1 items-center justify-center mt-64 mr-2">
           {showSkyeAnimation && skyeIdleAnimation ? (
-            <Rive source={skyeIdleAnimation} style={{ width: '120%', height: '120%' }} fit={Fit.Contain} autoplay />
+            <Rive source={skyeIdleAnimation} style={{ width: '160%', height: '160%' }} fit={Fit.Contain} autoplay />
           ) : (
             <Image source={images.skyeHead} className="w-48 h-48" resizeMode="contain" />
           )}
         </View>
         
-      </ImageBackground>
-      <View className="flex-1 rounded-t-3xl bg-white shadow-lg pt-5">
+     
+      <View className="flex-2 rounded-t-3xl bg-white shadow-lg pt-2 pb-32">
 
           <FlatList
             data={pets}
@@ -107,18 +112,18 @@ const Profile = () => {
             numColumns={2}
             showsVerticalScrollIndicator={false}
             scrollEnabled={false}
-            contentContainerStyle={{ paddingBottom: 10, paddingHorizontal: 20, paddingTop: 16 }}
+            contentContainerStyle={{ paddingBottom: 15, paddingHorizontal: 35, paddingTop: 20 }}
             columnWrapperStyle={{ marginBottom: 16, gap: 16 }}
             renderItem={({ item }) => {
               const isFocused = item.id === focusedPet;
               const resolvedImage = images.skyeHead;
 
               return (
-                <View style={{ flex: 1, maxWidth: '50%' }}>
+                <View className="w-[48%]">
                   <TouchableOpacity
                     onPress={() => setFocusedPet(item.id)}
                     activeOpacity={0.85}
-                    className={`px-4 py-3 rounded-2xl flex-row items-center border ${
+                    className={`px-4 py-2.5 rounded-2xl flex-row items-center border ${
                       isFocused ? 'border-blue-500 bg-sky-50' : 'border-gray-200 bg-white'
                     }`}
                   >
@@ -148,6 +153,7 @@ const Profile = () => {
             }}
           />
         </View>
+         </ImageBackground>
     </View>
   </View>
   );
