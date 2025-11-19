@@ -4,6 +4,7 @@ import { Banner } from "@/components/other/Banner";
 import { auth } from "@/utils/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { signOutFromFirebase } from "./firebaseAuth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 console.log("[GlobalProvider] API_BASE_URL:", API_BASE_URL);
@@ -24,11 +25,27 @@ interface UserProfile {
 
 type BannerType = "success" | "error" | "info" | "warning";
 
+type AppSettings = {
+    keepScreenOn: boolean;
+    extendSessionLimit: boolean;
+    displayFocusInHours: boolean;
+};
+
+const DEFAULT_APP_SETTINGS: AppSettings = {
+    keepScreenOn: false,
+    extendSessionLimit: false,
+    displayFocusInHours: false,
+};
+
+const SETTINGS_STORAGE_KEY = "petly_app_settings";
+
 interface GlobalContextType {
     isLoggedIn: boolean;
     authUser: User | null;
     userProfile: UserProfile | null;
     loading: boolean;
+    appSettings: AppSettings;
+    updateAppSettings: (patch: Partial<AppSettings>) => void;
     refetchUserProfile: () => Promise<void>;
     logout: () => Promise<boolean>;
     showBanner: (message: string, type?: BannerType) => void;
@@ -41,9 +58,35 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
     const [authUser, setAuthUser] = useState<User | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [appSettings, setAppSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
     const [bannerVisible, setBannerVisible] = useState(false);
     const [bannerMessage, setBannerMessage] = useState("");
     const [bannerType, setBannerType] = useState<BannerType>("info");
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const stored = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored) as Partial<AppSettings>;
+                    setAppSettings({ ...DEFAULT_APP_SETTINGS, ...parsed });
+                }
+            } catch (error) {
+                console.error("Failed to load app settings", error);
+            }
+        };
+        void loadSettings();
+    }, []);
+
+    const updateAppSettings = useCallback((patch: Partial<AppSettings>) => {
+        setAppSettings((prev) => {
+            const next = { ...prev, ...patch };
+            AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(next)).catch((err) =>
+                console.error("Failed to save app settings", err)
+            );
+            return next;
+        });
+    }, []);
 
     const fetchUserProfile = useCallback(async (userId?: string) => {
         try {
@@ -158,6 +201,8 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                 authUser,
                 userProfile,
                 loading,
+                appSettings,
+                updateAppSettings,
                 refetchUserProfile,
                 logout,
                 showBanner,

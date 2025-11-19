@@ -22,8 +22,15 @@ const formatDetailedDuration = (totalSeconds: number) => {
   return parts.join(' ');
 };
 
+const formatHours = (totalSeconds: number) => {
+  const hours = totalSeconds / 3600;
+  if (hours >= 10) return `${hours.toFixed(0)} hrs`;
+  if (hours >= 1) return `${hours.toFixed(1)} hrs`;
+  return `${hours.toFixed(2)} hrs`;
+};
+
 export default function TodayFocusCard() {
-  const { userProfile } = useGlobalContext();
+  const { userProfile, appSettings } = useGlobalContext();
 
   // Support both correct and misspelled field names; accept number (secs) or a "Xm Ys" string.
   const raw = userProfile?.timeActiveToday ?? 0;
@@ -34,16 +41,19 @@ export default function TodayFocusCard() {
     return 0;
   }, [raw]);
 
-  const durationLabel = useMemo(() => (totalSeconds ? formatDetailedDuration(totalSeconds) : ''), [totalSeconds]);
+  const durationLabel = useMemo(() => {
+    if (!totalSeconds) return '';
+    return appSettings.displayFocusInHours ? formatHours(totalSeconds) : formatDetailedDuration(totalSeconds);
+  }, [totalSeconds, appSettings.displayFocusInHours]);
 
   return (
     <View className="w-[65%] relative rounded-2xl border border-gray-200 bg-gray-50 p-3">
-      <Text className="text-m text-gray-700">Today's Focus</Text>
-      {totalSeconds > 0 ? (
-          <Text className="absolute bottom-2 right-3 text-3xl font-semibold text-black-300">{durationLabel}</Text>
-      ) : (
-          <Text className="absolute bottom-2 right-3 text-3xl font-semibold text-black-300">0 mins 0 secs</Text>
-      )}
+      <Text className="text-m text-gray-700">Today&apos;s Focus</Text>
+      <Text className="absolute bottom-2 right-3 text-3xl font-semibold text-black-300">
+        {totalSeconds > 0
+          ? durationLabel
+          : appSettings.displayFocusInHours ? "0 hrs" : "0 mins 0 secs"}
+      </Text>
     </View>
   );
 }

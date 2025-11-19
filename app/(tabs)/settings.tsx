@@ -1,80 +1,48 @@
-import type { LucideIcon } from "lucide-react-native";
-import { 
-  ChevronRight, 
-  User, 
-  Bell, 
-  Shield, 
-  HelpCircle, 
+import React, { useEffect, useState } from "react";
+import {
+  Alert,
+  ScrollView,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  ChevronRight,
+  Clock3,
   Info,
-  Settings as SettingsIcon,
-  Moon,
-  Globe
+  Users,
+  Bell,
+  Clock,
 } from "lucide-react-native";
 import { router } from "expo-router";
-import React from "react";
-import { ScrollView, Text, TouchableOpacity, View, Alert } from "react-native";
+import { useGlobalContext } from "@/lib/GlobalProvider";
+import { ProfilePicture } from "@/components/other/ProfilePicture";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 
-interface SettingsItemProps {
-  icon: LucideIcon;
+const CardSeparator = () => <View className="h-px bg-gray-100 mx-5" />;
+
+type SectionCardProps = {
   title: string;
-  subtitle?: string;
-  onPress?: () => void;
-  showArrow?: boolean;
-  textColor?: string;
-}
-
-const SettingsItem = ({
-  icon: Icon,
-  title,
-  subtitle,
-  onPress,
-  showArrow = true,
-  textColor = "#1f2937"
-}: SettingsItemProps) => (
-  <TouchableOpacity
-    className="flex flex-row items-center py-4 px-4 bg-gray-50"
-    onPress={onPress}
-    activeOpacity={0.7}
-  >
-    <View className="mr-3">
-      <Icon size={22} color="#6b7280" />
-    </View>
-    <View className="flex-1">
-      <Text className="text-base font-rubik-medium text-black">
-        {title}
-      </Text>
-      {subtitle && (
-        <Text className="text-sm font-rubik text-gray-600 mt-1">
-          {subtitle}
-        </Text>
-      )}
-    </View>
-    {showArrow && <ChevronRight size={18} color="#9ca3af" />}
-  </TouchableOpacity>
-);
-
-const Separator = () => (
-  <View className="h-px bg-gray-200 mx-4" />
-);
-
-interface SettingsSectionProps {
-  title: string;
+  icon: React.ComponentType<{ size?: number; color?: string }>;
   children: React.ReactNode;
-}
+};
 
-const SettingsSection = ({ title, children }: SettingsSectionProps) => {
-  const childrenArray = React.Children.toArray(children);
-  
+const SectionCard = ({ title, icon: Icon, children }: SectionCardProps) => {
+  const rows = React.Children.toArray(children);
   return (
-    <View className="mb-8">
-      <Text className="text-sm font-rubik-medium text-gray-600 uppercase tracking-wide mb-3 px-4">
-        {title}
-      </Text>
-      <View className="rounded-xl bg-gray-200 overflow-hidden shadow-sm border border-gray-200">
-        {childrenArray.map((child, index) => (
+    <View className="mb-6 rounded-3xl bg-white shadow-sm">
+      <View className="flex-row items-center px-5 pt-5 pb-3">
+        <View className="mr-2 rounded-full bg-white p-2">
+          <Icon size={20} color="#191d31" />
+        </View>
+        <Text className="font-bold text-gray-900">{title}</Text>
+      </View>
+      <View className="pb-2">
+        {rows.map((child, index) => (
           <React.Fragment key={index}>
             {child}
-            {index < childrenArray.length - 1 && <Separator />}
+            {index < rows.length - 1 && <CardSeparator />}
           </React.Fragment>
         ))}
       </View>
@@ -82,97 +50,191 @@ const SettingsSection = ({ title, children }: SettingsSectionProps) => {
   );
 };
 
-const Settings = () => {
+type RowProps = {
+  label: string;
+  value?: string;
+  onPress?: () => void;
+};
+
+const LinkRow = ({ label, value, onPress }: RowProps) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={onPress ? 0.7 : 1}
+    className="flex-row items-center justify-between px-5 py-4"
+  >
+    <Text className="text-base font-rubik text-gray-900">{label}</Text>
+    <View className="flex-row items-center gap-2">
+      {value && (
+        <Text className="text-base font-rubik text-gray-600">{value}</Text>
+      )}
+      {onPress && <ChevronRight size={18} color="#9ca3af" />}
+    </View>
+  </TouchableOpacity>
+);
+
+type ToggleRowProps = {
+  label: string;
+  value: boolean;
+  onValueChange: (val: boolean) => void;
+};
+
+const ToggleRow = ({ label, value, onValueChange }: ToggleRowProps) => (
+  <View className="flex-row items-center justify-between px-5 py-4">
+    <Text className="text-base font-rubik text-gray-900">{label}</Text>
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      trackColor={{ false: "#d1d5db", true: "#a5f3fc" }}
+      thumbColor={value ? "#0ea5e9" : "#f9fafb"}
+    />
+  </View>
+);
+
+const ProfileCard = () => {
+  const { userProfile } = useGlobalContext();
+  const displayName = userProfile?.displayName || "Petly Explorer";
+  const email = userProfile?.email || "No email on file";
+  const profileId = userProfile?.profileId || 1;
 
   return (
-    <View className="flex-1 bg-white">
-      <ScrollView 
-        className="flex-1" 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 24 }}
-      >
+    <TouchableOpacity
+      className="mb-6 rounded-3xl border border-gray-100 bg-white px-5 py-5 shadow-sm"
+      activeOpacity={0.7}
+      onPress={() => router.push("/settings/editProfile")}
+    >
+      <View className="flex-row items-center">
+        <View className="w-14 h-14 rounded-full bg-gray-100 items-center justify-center">
+          <ProfilePicture profileId={profileId} size={56} />
+        </View>
+        <View className="ml-4 flex-1">
+          <Text className="text-lg font-bold text-gray-900">
+            {displayName}
+          </Text>
+          <Text className="text-base font-rubik text-gray-600">{email}</Text>
+        </View>
+        <ChevronRight size={20} color="#94a3b8" />
+      </View>
+    </TouchableOpacity>
+  );
+};
 
-        <SettingsSection title="Account">
-          <SettingsItem
-            icon={User}
-            title="Edit Profile"
-            subtitle="Update your profile information"
-            onPress={() => router.push("/settings/editProfile")}
-          />
-          <SettingsItem
-            icon={Bell}
-            title="Notifications"
-            subtitle="Manage your notification preferences"
-            onPress={() => {
-              Alert.alert("Coming Soon", "Notification settings will be available soon");
-            }}
-          />
-        </SettingsSection>
+const Settings = () => {
+  const { appSettings, updateAppSettings } = useGlobalContext();
+  const [toggles, setToggles] = useState({
+    rewardedAds: false,
+    expandForest: false,
+    arrangeTrees: true,
+    hiddenFromRanking: false,
+    allowFriendRequests: true,
+    soundEffects: true,
+    notifications: true,
+  });
 
-        {/* Privacy & Security Section */}
-        <SettingsSection title="Privacy & Security">
-          <SettingsItem
-            icon={Shield}
-            title="Privacy"
-            subtitle="Control your privacy settings"
-            onPress={() => {
-              Alert.alert("Coming Soon", "Privacy settings will be available soon");
-            }}
-          />
-          <SettingsItem
-            icon={SettingsIcon}
-            title="Account Settings"
-            subtitle="Manage account preferences"
-            onPress={() => {
-              Alert.alert("Coming Soon", "Account settings will be available soon");
-            }}
-          />
-        </SettingsSection>
+  const updateToggle = (key: keyof typeof toggles, value: boolean) => {
+    setToggles((prev) => ({ ...prev, [key]: value }));
+  };
 
-        {/* Preferences Section */}
-        <SettingsSection title="Preferences">
-          <SettingsItem
-            icon={Moon}
-            title="Dark Mode"
-            subtitle="Currently not available"
-            onPress={() => {
-              Alert.alert("Coming Soon", "Dark mode will be available in a future update");
-            }}
-          />
-          <SettingsItem
-            icon={Globe}
-            title="Language"
-            subtitle="English"
-            onPress={() => {
-              Alert.alert("Coming Soon", "Language settings will be available soon");
-            }}
-          />
-        </SettingsSection>
+  useEffect(() => {
+    const tag = "petly-keep-screen-on";
+    if (appSettings.keepScreenOn) {
+      activateKeepAwakeAsync(tag).catch((err) =>
+        console.warn("Failed to activate keep-awake", err)
+      );
+    } else {
+      deactivateKeepAwake(tag).catch(() => {});
+    }
+    return () => {
+      deactivateKeepAwake(tag).catch(() => {});
+    };
+  }, [appSettings.keepScreenOn]);
 
-        {/* Support Section */}
-        <SettingsSection title="Support">
-          <SettingsItem
-            icon={HelpCircle}
-            title="Help & Support"
-            subtitle="Get help and contact support"
-            onPress={() => {
-              Alert.alert("Help & Support", "For support, please contact us at support@petly.com");
-            }}
-          />
-          <SettingsItem
-            icon={Info}
-            title="About"
-            subtitle="App version and information"
-            onPress={() => {
-              Alert.alert("About Petly", "Petly v1.0.0\nA focus companion app with virtual pets");
-            }}
-          />
-        </SettingsSection>
+  return (
+    <ScrollView
+      className="flex-1 bg-[#f3f4f6]"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+    >
+      <ProfileCard />
 
-        {/* Bottom Spacing */}
-        <View className="h-8" />
-      </ScrollView>
-    </View>
+      <SectionCard title="Countdown & Timer" icon={Clock3}>
+          <LinkRow
+            label="App Allow List"
+            value="Off"
+            onPress={() =>
+              Alert.alert(
+                "Coming Soon",
+                "App allow list will be available in a future update."
+              )
+            }
+          />
+          
+          <ToggleRow
+            label="Keep Screen On"
+            value={appSettings.keepScreenOn}
+            onValueChange={(val) => updateAppSettings({ keepScreenOn: val })}
+          />
+          <ToggleRow
+            label="Extend Session Limit to 3 hours"
+            value={appSettings.extendSessionLimit}
+            onValueChange={(val) => updateAppSettings({ extendSessionLimit: val })}
+          />
+      </SectionCard>
+
+      <SectionCard title="Insights Overview" icon={Clock}>
+          <LinkRow label="First Day of the Week" value="Sunday" />
+          <LinkRow label="Daily Start Time" value="00:00 (Default)" />
+          <ToggleRow
+            label="Display Focus Time in Hours"
+            value={appSettings.displayFocusInHours}
+            onValueChange={(val) => updateAppSettings({ displayFocusInHours: val })}
+          />
+      </SectionCard>
+
+      <SectionCard title="Social and Friends" icon={Users}>
+          <ToggleRow
+            label="Hidden from Global Ranking"
+            value={toggles.hiddenFromRanking}
+            onValueChange={(val) => updateToggle("hiddenFromRanking", val)}
+          />
+            <ToggleRow
+            label="Allow Friend Requests Sent Through Profile"
+            value={toggles.allowFriendRequests}
+            onValueChange={(val) => updateToggle("allowFriendRequests", val)}
+            />
+      </SectionCard>
+
+       <SectionCard title="Sound and Notification" icon={Bell}>
+          <ToggleRow
+            label="Sound Effects"
+            value={toggles.soundEffects}
+            onValueChange={(val) => updateToggle("soundEffects", val)}
+          />
+            <ToggleRow
+            label="Notifications"
+            value={toggles.notifications}
+            onValueChange={(val) => updateToggle("notifications", val)}
+            />
+      </SectionCard>
+
+
+      <SectionCard title="Support" icon={Info}>
+          <LinkRow
+            label="Help & Support"
+            onPress={() =>
+              Alert.alert(
+                "Help & Support",
+                "Need help? Reach us at support@petly.com."
+              )
+            }
+          />
+          <LinkRow
+            label="About Petly"
+            onPress={() =>
+              Alert.alert("About Petly", "Version 1.0.0 • Your focus companion")
+            }
+          />
+      </SectionCard>
+    </ScrollView>
   );
 };
 

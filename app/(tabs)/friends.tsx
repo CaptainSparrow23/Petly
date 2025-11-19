@@ -43,9 +43,9 @@ const TopDropdownBadge = ({ labelBottom, top, labelTop, width = 60, height = 70,
             <Text
             className='font-bold'
               style={{
-                fontFamily: 'Rubik-Bold',
+
                 fontSize: fontSize,
-                color: '#191d31', // Tailwind blue-600
+                color: '#191d31',
                 lineHeight: fontSize + 2,
               }}
             >
@@ -53,7 +53,6 @@ const TopDropdownBadge = ({ labelBottom, top, labelTop, width = 60, height = 70,
             </Text>
             <Text
               style={{
-                fontFamily: 'Rubik-Medium',
                 fontSize: smallFontSize,
                 color: '#8C8E98', // Tailwind blue-400 (lighter)
                 marginTop: 1,
@@ -126,6 +125,7 @@ const FriendCard = ({
 
 const Friends = () => {
   const { userProfile, showBanner } = useGlobalContext()
+  const [tab, setTab] = useState<"friends" | "global">("friends")
   const [friends, setFriends] = useState<Friend[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -155,6 +155,11 @@ const Friends = () => {
   }
 
   const handleAddFriend = () => router.push('/friends/search' as any)
+
+  const handleSwitchTab = (next: typeof tab) => {
+    if (next === tab) return
+    setTab(next)
+  }
 
   const handleToggleEdit = () => {
     if (isEditMode) setSelectedFriends(new Set())
@@ -208,16 +213,20 @@ const Friends = () => {
   }
 
   useEffect(() => {
-    fetchFriends()
-  }, [userProfile?.userId])
+    if (tab === "friends") {
+      fetchFriends()
+    }
+  }, [userProfile?.userId, tab])
 
   useFocusEffect(
     useCallback(() => {
-      fetchFriends()
-    }, [userProfile?.userId])
+      if (tab === "friends") {
+        fetchFriends()
+      }
+    }, [userProfile?.userId, tab])
   )
 
-  if (isLoading) {
+  if (isLoading && tab === "friends") {
     return (
       <View className="flex-1 bg-gray-50 items-center justify-center">
         <ActivityIndicator size="large" color="#3b82f6" />
@@ -270,39 +279,67 @@ const Friends = () => {
       </View>
 
       <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Toggle between Friends and Global */}
         <View className="flex-row items-center gap-2 mt-6 mb-5">
           <View className="flex-row bg-black-100 rounded-full p-1.5 flex-1">
-            <Pressable className="flex-1 py-2.5 rounded-full bg-black-300 px-4">
-              <Text className="text-center font-rubik-semibold text-white">Friends</Text>
+            <Pressable
+              className={`flex-1 py-2.5 rounded-full px-4 ${
+                tab === "friends" ? "bg-black-300" : "bg-transparent"
+              }`}
+              onPress={() => handleSwitchTab("friends")}
+            >
+              <Text
+                className={'text-center font-semibold text-white'}
+              >
+                Friends
+              </Text>
             </Pressable>
-            <Pressable className="flex-1 py-2.5 rounded-full bg-black-100 px-4">
-              <Text className="text-center font-rubik-semibold text-white">Global</Text>
+            <Pressable
+              className={`flex-1 py-2.5 rounded-full px-4 ${
+                tab === "global" ? "bg-black-300" : "bg-transparent"
+              }`}
+              onPress={() => handleSwitchTab("global")}
+            >
+              <Text
+                className={'text-center font-semibold text-white'}
+              >
+                Global
+              </Text>
             </Pressable>
           </View>
         </View>
 
-        {friends.length === 0 ? (
+        {/* Toggle between Friends and Global */}
+        {tab === "friends" ? (
+          friends.length === 0 ? (
+            <View className="bg-white rounded-2xl p-6 mt-10 items-center">
+              <Users size={48} color="#9ca3af" />
+              <Text className="font-rubik-bold text-gray-900 text-lg mt-4">No Friends Yet</Text>
+              <Text className="text-gray-600 font-rubik text-center mt-2">
+                Start building your focus community by adding friends!
+              </Text>
+              <Pressable className="bg-black-500 rounded-xl px-6 py-3 mt-4" onPress={handleAddFriend}>
+                <Text className="text-white font-rubik-medium">Find Friends</Text>
+              </Pressable>
+            </View>
+          ) : (
+            friends.map(friend => (
+              <FriendCard
+                key={friend.userId}
+                friend={friend}
+                isEditMode={isEditMode}
+                isSelected={selectedFriends.has(friend.userId)}
+                onToggleSelect={handleToggleSelect}
+              />
+            ))
+          )
+        ) : (
           <View className="bg-white rounded-2xl p-6 mt-10 items-center">
             <Users size={48} color="#9ca3af" />
-            <Text className="font-rubik-bold text-gray-900 text-lg mt-4">No Friends Yet</Text>
+            <Text className="font-rubik-bold text-gray-900 text-lg mt-4">Global Ranking</Text>
             <Text className="text-gray-600 font-rubik text-center mt-2">
-              Start building your focus community by adding friends!
+              Coming soon. Stay tuned!
             </Text>
-            <Pressable className="bg-black-500 rounded-xl px-6 py-3 mt-4" onPress={handleAddFriend}>
-              <Text className="text-white font-rubik-medium">Find Friends</Text>
-            </Pressable>
           </View>
-        ) : (
-          friends.map(friend => (
-            <FriendCard
-              key={friend.userId}
-              friend={friend}
-              isEditMode={isEditMode}
-              isSelected={selectedFriends.has(friend.userId)}
-              onToggleSelect={handleToggleSelect}
-            />
-          ))
         )}
 
         <View className="h-6" />
@@ -316,7 +353,7 @@ const Friends = () => {
         </View>
 
         {/* the white dropdown coming from the top center */}
-        <TopDropdownBadge labelTop={`${userProfile?.timeActiveTodayMinutes}m`}labelBottom="today" top={15} />
+        <TopDropdownBadge labelTop={`${userProfile?.timeActiveTodayMinutes}m`} labelBottom="today" top={15} />
 
         {/* content row */}
         <View className="px-6 pt-4 pb-8">

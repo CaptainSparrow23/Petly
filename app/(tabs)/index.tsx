@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -32,7 +32,6 @@ export default function IndexScreen() {
   const [activity, setActivity] = useState<"Focus" | "Rest">("Focus");
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const TWO_HOUR_SECONDS = 2 * 60 * 60;
   const INITIAL_COUNTDOWN_SECONDS = 20 * 60;
 
   const [running, setRunning] = useState(false);
@@ -43,7 +42,7 @@ export default function IndexScreen() {
   const [lastCountdownTargetSec, setLastCountdownTargetSec] = useState(INITIAL_COUNTDOWN_SECONDS);
 
   const { loggedIn } = useLocalSearchParams();
-  const { showBanner, userProfile, refetchUserProfile } = useGlobalContext();
+  const { showBanner, userProfile, refetchUserProfile, appSettings } = useGlobalContext();
   const navigation = useNavigation();
 
   // Tracker drag state for previewing countdown adjustments
@@ -63,8 +62,10 @@ export default function IndexScreen() {
     if (loggedIn === "true") showBanner("Successfully logged in", "success");
   }, [loggedIn, showBanner]);
 
+  const maxSessionSeconds = appSettings.extendSessionLimit ? 3 * 60 * 60 : 2 * 60 * 60;
+
   const progress =
-    mode === "countdown" ? secondsLeft / TWO_HOUR_SECONDS : secondsElapsed / TWO_HOUR_SECONDS;
+    mode === "countdown" ? secondsLeft / maxSessionSeconds : secondsElapsed / maxSessionSeconds;
 
   const clearTicker = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -197,9 +198,9 @@ export default function IndexScreen() {
     } else {
       intervalRef.current = setInterval(() => {
         setSecondsElapsed((prev) => {
-          if (prev >= TWO_HOUR_SECONDS) {
+          if (prev >= maxSessionSeconds) {
             void fullyStopAndReset("timer-max");
-            return TWO_HOUR_SECONDS;
+            return maxSessionSeconds;
           }
           return prev + 1;
         });
@@ -216,6 +217,15 @@ export default function IndexScreen() {
     else setSecondsElapsed(0);
   }, [mode, lastCountdownTargetSec]);
 
+  useEffect(() => {
+    if (lastCountdownTargetSec > maxSessionSeconds) {
+      setLastCountdownTargetSec(maxSessionSeconds);
+      if (mode === "countdown") {
+        setSecondsLeft(maxSessionSeconds);
+      }
+    }
+  }, [lastCountdownTargetSec, maxSessionSeconds, mode]);
+
   // If the app backgrounds during a run, we automatically close and upload the session
   useEffect(() => {
     const onState = (s: AppStateStatus) => {
@@ -231,7 +241,7 @@ export default function IndexScreen() {
   const handleTrackerChange = (p: number) => {
     if (!running && mode === "countdown") {
       const SNAP_S = 300;
-      const raw = p * TWO_HOUR_SECONDS;
+      const raw = p * maxSessionSeconds;
       const next = Math.round(raw / SNAP_S) * SNAP_S;
       setSecondsLeft(next);
       setLastCountdownTargetSec(next);
@@ -248,8 +258,7 @@ export default function IndexScreen() {
   const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
   const displaySeconds = useMemo(() => {
     if (dragging && previewP != null) {
-      const TWO_HOUR_SECONDS = 2 * 60 * 60;
-      return Math.round(previewP * TWO_HOUR_SECONDS);
+      return Math.round(previewP * maxSessionSeconds);
     }
     return secondsToShow;
   }, [dragging, previewP, secondsToShow]);
@@ -260,8 +269,9 @@ export default function IndexScreen() {
   const ss = seconds.toString().padStart(2, "0");
 
   const isRest = activity === "Rest";
-  const trackColor = isRest ? "#8b5cf6" : "#3b82f6";
-  const trackBgColor = isRest ? "#e9d5ff" : "#bfdbfe";
+  const trackColor = isRest ? "#7e85ff" : "#2f5168";
+  const trackBgColor = isRest ? "#b5caff" : "#BDD5E7";
+  const centerFillColor = isRest ? "#f4f7ff" : "#E5F3FD";
 
   const idleAnimationSource = getPetAnimation(userProfile?.selectedPet, "idle");
   const focusAnimationSource = getPetAnimation(userProfile?.selectedPet, "focus");
@@ -270,7 +280,7 @@ export default function IndexScreen() {
   const idleAnimationView = (
     <PetAnimation
       source={idleAnimationSource}
-      containerStyle={{ marginTop: 20 }}
+      containerStyle={{ marginTop: 25 }}
       animationStyle={{ width: "230%", height: "230%" }}
     />
   );
@@ -298,14 +308,23 @@ export default function IndexScreen() {
       </Animated.View>
     ) : null;
 
+  const dailyFocusLabel = useCallback(() => {
+    const minutes = userProfile?.timeActiveTodayMinutes ?? 0;
+    if (appSettings.displayFocusInHours) {
+      const hours = minutes / 60;
+      const formatted = hours >= 10 ? hours.toFixed(0) : hours.toFixed(1);
+      const unit = hours === 1 ? "hour" : "hours";
+      return `${formatted} ${unit}`;
+    }
+    const unit = minutes === 1 ? "min" : "mins";
+    return `${minutes} ${unit}`;
+  }, [userProfile?.timeActiveTodayMinutes, appSettings.displayFocusInHours]);
+
   const infoText = useMemo(() => {
-    if (!running)
-      return `You have focused for ${userProfile?.timeActiveTodayMinutes} ${
-        userProfile?.timeActiveTodayMinutes === 1 ? "min" : "mins"
-      } today.`;
+    if (!running) return `You have focused for ${dailyFocusLabel()} today.`;
     if (activity === "Focus") return "Work hard and stay focused!";
     return "Getting some rest...";
-  }, [running, activity, userProfile?.timeActiveTodayMinutes]);
+  }, [running, activity, dailyFocusLabel]);
 
   const handleOpenPicker = () => {
     if (running) {
@@ -315,15 +334,6 @@ export default function IndexScreen() {
     setPickerOpen(true);
   };
 
-  const handleSelectActivity = (newActivity: "Focus" | "Rest") => {
-    if (running) {
-      showBanner("End your session before changing activity.", "error");
-      setPickerOpen(false);
-      return;
-    }
-    setActivity(newActivity);
-    setPickerOpen(false);
-  };
 
   return (
     <View className="flex-1 bg-white relative">
@@ -398,7 +408,7 @@ export default function IndexScreen() {
         className="items-center justify-end pb-8"
       >
         <View className="mb-[12%]">
-          <Text className="text-lg">{infoText}</Text>
+          <Text className="text-md">{infoText}</Text>
         </View>
 
         <View style={{ width: 350, height: 350 }} className="items-center justify-center">
@@ -414,11 +424,12 @@ export default function IndexScreen() {
               onPreviewProgress={handlePreviewProgress}
               onDragStateChange={handleDragStateChange}
               centerContent={idleAnimationView}
+              centerFillColor={centerFillColor}
             />
           </Animated.View>
         </View>
 
-        <View className="items-center mt-6 -mb-6">
+        <View className="items-center mt-10 -mb-6">
           <TouchableOpacity
             className={`flex-row items-center px-6 py-2 rounded-full bg-gray-200 ${running ? "opacity-60" : ""}`}
             onPress={handleOpenPicker}
@@ -426,7 +437,7 @@ export default function IndexScreen() {
           >
             <View
               className="w-3 h-3 rounded-full mr-2"
-              style={{ backgroundColor: activity === "Focus" ? "#3b82f6" : "#8b5cf6" }}
+              style={{ backgroundColor: activity === "Focus" ? "#2f5168" : "#7e85ff" }}
             />
             <Text className="text-base font-medium text-gray-800">{activity}</Text>
           </TouchableOpacity>
@@ -446,13 +457,13 @@ export default function IndexScreen() {
           </Text>
 
           <Text
-            className="text-7xl tracking-widest text-gray-900 absolute left-0 right-0 text-center"
+            className="text-8xl tracking-widest text-gray-900 absolute left-0 right-0 text-center"
             selectable={false}
             style={{
               ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
               fontFamily: Platform.select({ ios: undefined, android: "monospace", default: undefined }),
               includeFontPadding: false,
-              lineHeight: 88,
+              lineHeight: 90,
             }}
           >
             {`${mm}:${ss}`}

@@ -111,30 +111,14 @@ const DrawerLayout = () => {
           drawerIcon: ({ color, size }) => <Home color={color} size={size} />,
         }}
       />
-      <Drawer.Screen
-        name="insights"
-        options={({ navigation }) => ({
-          title: 'Insights',
-          // Keep profile picture right action (no coins)
-          headerRight: () => {
-            const { userProfile } = useGlobalContext();
-            return (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => navigation.navigate('settings')}
-                style={{ marginRight: 16 }}
-              >
-                <ProfilePicture
-                  profileId={userProfile?.profileId || null}
-                  size={40}
-                  className="border-2 border-blue-100"
-                />
-              </TouchableOpacity>
-            );
-          },
-          drawerIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
-        })}
-      />
+        <Drawer.Screen
+          name="insights"
+          options={{
+            title: 'Insights',
+            drawerLabel: 'Insights',
+            drawerIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
+          }}
+        />
       <Drawer.Screen
         name="pets"
         options={{

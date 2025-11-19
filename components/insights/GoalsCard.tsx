@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Modal, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { useGlobalContext } from '@/lib/GlobalProvider';
 
 interface GoalsCardProps {
   todayTotalMinutes?: number;
@@ -17,6 +18,8 @@ export default function GoalsCard({
   weeklyGoal = 600,
   onUpdateGoals,
 }: GoalsCardProps) {
+  const { appSettings } = useGlobalContext();
+  const showHours = appSettings.displayFocusInHours;
   const [modalVisible, setModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -39,6 +42,13 @@ export default function GoalsCard({
 
   const dailyProgress = Math.min(100, Math.round((todayMinutes / dailyGoal) * 100));
   const weeklyProgress = Math.min(100, Math.round((currentWeekTotal / weeklyGoal) * 100));
+
+  const formatMinutesLabel = (minutes: number) => {
+    if (!showHours) return `${minutes} mins`;
+    const hours = minutes / 60;
+    if (hours >= 10) return `${hours.toFixed(0)} hrs`;
+    return `${hours.toFixed(1)} hrs`;
+  };
 
   const handleEditPress = () => {
     setDailySelected(dailyGoal);
@@ -64,7 +74,7 @@ export default function GoalsCard({
     try {
       await onUpdateGoals(daily, weekly);
       setModalVisible(false);
-    } catch (e) {
+    } catch {
       Alert.alert('Error', 'Failed to update goals. Please try again.');
     } finally {
       setSaving(false);
@@ -86,7 +96,7 @@ export default function GoalsCard({
         <View className="mt-6">
           <View className="flex-row justify-between items-center">
             <Text className="text-sm text-gray-700">Daily focus goal</Text>
-            <Text className="text-sm text-gray-600">{dailyGoal} mins</Text>
+            <Text className="text-sm text-gray-600">{formatMinutesLabel(dailyGoal)}</Text>
           </View>
           <View className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
             <View className="h-full rounded-full" style={{ width: `${dailyProgress}%`, backgroundColor: '#191d31' }} />
@@ -97,7 +107,7 @@ export default function GoalsCard({
         <View className="mt-5">
           <View className="flex-row justify-between items-center">
             <Text className="text-sm text-gray-700">Weekly focus goal</Text>
-            <Text className="text-sm text-gray-600">{weeklyGoal} mins</Text>
+            <Text className="text-sm text-gray-600">{formatMinutesLabel(weeklyGoal)}</Text>
           </View>
           <View className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
             <View className="h-full rounded-full" style={{ width: `${weeklyProgress}%`, backgroundColor: '#191d31' }} />

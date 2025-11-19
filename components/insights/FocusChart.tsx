@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { VictoryAxis, VictoryBar, VictoryChart, VictoryLabel } from "victory-native";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 
 export type ChartRange = "today" | "week" | "sixWeeks";
 export type ChartDatum = { key: string; label: string; totalMinutes: number };
@@ -40,9 +41,11 @@ export default function FocusChart({
   initialRange = "today",
   title = "Focused Time Distribution",
 }: FocusChartProps) {
+  const { appSettings } = useGlobalContext();
   const [range, setRange] = useState<ChartRange>(initialRange);
   const [menuOpen, setMenuOpen] = useState(false);
   const [chartWidth, setChartWidth] = useState(0);
+  const showHours = appSettings.displayFocusInHours;
 
   const rawToday: ChartDatum[] = data?.today ?? [];
   const rawWeek: ChartDatum[] = data?.week ?? [];
@@ -72,12 +75,36 @@ export default function FocusChart({
     return groupInto3HourSlots(hours);
   }, [raw, range]);
 
+  const convertValue = useCallback(
+    (minutes: number) => (showHours ? minutes / 60 : minutes),
+    [showHours]
+  );
+
+  const formatValueLabel = useCallback(
+    (value: number) => {
+      if (showHours) {
+        if (value >= 10) return `${value.toFixed(0)} hrs`;
+        return `${value.toFixed(1)} hrs`;
+      }
+      return `${Math.round(value)} mins`;
+    },
+    [showHours]
+  );
+
   const victoryData = useMemo(
-    () => dataset.map((d) => ({ x: d.label, y: d.totalMinutes, actualMinutes: d.totalMinutes })),
-    [dataset]
+    () =>
+      dataset.map((d) => ({
+        x: d.label,
+        y: convertValue(d.totalMinutes),
+        displayValue: convertValue(d.totalMinutes),
+      })),
+    [dataset, convertValue]
   );
   const xTickValues = useMemo(() => dataset.map((d) => d.label), [dataset]);
-  const maxY = useMemo(() => Math.max(1, ...dataset.map((d) => d.totalMinutes)), [dataset]);
+  const maxY = useMemo(
+    () => Math.max(1, ...dataset.map((d) => convertValue(d.totalMinutes))),
+    [dataset, convertValue]
+  );
 
   return (
     <View className="relative my-4 rounded-2xl border border-gray-200 bg-gray-50 p-3">
@@ -101,7 +128,7 @@ export default function FocusChart({
                 >
                   <Text
                     className={`text-xs font-rubik-medium ${
-                      range === val ? "text-black-300" : "text-slate-900"
+                      range === val ? "text-white" : "text-slate-900"
                     }`}
                   >
                     {RANGE_LABELS[val]}
@@ -151,11 +178,11 @@ export default function FocusChart({
               data={victoryData}
               barWidth={18}
               cornerRadius={{ top: 8, bottom: 0 }}
-              labels={({ datum }) => (datum.actualMinutes > 0 ? `${datum.actualMinutes}m` : "")}
+              labels={({ datum }) => (datum.displayValue > 0 ? formatValueLabel(datum.displayValue) : "")}
               labelComponent={<VictoryLabel dy={-2} style={{ fill: "#64748b", fontSize: 11, fontFamily: "Rubik-Medium" }} />}
               style={{
                 data: {
-                  fill: ({ datum }: any) => (datum.actualMinutes > 0 ? "#191d31" : "#e5e7eb"),
+                  fill: ({ datum }: any) => (datum.displayValue > 0 ? "#191d31" : "#e5e7eb"),
                 },
               }}
             />
