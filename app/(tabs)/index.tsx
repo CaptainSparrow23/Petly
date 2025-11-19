@@ -425,6 +425,7 @@ export default function IndexScreen() {
               onDragStateChange={handleDragStateChange}
               centerContent={idleAnimationView}
               centerFillColor={centerFillColor}
+              maxSeconds={maxSessionSeconds}
             />
           </Animated.View>
         </View>

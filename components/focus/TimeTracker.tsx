@@ -13,6 +13,8 @@ interface TimeTrackerProps {
   onDragStateChange?: (dragging: boolean) => void;   
   showHandle?: boolean;
   centerFillColor?: string;
+  maxSeconds?: number;
+  snapIntervalSeconds?: number;
 }
 
 export default function TimeTracker({
@@ -26,6 +28,8 @@ export default function TimeTracker({
   onDragStateChange,
   showHandle = true,
   centerFillColor,
+  maxSeconds = 2 * 60 * 60,
+  snapIntervalSeconds = 5 * 60,
 }: TimeTrackerProps) {
   const [angle, setAngle] = useState(progress * 360);
   const prevAngleRef = useRef(angle);
@@ -53,8 +57,10 @@ export default function TimeTracker({
   // clamp an angle to [0, 360]
   const clamp360 = (a: number) => Math.max(0, Math.min(360, a));
 
-  // snap angle to nearest 5 minutes (15°)
-  const snap5 = (a: number) => clamp360(Math.round(a / 15) * 15);
+  const normalizedMax = Math.max(60, maxSeconds);
+  const snapDegrees =
+    Math.max(1, (snapIntervalSeconds / normalizedMax) * 360);
+  const snapAngle = (a: number) => clamp360(Math.round(a / snapDegrees) * snapDegrees);
 
   // compute angle from a touch event
   const getTouchAngle = (event: GestureResponderEvent) => {
@@ -84,7 +90,7 @@ export default function TimeTracker({
     const updated = clamp360(prev + delta);
     prevAngleRef.current = updated;
     setAngle(updated);
-    onPreviewProgress?.(snap5(updated) / 360);
+    onPreviewProgress?.(snapAngle(updated) / 360);
   };
 
   // build gesture handlers (no tap flicker, snap on release)
@@ -103,7 +109,7 @@ export default function TimeTracker({
           tapStartAngleRef.current = a;
           isDraggingRef.current = false;
           onDragStateChange?.(true);
-          onPreviewProgress?.(snap5(a) / 360);
+          onPreviewProgress?.(snapAngle(a) / 360);
         },
 
         // drag smoothly after a tiny movement threshold
@@ -113,7 +119,7 @@ export default function TimeTracker({
           let diff = Math.abs(a - tapStartAngleRef.current);
           if (diff > 180) diff = 360 - diff;
           if (!isDraggingRef.current && diff < 8) {
-            onPreviewProgress?.(snap5(a) / 360);
+            onPreviewProgress?.(snapAngle(a) / 360);
             return;
           }
           isDraggingRef.current = true;
@@ -123,7 +129,7 @@ export default function TimeTracker({
         // snap to 5-min and commit
         onPanResponderRelease: () => {
           const base = isDraggingRef.current ? prevAngleRef.current : tapStartAngleRef.current;
-          const snapped = snap5(base);
+          const snapped = snapAngle(base);
           isDraggingRef.current = false;
           onDragStateChange?.(false);
           prevAngleRef.current = snapped;
@@ -133,7 +139,7 @@ export default function TimeTracker({
 
         // interrupted → treat like release
         onPanResponderTerminate: () => {
-          const snapped = snap5(prevAngleRef.current || tapStartAngleRef.current);
+          const snapped = snapAngle(prevAngleRef.current || tapStartAngleRef.current);
           isDraggingRef.current = false;
           onDragStateChange?.(false);
           prevAngleRef.current = snapped;
@@ -141,7 +147,7 @@ export default function TimeTracker({
           onChange?.(snapped / 360);
         },
       }),
-    [disabled]
+    [disabled, isTouchOnRing, getTouchAngle, updateAngleSmooth, snapAngle, onDragStateChange, onPreviewProgress, onChange]
   );
 
   // handle position
