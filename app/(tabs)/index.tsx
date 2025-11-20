@@ -8,7 +8,6 @@ import {
   AppStateStatus,
   StatusBar,
   Animated,
-  Easing,
 } from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
 import ModePickerModal from "../../components/focus/ModePickerModal";
@@ -16,10 +15,12 @@ import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
 import TimeTracker from "../../components/focus/TimeTracker";
 import PetAnimation from "../../components/focus/PetAnimation";
 import { useGlobalContext } from "@/lib/GlobalProvider";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import CoinBadge from "@/components/other/CoinBadge";
-import { useSessionUploader } from "@/hooks/useFocus";
+import { useSessionUploader, SessionActivity } from "@/hooks/useFocus";
+import SessionEndModal from "@/components/focus/SessionEndModal";
 import { getPetAnimation } from "@/constants/animations";
+import { CoralPalette } from "@/constants/colors";
 
 /**
  * Focus & Rest dashboard. Handles timer/countdown modes, session tracking, and
@@ -43,14 +44,35 @@ export default function IndexScreen() {
 
   const { loggedIn } = useLocalSearchParams();
   const { showBanner, userProfile, refetchUserProfile, appSettings } = useGlobalContext();
-  const navigation = useNavigation();
-
   // Tracker drag state for previewing countdown adjustments
-  const [dragging, setDragging] = useState(false);
-  const [previewP, setPreviewP] = useState<number | null>(null);
+  const [sessionSummary, setSessionSummary] = useState<{
+    visible: boolean;
+    coinsAwarded: number;
+    durationSec: number;
+    activity: SessionActivity;
+  }>({
+    visible: false,
+    coinsAwarded: 0,
+    durationSec: 0,
+    activity: "Focus",
+  });
+
+  const animationFade = useRef(new Animated.Value(0)).current;
+  const idleOpacity = animationFade.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+
+  useEffect(() => {
+    Animated.timing(animationFade, {
+      toValue: running ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [running, activity, animationFade]);
 
   const { upload } = useSessionUploader();
   const sessionStartMsRef = useRef<number | null>(null);
+  const closeSessionSummary = useCallback(() => {
+    setSessionSummary((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   // We keep pointer refs so uploads always use the last persisted time
   const lastLeftRef = useRef(secondsLeft);
@@ -61,58 +83,19 @@ export default function IndexScreen() {
   useEffect(() => {
     if (loggedIn === "true") showBanner("Successfully logged in", "success");
   }, [loggedIn, showBanner]);
-
   const maxSessionSeconds = appSettings.extendSessionLimit ? 3 * 60 * 60 : 2 * 60 * 60;
 
   const progress =
     mode === "countdown" ? secondsLeft / maxSessionSeconds : secondsElapsed / maxSessionSeconds;
+  const isRest = activity !== "Focus";
+  const trackColor = CoralPalette.primary;
+  const trackBgColor = "rgba(255,255,255,0.5)";
+  const centerFillColor = CoralPalette.surface;
 
   const clearTicker = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = null;
   };
-
-  // Fullscreen controls what hides and what nudges
-  const isFullscreen = running;
-
-  // Simple animation driver
-  const focusAnim = useRef(new Animated.Value(0)).current;
-  const topFade = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
-  const topSlideY = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -24] });
-  const contentTranslateY = focusAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -60] });
-  const idleTrackerOpacity = useRef(new Animated.Value(1)).current;
-  const activeTrackerOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    navigation.setOptions?.({ headerShown: !isFullscreen });
-    Animated.timing(focusAnim, {
-      toValue: isFullscreen ? 1 : 0,
-      duration: 250,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [isFullscreen, navigation, focusAnim]);
-
-
-  useEffect(() => {
-    const duration = 300;
-    const animation = Animated.parallel([
-      Animated.timing(idleTrackerOpacity, {
-        toValue: running ? 0 : 1,
-        duration,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(activeTrackerOpacity, {
-        toValue: running ? 1 : 0,
-        duration,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]);
-    animation.start();
-    return () => animation.stop();
-  }, [running, idleTrackerOpacity, activeTrackerOpacity]);
 
   /**
    * Stops a session, posts it to the backend, and resets the UI.
@@ -128,24 +111,23 @@ export default function IndexScreen() {
         : Math.max(0, lastCountdownTargetSec - lastLeftRef.current);
     const startMs = sessionStartMsRef.current ?? end.getTime() - elapsedSec * 1000;
 
+    let coinsEarned = 0;
     if (elapsedSec > 0 && userProfile?.userId) {
-      await upload({
-        userId: String(userProfile.userId),
-        activity,
-        startTs: new Date(startMs).toISOString(),
-        durationSec: Math.floor(elapsedSec),
-      })
-        .then(async () => {
-          console.log("✅ Session uploaded successfully, refetching profile...");
-          // Add a small delay to ensure backend has processed the data
-          await new Promise(resolve => setTimeout(resolve, 500));
-          await refetchUserProfile().catch((err) => {
-            console.error("❌ Failed to refetch profile:", err);
-          });
-        })
-        .catch((err) => {
-          console.error("❌ Failed to upload session:", err);
+      try {
+        const awarded = await upload({
+          userId: String(userProfile.userId),
+          activity,
+          startTs: new Date(startMs).toISOString(),
+          durationSec: Math.floor(elapsedSec),
         });
+        coinsEarned = awarded ?? 0;
+        console.log("✅ Session uploaded successfully");
+        void refetchUserProfile().catch((err) => {
+          console.error("❌ Failed to refetch profile:", err);
+        });
+      } catch (err) {
+        console.error("❌ Failed to upload session:", err);
+      }
     }
 
     clearTicker();
@@ -154,10 +136,16 @@ export default function IndexScreen() {
     else setSecondsElapsed(0);
     sessionStartMsRef.current = null;
 
-    if (reason === "timer-max") showBanner("Timer reached 2:00:00 — session ended.", "success");
-    else if (reason === "countdown-zero") showBanner("Countdown finished — session ended.", "success");
-    else if (reason === "manual") showBanner("Session stopped.", "info");
-    else if (reason === "app-closed") showBanner("Session saved on app close.", "info");
+    if (elapsedSec > 0) {
+      setSessionSummary({
+        visible: true,
+        coinsAwarded: coinsEarned,
+        durationSec: elapsedSec,
+        activity,
+      });
+    } else if (reason === "app-closed") {
+      showBanner("Session saved on app close.", "info");
+    }
   };
 
   /**
@@ -235,7 +223,7 @@ export default function IndexScreen() {
     };
     const sub = AppState.addEventListener("change", onState);
     return () => sub.remove();
-  }, [running]);
+  }, [running, fullyStopAndReset]);
 
   // Countdown scrubber helpers
   const handleTrackerChange = (p: number) => {
@@ -247,67 +235,79 @@ export default function IndexScreen() {
       setLastCountdownTargetSec(next);
     }
   };
-  const handleDragStateChange = (dragState: boolean) => {
-    setDragging(dragState);
-  };
-  const handlePreviewProgress = (p: number) => {
-    setPreviewP(p);
-  };
-
-  // Derived display values for the digital clock
   const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
-  const displaySeconds = useMemo(() => {
-    if (dragging && previewP != null) {
-      return Math.round(previewP * maxSessionSeconds);
-    }
-    return secondsToShow;
-  }, [dragging, previewP, secondsToShow]);
 
+  const displaySeconds = secondsToShow;
   const totalMinutes = Math.floor(displaySeconds / 60);
   const seconds = Math.floor(displaySeconds % 60);
   const mm = totalMinutes.toString().padStart(2, "0");
   const ss = seconds.toString().padStart(2, "0");
 
-  const isRest = activity === "Rest";
-  const trackColor = isRest ? "#7e85ff" : "#2f5168";
-  const trackBgColor = isRest ? "#b5caff" : "#BDD5E7";
-  const centerFillColor = isRest ? "#f4f7ff" : "#E5F3FD";
-
   const idleAnimationSource = getPetAnimation(userProfile?.selectedPet, "idle");
   const focusAnimationSource = getPetAnimation(userProfile?.selectedPet, "focus");
   const restAnimationSource = getPetAnimation(userProfile?.selectedPet, "rest");
 
-  const idleAnimationView = (
+  const idleAnimationView = idleAnimationSource ? (
     <PetAnimation
       source={idleAnimationSource}
       containerStyle={{ marginTop: 25 }}
       animationStyle={{ width: "230%", height: "230%" }}
     />
-  );
+  ) : null;
 
-  const focusAnimationView = (
-    <PetAnimation source={focusAnimationSource} containerStyle={{ paddingLeft: 28 }} />
-  );
+  const focusAnimationView = focusAnimationSource ? (
+    <PetAnimation
+      source={focusAnimationSource}
+      containerStyle={{ paddingLeft: 28, paddingTop: 12 }}
+      animationStyle={{ width: "72%", height: "72%" }}
+    />
+  ) : null;
 
-  const restAnimationView = (
+  const restAnimationView = restAnimationSource ? (
     <PetAnimation
       source={restAnimationSource}
-      containerStyle={{ marginTop: 10, marginLeft: 10 }}
-      animationStyle={{ width: "120%", height: "120%" }}
+      containerStyle={{ marginLeft: 20, marginTop: 10 }}
+      animationStyle={{ width: "80%", height: "80%" }}
     />
-  );
+  ) : null;
 
   const activeAnimationView = isRest ? restAnimationView : focusAnimationView;
-  const activeAnimationLayer =
-    activeAnimationView ? (
-      <Animated.View
-        pointerEvents="none"
-        style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, opacity: activeTrackerOpacity }}
-      >
-        {activeAnimationView}
-      </Animated.View>
-    ) : null;
-
+  const animationCenterContent = (
+    <View pointerEvents="none" style={{ width: "100%", height: "100%" }}>
+      {idleAnimationView ? (
+        <Animated.View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: idleOpacity,
+          }}
+        >
+          {idleAnimationView}
+        </Animated.View>
+      ) : null}
+      {activeAnimationView ? (
+        <Animated.View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: animationFade,
+          }}
+        >
+          {activeAnimationView}
+        </Animated.View>
+      ) : null}
+    </View>
+  );
   const dailyFocusLabel = useCallback(() => {
     const minutes = userProfile?.timeActiveTodayMinutes ?? 0;
     if (appSettings.displayFocusInHours) {
@@ -336,135 +336,107 @@ export default function IndexScreen() {
 
 
   return (
-    <View className="flex-1 bg-white relative">
-      {/* Status bar hidden only in fullscreen */}
-      <StatusBar hidden={isFullscreen} animated />
+    <View className="flex-1 relative" style={{ backgroundColor: CoralPalette.primaryMuted }}>
+      <StatusBar hidden={false} animated />
 
-      {/* Coins:
-          - Normal mode: render as-is (no wrapper, no transform).
-          - Fullscreen: render inside Animated.View that fades/slides it out. */}
-      {!isFullscreen ? (
-        <CoinBadge />
-      ) : (
-        <Animated.View style={{ opacity: topFade, transform: [{ translateY: topSlideY }] }} pointerEvents="none">
-          <CoinBadge />
-        </Animated.View>
-      )}
+      <CoinBadge />
 
-      {/* Toggle:
-          - Normal mode: original element unchanged.
-          - Fullscreen: animated clone that fades/slides up. */}
-      {!isFullscreen ? (
-        <View className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 flex-row w-22 rounded-full bg-gray-200 overflow-hidden">
-          <TouchableOpacity
-            onPress={() => setMode("countdown")}
-            disabled={running}
-            className={`w-12 items-center py-2 ${mode === "countdown" ? "bg-black-300" : "bg-transparent"} ${running ? "opacity-60" : ""}`}
-          >
-            <Hourglass size={20} color={mode === "countdown" ? "#ffffff" : "#191d31"} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setMode("timer")}
-            disabled={running}
-            className={`w-12 items-center py-2 ${mode === "timer" ? "bg-black-300" : "bg-transparent"} ${running ? "opacity-60" : ""}`}
-          >
-            <Timer size={20} color={mode === "timer" ? "#ffffff" : "#191d31"} />
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <Animated.View
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: 0,
-            opacity: topFade,
-            transform: [{ translateY: topSlideY }],
-          }}
-          pointerEvents="none"
-        >
-          <View className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 flex-row w-22 rounded-full bg-gray-200 overflow-hidden">
-            <TouchableOpacity
-              onPress={() => setMode("countdown")}
-              disabled
-              className={`w-12 items-center py-2 ${mode === "countdown" ? "bg-black-300" : "bg-transparent"} opacity-60`}
-            >
-              <Hourglass size={20} color={mode === "countdown" ? "#ffffff" : "#191d31"} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setMode("timer")}
-              disabled
-              className={`w-12 items-center py-2 ${mode === "timer" ? "bg-black-300" : "bg-transparent"} opacity-60`}
-            >
-              <Timer size={20} color={mode === "timer" ? "#ffffff" : "#191d31"} />
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      )}
-
-      {/* Main content — nudge up only in fullscreen */}
-      <Animated.View
-        style={{ flex: 1, transform: [{ translateY: contentTranslateY }] }}
-        className="items-center justify-end pb-8"
+      <View
+        className="absolute -top-12 left-1/2 -translate-x-1/2 z-10 flex-row rounded-full overflow-hidden"
+        style={{
+          backgroundColor: CoralPalette.surfaceAlt,
+          borderColor: CoralPalette.border,
+          borderWidth: 1,
+        }}
       >
-        <View className="mb-[12%]">
-          <Text className="text-md">{infoText}</Text>
+        <TouchableOpacity
+          onPress={() => setMode("countdown")}
+          disabled={running}
+          className="w-12 items-center py-2"
+          style={{ backgroundColor: mode === "countdown" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
+        >
+          <Hourglass size={20} color={mode === "countdown" ? "#ffffff" : CoralPalette.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setMode("timer")}
+          disabled={running}
+          className="w-12 items-center py-2"
+          style={{ backgroundColor: mode === "timer" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
+        >
+          <Timer size={20} color={mode === "timer" ? "#ffffff" : CoralPalette.primary} />
+        </TouchableOpacity>
+      </View>
+
+      <View className="flex-1 items-center justify-end pb-8">
+        <View className="mb-[15%]">
+          <Text className="text-lg" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>
+            {infoText}
+          </Text>
         </View>
 
-        <View style={{ width: 350, height: 350 }} className="items-center justify-center">
-          {activeAnimationLayer}
-          <Animated.View style={{ width: "100%", height: "100%", opacity: idleTrackerOpacity }}>
-            <TimeTracker
-              progress={progress}
-              onChange={handleTrackerChange}
-          disabled={running || mode === "timer"}
-          showHandle={mode === "countdown"}
-              trackColor={trackColor}
-              trackBgColor={trackBgColor}
-              onPreviewProgress={handlePreviewProgress}
-              onDragStateChange={handleDragStateChange}
-              centerContent={idleAnimationView}
-              centerFillColor={centerFillColor}
-              maxSeconds={maxSessionSeconds}
-            />
-          </Animated.View>
+        <View style={{ width: 360, height: 360 }} className="items-center justify-center">
+          <TimeTracker
+            progress={progress}
+            onChange={handleTrackerChange}
+            disabled={running || mode === "timer"}
+            showHandle={mode === "countdown" && !running && !stopModalOpen}
+            trackColor={trackColor}
+            trackBgColor={trackBgColor}
+            centerContent={animationCenterContent}
+            centerFillColor={centerFillColor}
+            maxSeconds={maxSessionSeconds}
+            hideRing={running}
+          />
         </View>
 
         <View className="items-center mt-10 -mb-6">
           <TouchableOpacity
-            className={`flex-row items-center px-6 py-2 rounded-full bg-gray-200 ${running ? "opacity-60" : ""}`}
+            className={`flex-row items-center px-4 py-2 rounded-full ${running ? "opacity-60" : ""}`}
             onPress={handleOpenPicker}
             disabled={running}
+            style={{
+              backgroundColor: CoralPalette.surfaceAlt,
+              borderColor: CoralPalette.border,
+              borderWidth: 1,
+            }}
           >
             <View
               className="w-3 h-3 rounded-full mr-2"
-              style={{ backgroundColor: activity === "Focus" ? "#2f5168" : "#7e85ff" }}
+              style={{
+                backgroundColor: isRest ? "#9AA587" : CoralPalette.primary,
+              }}
             />
-            <Text className="text-base font-medium text-gray-800">{activity}</Text>
+            <Text
+              className="text-sm font-semibold"
+              style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}
+            >
+              {activity}
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View className="w-full items-center justify-center mt-[12%] mb-4 relative">
           <Text
-            className="text-7xl tracking-widest opacity-0"
+            className="text-8xl tracking-widest opacity-0 color-secondary-500"
             style={{
               ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
-              fontFamily: Platform.select({ ios: undefined, android: "monospace", default: undefined }),
+              fontFamily: "Nunito",
               includeFontPadding: false,
-              lineHeight: 88,
+              lineHeight: 100,
             }}
           >
             00:00
           </Text>
 
           <Text
-            className="text-8xl tracking-widest text-gray-900 absolute left-0 right-0 text-center"
+            className="text-8xl tracking-widest text-white absolute left-0 right-0 text-center"
             selectable={false}
             style={{
               ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
-              fontFamily: Platform.select({ ios: undefined, android: "monospace", default: undefined }),
+              fontFamily: "Nunito",
+              fontWeight: "100",
               includeFontPadding: false,
-              lineHeight: 90,
+              lineHeight: 100,
             }}
           >
             {`${mm}:${ss}`}
@@ -473,11 +445,20 @@ export default function IndexScreen() {
 
         <TouchableOpacity
           onPress={handleStartStop}
-          className={`${!running ? "bg-black-300" : "bg-yellow-400"} w-40 items-center py-3 mb-4 mt-2 rounded-full`}
+          className="w-40 items-center py-3 mb-4 mt-2 rounded-full shadow-sm opacity-100"
+          style={{
+            backgroundColor: CoralPalette.primary,
+            opacity: running ? 0.9 : 1,
+          }}
         >
-          <Text className="text-white text-xl font-semibold">{!running ? "Start" : "Stop"}</Text>
+          <Text
+            className="text-xl text-white font-semibold shadow-lg"
+            style={{ fontFamily: "Nunito" }}
+          >
+            {!running ? "Start" : "Give up"}
+          </Text>
         </TouchableOpacity>
-      </Animated.View>
+      </View>
 
       <ModePickerModal
         visible={pickerOpen}
@@ -493,6 +474,14 @@ export default function IndexScreen() {
           setStopModalOpen(false);
           void fullyStopAndReset("manual");
         }}
+      />
+
+      <SessionEndModal
+        visible={sessionSummary.visible}
+        coinsAwarded={sessionSummary.coinsAwarded}
+        durationMinutes={Math.floor(sessionSummary.durationSec / 60)}
+        activity={sessionSummary.activity}
+        onClose={closeSessionSummary}
       />
     </View>
   );

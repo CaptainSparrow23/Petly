@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, Modal, ActivityIndicator, Alert, Platform } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { useGlobalContext } from '@/lib/GlobalProvider';
+import React, { useState, useMemo } from "react";
+import { View, Text, TouchableOpacity, Modal, ActivityIndicator, Alert, Platform } from "react-native";
+import { Picker } from "@react-native-picker/picker";
+import { useGlobalContext } from "@/lib/GlobalProvider";
+import { CoralPalette } from "@/constants/colors";
 
 interface GoalsCardProps {
   todayTotalMinutes?: number;
@@ -81,39 +82,54 @@ export default function GoalsCard({
     }
   };
 
+  const renderProgress = (
+    label: string,
+    targetLabel: string,
+    progressPercent: number,
+    accent: string
+  ) => (
+    <View className="mt-6">
+      <View className="flex-row justify-between items-center">
+        <Text style={{ color: CoralPalette.mutedDark }}>{label}</Text>
+        <Text style={{ color: CoralPalette.dark, fontWeight: "600" }}>{targetLabel}</Text>
+      </View>
+      <View
+        className="mt-2 h-2.5 w-full overflow-hidden rounded-full"
+        style={{ backgroundColor: `${CoralPalette.border}55` }}
+      >
+        <View
+          className="h-full rounded-full"
+          style={{ width: `${progressPercent}%`, backgroundColor: accent }}
+        />
+      </View>
+      <Text className="mt-2 text-xs" style={{ color: CoralPalette.mutedDark }}>
+        {progressPercent}% complete
+      </Text>
+    </View>
+  );
+
   return (
     <>
-      <View className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-        <View className="flex-row justify-between">
-          <Text className="text-m text-gray-700">Goals</Text>
-          <TouchableOpacity onPress={handleEditPress}>
-            <Text className="text-sm p-2 bg-white border border-gray-200 text-black-300 rounded-xl">
+      <View
+        className="rounded-3xl p-5 mt-2"
+        style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+      >
+        <View className="flex-row justify-between items-center">
+          <Text style={{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }}>Goals</Text>
+          <TouchableOpacity
+            onPress={handleEditPress}
+                        className="rounded-full px-3 py-1"
+                        style={{ backgroundColor: `${CoralPalette.primaryLight}55` }}
+                        activeOpacity={0.85}
+          >
+            <Text className="text-sm font-medium" style={{ color: CoralPalette.primary }}>
               Edit Goals
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View className="mt-6">
-          <View className="flex-row justify-between items-center">
-            <Text className="text-sm text-gray-700">Daily focus goal</Text>
-            <Text className="text-sm text-gray-600">{formatMinutesLabel(dailyGoal)}</Text>
-          </View>
-          <View className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
-            <View className="h-full rounded-full" style={{ width: `${dailyProgress}%`, backgroundColor: '#191d31' }} />
-          </View>
-          <Text className="mt-2 text-xs text-gray-600">{dailyProgress}% complete</Text>
-        </View>
-
-        <View className="mt-5">
-          <View className="flex-row justify-between items-center">
-            <Text className="text-sm text-gray-700">Weekly focus goal</Text>
-            <Text className="text-sm text-gray-600">{formatMinutesLabel(weeklyGoal)}</Text>
-          </View>
-          <View className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
-            <View className="h-full rounded-full" style={{ width: `${weeklyProgress}%`, backgroundColor: '#191d31' }} />
-          </View>
-          <Text className="mt-2 text-xs text-gray-600">{weeklyProgress}% complete</Text>
-        </View>
+        {renderProgress("Daily focus goal", formatMinutesLabel(dailyGoal), dailyProgress, CoralPalette.primary)}
+        {renderProgress("Weekly focus goal", formatMinutesLabel(weeklyGoal), weeklyProgress, CoralPalette.primaryMuted)}
       </View>
 
       <Modal
@@ -123,13 +139,23 @@ export default function GoalsCard({
         onRequestClose={() => !saving && setModalVisible(false)}
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-white rounded-3xl p-6 w-[85%] max-w-md">
-            <Text className="text-xl font-rubik-bold text-gray-900 mb-6">Edit Goals</Text>
+          <View
+            className="rounded-3xl p-6 w-[85%] max-w-md"
+            style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+          >
+            <Text className="text-xl font-bold mb-6" style={{ color: CoralPalette.dark }}>
+              Edit Goals
+            </Text>
 
             {/* Daily wheel */}
             <View className="mb-6">
-              <Text className="text-sm text-gray-700 mb-2">Daily Focus Goal</Text>
-              <View className="border border-gray-300 rounded-2xl overflow-hidden">
+              <Text className="text-sm mb-2" style={{ color: CoralPalette.mutedDark }}>
+                Daily Focus Goal
+              </Text>
+              <View
+                className="rounded-2xl overflow-hidden"
+                style={{ borderColor: CoralPalette.border, borderWidth: 1 }}
+              >
                 <Picker
                   enabled={!saving}
                   selectedValue={dailySelected}
@@ -144,8 +170,13 @@ export default function GoalsCard({
             </View>
 
             <View className="mb-6">
-              <Text className="text-sm text-gray-700 mb-2">Weekly Focus Goal</Text>
-              <View className="border border-gray-300 rounded-2xl overflow-hidden">
+              <Text className="text-sm mb-2" style={{ color: CoralPalette.mutedDark }}>
+                Weekly Focus Goal
+              </Text>
+              <View
+                className="rounded-2xl overflow-hidden"
+                style={{ borderColor: CoralPalette.border, borderWidth: 1 }}
+              >
                 <Picker
                   enabled={!saving}
                   selectedValue={weeklySelected}
@@ -161,20 +192,27 @@ export default function GoalsCard({
 
             <View className="flex-row gap-3">
               <TouchableOpacity
-                className="flex-1 bg-gray-200 rounded-xl py-3 items-center"
+                className="flex-1 rounded-xl py-3 items-center"
+                style={{ backgroundColor: `${CoralPalette.border}55` }}
                 onPress={() => setModalVisible(false)}
                 disabled={saving}
               >
-                <Text className="text-base font-rubik-medium text-gray-700">Cancel</Text>
+                <Text className="text-base font-medium" style={{ color: CoralPalette.mutedDark }}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 className="flex-1 rounded-xl py-3 items-center"
-                style={{ backgroundColor: '#191d31' }}
+                style={{ backgroundColor: CoralPalette.primary }}
                 onPress={handleSave}
                 disabled={saving}
               >
-                {saving ? <ActivityIndicator color="white" /> : <Text className="text-base font-rubik-medium text-white">Save</Text>}
+                {saving ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-base font-medium text-white">Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>

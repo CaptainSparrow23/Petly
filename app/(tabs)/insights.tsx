@@ -6,6 +6,7 @@ import GoalsCard from "@/components/insights/GoalsCard";
 import FocusChart from "@/components/insights/FocusChart";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useInsights } from "@/hooks/useInsights";
+import { CoralPalette } from "@/constants/colors";
 
 export default function FocusScreen() {
   const { userProfile, showBanner } = useGlobalContext();
@@ -62,7 +63,7 @@ export default function FocusScreen() {
   const showBigLoader = anyLoading && !refreshing;
 
   return (
-    <View className="bg-white flex-1">
+    <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
       {showBigLoader ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" />
@@ -74,6 +75,7 @@ export default function FocusScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
+          contentContainerStyle={{ paddingBottom: 32 }}
         >
           <View className="mt-6 mb-4 flex-row gap-4">
             <TodayFocusCard />

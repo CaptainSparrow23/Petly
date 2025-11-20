@@ -38,11 +38,18 @@ export function useSessionUploader() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      const text = await res.text().catch(() => "");
+      let json: any = null;
+      try {
+        json = text ? JSON.parse(text) : null;
+      } catch {
+        // ignore
+      }
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
         console.error('Upload failed', res.status, text);
         throw new Error(`Upload failed (${res.status}): ${text || res.statusText}`);
       }
+      return json?.data?.coinsAwarded ?? 0;
     } finally {
       setPending(false);
       inflightKey.current = null;

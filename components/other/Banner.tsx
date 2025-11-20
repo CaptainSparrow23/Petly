@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
-import { View, Text, Animated } from 'react-native';
-import { CheckCircle, AlertCircle, Info, XCircle } from 'lucide-react-native';
-import type { LucideIcon } from 'lucide-react-native';
+import React, { useEffect } from "react";
+import { View, Text, Animated } from "react-native";
+import { CheckCircle, AlertCircle, Info, XCircle } from "lucide-react-native";
+import type { LucideIcon } from "lucide-react-native";
+import { CoralPalette } from "@/constants/colors";
 
-type BannerType = 'success' | 'error' | 'info' | 'warning';
+type BannerType = "success" | "error" | "info" | "warning";
 
 interface BannerProps {
   message: string;
@@ -13,36 +14,39 @@ interface BannerProps {
   duration?: number;
 }
 
-const bannerConfig: Record<BannerType, { icon: LucideIcon; bgColor: string; iconColor: string; textColor: string }> = {
+const bannerConfig: Record<
+  BannerType,
+  { icon: LucideIcon; bgColor: string; iconColor: string; textColor: string }
+> = {
   success: {
     icon: CheckCircle,
-    bgColor: '#10b981',
-    iconColor: '#ffffff',
-    textColor: '#ffffff',
+    bgColor: CoralPalette.primary,
+    iconColor: CoralPalette.white,
+    textColor: CoralPalette.white,
   },
   error: {
     icon: XCircle,
-    bgColor: '#ef4444',
-    iconColor: '#ffffff',
-    textColor: '#ffffff',
+    bgColor: "#C73F3C",
+    iconColor: CoralPalette.white,
+    textColor: CoralPalette.white,
   },
   warning: {
     icon: AlertCircle,
-    bgColor: '#f59e0b',
-    iconColor: '#ffffff',
-    textColor: '#ffffff',
+    bgColor: CoralPalette.primaryLight,
+    iconColor: CoralPalette.dark,
+    textColor: CoralPalette.dark,
   },
   info: {
     icon: Info,
-    bgColor: '#3b82f6',
-    iconColor: '#ffffff',
-    textColor: '#ffffff',
+    bgColor: CoralPalette.primaryMuted,
+    iconColor: CoralPalette.white,
+    textColor: CoralPalette.white,
   },
 };
 
 export const Banner: React.FC<BannerProps> = ({
   message,
-  type = 'info',
+  type = "info",
   visible,
   onHide,
   duration = 3000,
@@ -88,7 +92,7 @@ export const Banner: React.FC<BannerProps> = ({
     <Animated.View
       style={{
         transform: [{ translateY: slideAnim }],
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         left: 0,
         right: 0,
@@ -101,10 +105,10 @@ export const Banner: React.FC<BannerProps> = ({
           paddingVertical: 16,
           paddingHorizontal: 16,
           paddingTop: 60, // Account for status bar
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          shadowColor: '#000',
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#000",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.25,
           shadowRadius: 3.84,
@@ -116,11 +120,11 @@ export const Banner: React.FC<BannerProps> = ({
           style={{
             color: config.textColor,
             fontSize: 16,
-            fontWeight: '500',
+            fontWeight: "500",
             marginLeft: 12,
-            textAlign: 'center',
+            textAlign: "center",
           }}
-          className="font-rubik-medium"
+          className="font-medium"
         >
           {message}
         </Text>
