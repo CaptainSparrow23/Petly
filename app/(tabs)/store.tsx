@@ -17,6 +17,7 @@ import { useStoreCatalog } from "@/hooks/useStore";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import CoinBadge from "@/components/other/CoinBadge";
 import { Scroll } from "lucide-react-native";
+import { CoralPalette } from "@/constants/colors";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
@@ -202,7 +203,7 @@ const Store = () => {
   if (error) {
     return (
       <View className="flex-1 bg-white items-center justify-center px-6">
-        <Text className="text-base font-rubik-medium text-black-300">
+        <Text className="text-base font-medium text-black-300">
           Something went wrong
         </Text>
         <Text className="text-sm text-black-200 mt-2 text-center">{error}</Text>
@@ -212,32 +213,34 @@ const Store = () => {
 
   const EmptyState = () => (
     <View className="flex-1 bg-white items-center justify-center px-6">
-      <Text className="text-base font-rubik-medium text-black-300">
+      <Text className="text-base font-medium text-white-300">
         No pets found
       </Text>
-      <Text className="text-sm text-black-200 mt-2 text-center">
+      <Text className="text-sm text-white-200 mt-2 text-center">
         Check back later for new companions.
       </Text>
     </View>
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
       <CoinBadge />
 
       <ScrollView
       showsVerticalScrollIndicator={false}>
-        <View className="bg-white-100 pt-3 mt-3 ml-2">
+        <View className="pt-3 mt-3 ml-2" style={{ backgroundColor: "transparent" }}>
           <View className="px-6">
             <View className="flex-row items-center justify-between">
-              <Text className="text-2xl font-bold text-black-300">All Pets</Text>
+              <Text className="text-2xl font-bold" style={{ color: CoralPalette.dark }}>
+                All Pets
+              </Text>
               <TouchableOpacity onPress={toggleSortOrder} activeOpacity={0.7}>
-                <Text className="text-sm font-rubik-medium text-gray-600">
+                <Text className="text-sm font-semibold" style={{ color: CoralPalette.dark }}>
                   {sortOrder === "asc" ? "Sort: A → Z" : "Sort: Z → A"}
                 </Text>
               </TouchableOpacity>
             </View>
-            <Text className="text-sm text-black-200 mt-1">
+            <Text className="text-sm font-semibold mt-1" style={{ color: CoralPalette.mutedDark }}>
               Browse every pet available in the store.
             </Text>
           </View>

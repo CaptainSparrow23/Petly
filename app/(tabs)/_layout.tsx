@@ -6,6 +6,7 @@ import { Drawer } from 'expo-router/drawer';
 import { Cat, Home, Settings, Store, UsersRound, BarChart3, LogOut } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Text, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
+import { CoralPalette } from '@/constants/colors';
 
 const CustomDrawerContent = (props: any) => {
   const { userProfile, logout } = useGlobalContext();
@@ -34,20 +35,29 @@ const CustomDrawerContent = (props: any) => {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <DrawerContentScrollView {...props}>
+    <View style={{ flex: 1, backgroundColor: CoralPalette.primaryMuted }}>
+      <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 50 }}>
         <TouchableOpacity
-          className="py-5 bg-white items-center"
+          className="py-5 items-center"
+          style={{ backgroundColor: CoralPalette.primaryMuted }}
           onPress={() => router.replace('/(tabs)/settings')}
           activeOpacity={0.7}
         >
           <ProfilePicture
             profileId={userProfile?.profileId || null}
-            size={128}
-            className="border-4 border-white shadow-lg"
+            size={90}
+            className="shadow-lg border border-white"
           />
-          <Text className="text-2xl mt-2 font-semibold text-black-300">{displayName}</Text>
-          <Text className="text-m mt-1 text-gray-600 mb-5">
+          <Text
+            className="text-2xl mt-5 font-bold text-white"
+            style={{ fontFamily: "Nunito" }}
+          >
+            {displayName}
+          </Text>
+          <Text
+            className="text-m mt-1 text-white mb-5"
+            style={{ fontFamily: "Nunito" }}
+          >
             {username ? `@${username}` : 'No username set'}
           </Text>
         </TouchableOpacity>
@@ -56,10 +66,10 @@ const CustomDrawerContent = (props: any) => {
       </DrawerContentScrollView>
 
       {/* Logout Button at Bottom */}
-      <View className="p-4 pb-8">
+      <View className="p-10 pb-8">
         <TouchableOpacity
-          className="flex-row items-center py-3 px-4 rounded-full"
-          style={{ backgroundColor: isLogoutConfirm ? '#fee2e2' : '#f3f4f6' }}
+          className="flex-row items-center py-3 px-6 rounded-full"
+          style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: isLogoutConfirm ? CoralPalette.primary : CoralPalette.border, borderWidth: 1 }}
           onPress={handleLogout}
           activeOpacity={0.7}
           disabled={isLoggingOut}
@@ -70,8 +80,11 @@ const CustomDrawerContent = (props: any) => {
             <LogOut size={22} color="#ef4444" style={{ marginRight: 12 }} />
           )}
           <Text
-            className="text-base font-rubik-medium"
-            style={{ color: isLogoutConfirm ? '#dc2626' : '#ef4444' }}
+            className="text-base font-medium"
+            style={{
+              color: isLogoutConfirm ? CoralPalette.primary : CoralPalette.dark,
+              fontFamily: "Nunito",
+            }}
           >
             {isLoggingOut ? "Logging Out..." : isLogoutConfirm ? "Confirm" : "Log Out"}
           </Text>
@@ -89,14 +102,19 @@ const DrawerLayout = () => {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: '#fff', borderBottomWidth: 0, elevation: 0, shadowOpacity: 0 },
-        headerTitleStyle: { fontWeight: '600', color: '#000' },
-        headerTintColor: '#000',
-        drawerStyle: { width: 250 },
-        drawerActiveBackgroundColor: '#191d31',
+        headerTitleStyle: { fontWeight: '800', color: CoralPalette.white, fontFamily: "Nunito" },
+        headerTitleContainerStyle: { marginBottom: 10 },
+        headerLeftContainerStyle: { marginLeft: 10, marginBottom: 10 },
+        headerRightContainerStyle: { marginBottom: 10, marginRight: 10 },
+        headerTintColor: CoralPalette.white,
+        headerShadowVisible: false,
+        headerStyle: {height: 110, backgroundColor: CoralPalette.primaryMuted },
+        drawerStyle: { width: 210, backgroundColor: CoralPalette.primaryMuted },
+        drawerActiveBackgroundColor: CoralPalette.primaryLight,
         drawerInactiveBackgroundColor: 'transparent',
         drawerActiveTintColor: '#ffffff',
-        drawerInactiveTintColor: '#1f2937',
+        drawerInactiveTintColor: CoralPalette.white,
+        drawerLabelStyle: { fontFamily: "Nunito", fontSize: 16, fontWeight: '700' },
         drawerType: 'front',
         swipeEnabled: true,
       }}
@@ -104,7 +122,7 @@ const DrawerLayout = () => {
       <Drawer.Screen
         name="index"
         options={{
-          title: '',
+          title: 'Focus',
           headerTitle: () => null,
           // headerRight removed (coins)
           drawerLabel: 'Focus',

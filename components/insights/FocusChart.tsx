@@ -2,6 +2,7 @@ import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { VictoryAxis, VictoryBar, VictoryChart, VictoryLabel } from "victory-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
+import { CoralPalette } from "@/constants/colors";
 
 export type ChartRange = "today" | "week" | "sixWeeks";
 export type ChartDatum = { key: string; label: string; totalMinutes: number };
@@ -107,16 +108,28 @@ export default function FocusChart({
   );
 
   return (
-    <View className="relative my-4 rounded-2xl border border-gray-200 bg-gray-50 p-3">
-      <View className="mb-4 flex-row justify-between">
-        <Text className="text-m text-gray-900">{title}</Text>
+    <View
+      className="relative my-4 rounded-3xl p-5"
+      style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+    >
+      <View className="mb-4 flex-row justify-between items-center">
+        <Text style={{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }}>{title}</Text>
         <View className="relative">
-          <TouchableOpacity className="rounded-xl p-2 bg-white border border-gray-200" onPress={() => setMenuOpen((p) => !p)} activeOpacity={0.85}>
-            <Text className="text-sm font-rubik-medium text-black-300">{RANGE_LABELS[range]}</Text>
+          <TouchableOpacity
+            className="rounded-full px-3 py-1"
+            style={{ backgroundColor: `${CoralPalette.primaryLight}55` }}
+            onPress={() => setMenuOpen((p) => !p)}
+            activeOpacity={0.85}
+          >
+            <Text className="text-sm font-medium" style={{ color: CoralPalette.primary }}>
+              {RANGE_LABELS[range]}
+            </Text>
           </TouchableOpacity>
           {menuOpen && (
             <View
-              className="absolute -right-1 -top-1 w-40 rounded-xl overflow-hidden z-10 bg-white border border-gray-200">
+              className="absolute -right-1 -top-1 w-40 rounded-2xl overflow-hidden z-10"
+              style={{ backgroundColor: CoralPalette.surface, borderColor: CoralPalette.border, borderWidth: 1 }}
+            >
               {(["today", "week", "sixWeeks"] as ChartRange[]).map((val) => (
                 <TouchableOpacity
                   key={val}
@@ -124,12 +137,14 @@ export default function FocusChart({
                     setRange(val);
                     setMenuOpen(false);
                   }}
-                  className={`px-3 py-2 ${range === val ? "bg-black-300" : ""}`}
+                  className="px-3 py-2"
+                  style={{
+                    backgroundColor: range === val ? CoralPalette.primary : "transparent",
+                  }}
                 >
                   <Text
-                    className={`text-xs font-rubik-medium ${
-                      range === val ? "text-white" : "text-slate-900"
-                    }`}
+                    className="text-xs font-medium"
+                    style={{ color: range === val ? "#fff" : CoralPalette.dark }}
                   >
                     {RANGE_LABELS[val]}
                   </Text>
@@ -159,9 +174,15 @@ export default function FocusChart({
             <VictoryAxis
               tickValues={xTickValues}
               style={{
-                axis: { stroke: "#e2e8f0" },
+                axis: { stroke: "#f3d9cf" },
                 ticks: { stroke: "transparent" },
-                tickLabels: { fill: "#0f172a", fontSize: 12, padding: 12, fontFamily: "Rubik-Medium" },
+                tickLabels: {
+                  fill: CoralPalette.dark,
+                  fontSize: 12,
+                  padding: 12,
+                  fontFamily: "Nunito",
+                  fontWeight: "600",
+                },
                 grid: { stroke: "transparent" },
               }}
             />
@@ -170,7 +191,13 @@ export default function FocusChart({
               style={{
                 axis: { stroke: "transparent" },
                 ticks: { stroke: "transparent" },
-                tickLabels: { fill: "#94a3b8", fontSize: 12, padding: 6, fontFamily: "Rubik-Regular" },
+                tickLabels: {
+                  fill: "#a0a0a0",
+                  fontSize: 12,
+                  padding: 6,
+                  fontFamily: "Nunito",
+                  fontWeight: "400",
+                },
                 grid: { stroke: "#e5e7eb", strokeDasharray: "4,4" },
               }}
             />
@@ -179,10 +206,16 @@ export default function FocusChart({
               barWidth={18}
               cornerRadius={{ top: 8, bottom: 0 }}
               labels={({ datum }) => (datum.displayValue > 0 ? formatValueLabel(datum.displayValue) : "")}
-              labelComponent={<VictoryLabel dy={-2} style={{ fill: "#64748b", fontSize: 11, fontFamily: "Rubik-Medium" }} />}
+              labelComponent={
+                <VictoryLabel
+                  dy={-2}
+                  style={{ fill: "#64748b", fontSize: 11, fontFamily: "Nunito", fontWeight: "600" }}
+                />
+              }
               style={{
                 data: {
-                  fill: ({ datum }: any) => (datum.displayValue > 0 ? "#191d31" : "#e5e7eb"),
+                  fill: ({ datum }: any) =>
+                    datum.displayValue > 0 ? CoralPalette.primary : `${CoralPalette.border}`,
                 },
               }}
             />

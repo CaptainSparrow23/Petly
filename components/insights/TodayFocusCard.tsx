@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
-import { View, Text } from 'react-native';
-import { useGlobalContext } from '@/lib/GlobalProvider';
+import React, { useMemo } from "react";
+import { View, Text } from "react-native";
+import { useGlobalContext } from "@/lib/GlobalProvider";
+import { CoralPalette } from "@/constants/colors";
 
 const parseTimeStringToSeconds = (timeString?: string | null) => {
   if (!timeString) return 0;
@@ -17,8 +18,8 @@ const formatDetailedDuration = (totalSeconds: number) => {
   const seconds = totalSeconds % 60;
   const parts: string[] = [];
   if (hours > 0) parts.push(`${hours} hr${hours === 1 ? '' : 's'}`);
-  if (minutes > 0) parts.push(`${minutes} min${minutes === 1 ? '' : 's'}`);
-  if (seconds > 0 || parts.length === 0) parts.push(`${seconds} sec${seconds === 1 ? '' : 's'}`);
+  if (minutes > 0) parts.push(`${minutes} m`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds} s`);
   return parts.join(' ');
 };
 
@@ -46,13 +47,23 @@ export default function TodayFocusCard() {
     return appSettings.displayFocusInHours ? formatHours(totalSeconds) : formatDetailedDuration(totalSeconds);
   }, [totalSeconds, appSettings.displayFocusInHours]);
 
+
   return (
-    <View className="w-[65%] relative rounded-2xl border border-gray-200 bg-gray-50 p-3">
-      <Text className="text-m text-gray-700">Today&apos;s Focus</Text>
-      <Text className="absolute bottom-2 right-3 text-3xl font-semibold text-black-300">
+    <View
+      className="w-[65%] rounded-3xl p-5"
+      style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+    >
+      <View className="flex-row items-center justify-between">
+        <Text style={{ color: CoralPalette.mutedDark, fontSize: 14 }}>Today&apos;s Focus</Text>
+       
+      </View>
+
+      <Text className="mt-6 text-5xl font-extrabold" style={{ color: CoralPalette.dark, textAlign: "right" }}>
         {totalSeconds > 0
           ? durationLabel
-          : appSettings.displayFocusInHours ? "0 hrs" : "0 mins 0 secs"}
+          : appSettings.displayFocusInHours
+          ? "0 h"
+          : "0 m 0 s"}
       </Text>
     </View>
   );
