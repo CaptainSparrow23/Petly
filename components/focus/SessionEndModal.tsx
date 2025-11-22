@@ -40,9 +40,6 @@ export default function SessionEndModal({
           <Text className="text-2xl font-semibold mb-2" style={{ color: CoralPalette.dark }}>
             Session Complete!
           </Text>
-          <Text className="mb-3 text-center" style={{ color: CoralPalette.mutedDark }}>
-            You've {activity.toLowerCase()}ed for {durationLabel}.
-          </Text>
           <View className="items-center">
             {coinsAwarded > 0 ? (
               <View className="flex-row w-60 h-24 items-center justify-center">

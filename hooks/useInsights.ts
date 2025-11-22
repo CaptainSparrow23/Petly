@@ -18,15 +18,6 @@ type WeekResponse = {
     tz: string;
     weekStart: string; // YYYY-MM-DD
     days: { date: string; label: string; totalMinutes: number }[];
-    sixWeekSummary?: {
-      weekId: string;        // e.g. "2025-W41"
-      start: string;         // YYYY-MM-DD
-      end: string;           // YYYY-MM-DD
-      totalMinutes: number;
-      sessionsCount: number;
-      isCurrentWeek?: boolean;
-      label: string;         // e.g. "6th Jun" (from backend)
-    }[];
     currentWeekTotal?: number; // Total minutes for current week
   };
   error?: string;
@@ -87,7 +78,6 @@ export function useInsights(
 
   // week + six weeks (same endpoint)
   const [week, setWeek] = useState<ChartDatum[]>([]);
-  const [sixWeeks, setSixWeeks] = useState<ChartDatum[]>([]);
   const [currentWeekTotal, setCurrentWeekTotal] = useState<number>(0);
   const [weekLoading, setWeekLoading] = useState<boolean>(false);
   const [weekError, setWeekError] = useState<string | null>(null);
@@ -115,19 +105,11 @@ export function useInsights(
         totalMinutes: Math.max(0, Math.floor(d.totalMinutes || 0)),
       }));
       setWeek(weekRows);
-
-      const sixRows: ChartDatum[] = (json.data.sixWeekSummary ?? []).map((w) => ({
-        key: w.weekId,
-        label: w.label,
-        totalMinutes: Math.max(0, Math.floor(w.totalMinutes || 0)),
-      }));
-      setSixWeeks(sixRows);
       
       setCurrentWeekTotal(json.data.currentWeekTotal ?? 0);
     } catch (e: any) {
       setWeekError(e?.message || "Failed to load week data");
       setWeek([]);
-      setSixWeeks([]);
       setCurrentWeekTotal(0);
     } finally {
       setWeekLoading(false);
@@ -208,7 +190,6 @@ export function useInsights(
 
     // week + six-week
     week,
-    sixWeeks,
     currentWeekTotal,
     weekLoading,
     weekError,

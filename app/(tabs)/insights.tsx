@@ -18,9 +18,6 @@ export default function FocusScreen() {
 
   const {
     streak,
-    today,
-    week,
-    sixWeeks,
     currentWeekTotal,
     dailyGoal,
     weeklyGoal,
@@ -91,11 +88,7 @@ export default function FocusScreen() {
             onUpdateGoals={handleUpdateGoals}
           />
 
-          <FocusChart
-            data={{ today, week, sixWeeks }}
-            initialRange="today"
-            title="Focused Time Distribution"
-          />
+          <FocusChart title="Focused Time Distribution" />
         </ScrollView>
       )}
     </View>

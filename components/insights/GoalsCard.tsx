@@ -4,6 +4,8 @@ import { Picker } from "@react-native-picker/picker";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 
+const FONT = { fontFamily: "Nunito" };
+
 interface GoalsCardProps {
   todayTotalMinutes?: number;
   currentWeekTotal?: number;
@@ -90,8 +92,8 @@ export default function GoalsCard({
   ) => (
     <View className="mt-6">
       <View className="flex-row justify-between items-center">
-        <Text style={{ color: CoralPalette.mutedDark }}>{label}</Text>
-        <Text style={{ color: CoralPalette.dark, fontWeight: "600" }}>{targetLabel}</Text>
+        <Text style={[{ color: CoralPalette.mutedDark }, FONT]}>{label}</Text>
+        <Text style={[{ color: CoralPalette.dark, fontWeight: "600" }, FONT]}>{targetLabel}</Text>
       </View>
       <View
         className="mt-2 h-2.5 w-full overflow-hidden rounded-full"
@@ -102,7 +104,7 @@ export default function GoalsCard({
           style={{ width: `${progressPercent}%`, backgroundColor: accent }}
         />
       </View>
-      <Text className="mt-2 text-xs" style={{ color: CoralPalette.mutedDark }}>
+      <Text className="mt-2 text-xs" style={[{ color: CoralPalette.mutedDark }, FONT]}>
         {progressPercent}% complete
       </Text>
     </View>
@@ -115,14 +117,14 @@ export default function GoalsCard({
         style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
       >
         <View className="flex-row justify-between items-center">
-          <Text style={{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }}>Goals</Text>
+          <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}>Goals</Text>
           <TouchableOpacity
             onPress={handleEditPress}
                         className="rounded-full px-3 py-1"
                         style={{ backgroundColor: `${CoralPalette.primaryLight}55` }}
                         activeOpacity={0.85}
           >
-            <Text className="text-sm font-medium" style={{ color: CoralPalette.primary }}>
+            <Text className="text-sm font-medium" style={[{ color: CoralPalette.primary }, FONT]}>
               Edit Goals
             </Text>
           </TouchableOpacity>
@@ -143,13 +145,13 @@ export default function GoalsCard({
             className="rounded-3xl p-6 w-[85%] max-w-md"
             style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
           >
-            <Text className="text-xl font-bold mb-6" style={{ color: CoralPalette.dark }}>
+            <Text className="text-xl font-bold mb-6" style={[{ color: CoralPalette.dark }, FONT]}>
               Edit Goals
             </Text>
 
             {/* Daily wheel */}
             <View className="mb-6">
-              <Text className="text-sm mb-2" style={{ color: CoralPalette.mutedDark }}>
+              <Text className="text-sm mb-2" style={[{ color: CoralPalette.mutedDark }, FONT]}>
                 Daily Focus Goal
               </Text>
               <View
@@ -160,17 +162,20 @@ export default function GoalsCard({
                   enabled={!saving}
                   selectedValue={dailySelected}
                   onValueChange={(v) => setDailySelected(v)}
-                  itemStyle={Platform.select({ ios: { height: 180 } })}
+                  style={{ color: CoralPalette.dark }}
+                  itemStyle={Platform.select({
+                    ios: { height: 180, color: CoralPalette.dark, fontFamily: "Nunito" },
+                  })}
                 >
                   {dailyOptions.map((m) => (
-                    <Picker.Item key={m} label={`${m} mins`} value={m} />
+                    <Picker.Item key={m} label={`${m} mins`} value={m} color={CoralPalette.dark} />
                   ))}
                 </Picker>
               </View>
             </View>
 
             <View className="mb-6">
-              <Text className="text-sm mb-2" style={{ color: CoralPalette.mutedDark }}>
+              <Text className="text-sm mb-2" style={[{ color: CoralPalette.mutedDark }, FONT]}>
                 Weekly Focus Goal
               </Text>
               <View
@@ -181,10 +186,13 @@ export default function GoalsCard({
                   enabled={!saving}
                   selectedValue={weeklySelected}
                   onValueChange={(v) => setWeeklySelected(v)}
-                  itemStyle={Platform.select({ ios: { height: 180 } })}
+                  style={{ color: CoralPalette.dark }}
+                  itemStyle={Platform.select({
+                    ios: { height: 180, color: CoralPalette.dark, fontFamily: "Nunito" },
+                  })}
                 >
                   {weeklyOptions.map((m) => (
-                    <Picker.Item key={m} label={`${m} mins`} value={m} />
+                    <Picker.Item key={m} label={`${m} mins`} value={m} color={CoralPalette.dark} />
                   ))}
                 </Picker>
               </View>
@@ -197,7 +205,7 @@ export default function GoalsCard({
                 onPress={() => setModalVisible(false)}
                 disabled={saving}
               >
-                <Text className="text-base font-medium" style={{ color: CoralPalette.mutedDark }}>
+                <Text className="text-base font-medium" style={[{ color: CoralPalette.mutedDark }, FONT]}>
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -211,7 +219,7 @@ export default function GoalsCard({
                 {saving ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-base font-medium text-white">Save</Text>
+                  <Text className="text-base font-medium text-white" style={FONT}>Save</Text>
                 )}
               </TouchableOpacity>
             </View>

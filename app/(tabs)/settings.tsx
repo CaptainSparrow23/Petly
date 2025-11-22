@@ -14,6 +14,7 @@ import {
  Users,
  Bell,
  Clock,
+ BarChart3,
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { useGlobalContext } from "@/lib/GlobalProvider";
@@ -48,7 +49,7 @@ const SectionCard = ({ title, icon: Icon, children }: SectionCardProps) => {
    <View className="flex-row items-center px-5 pt-5 pb-3">
     <View
      className="mr-2 rounded-full p-2"
-     style={{ backgroundColor: CoralPalette.white }}
+     style={{ backgroundColor: CoralPalette.surfaceAlt }}
     >
      <Icon size={20} color={CoralPalette.primary} />
     </View>
@@ -202,7 +203,7 @@ const Settings = () => {
      />
    </SectionCard>
 
-   <SectionCard title="Insights Overview" icon={Clock}>
+   <SectionCard title="Insights Overview" icon={BarChart3}>
      <LinkRow label="First Day of the Week" value="Sunday" />
      <LinkRow label="Daily Start Time" value="00:00 (Default)" />
      <ToggleRow

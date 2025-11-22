@@ -10,6 +10,7 @@ interface TimeTrackerProps {
   trackColor?: string;
   trackBgColor?: string;
   centerContent?: React.ReactNode;
+  onPreviewProgress?: (progress: number | null) => void;
   showHandle?: boolean;
   centerFillColor?: string;
   maxSeconds?: number;
@@ -24,6 +25,7 @@ export default function TimeTracker({
   trackColor = CoralPalette.primary,
   trackBgColor = CoralPalette.primaryLight,
   centerContent,
+  onPreviewProgress,
   showHandle = true,
   centerFillColor = CoralPalette.surfaceAlt,
   maxSeconds = 2 * 60 * 60,
@@ -41,8 +43,8 @@ export default function TimeTracker({
   }, [progress]);
 
   // geometry (kept minimal; literals where sensible)
-  const CANVAS_SIZE = 360;
-  const TRACK_STROKE = 16;
+  const CANVAS_SIZE = 350;
+  const TRACK_STROKE = 22;
   const center = CANVAS_SIZE / 2;
   const radius = (CANVAS_SIZE - 25) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -98,7 +100,8 @@ export default function TimeTracker({
     const updated = clamp360(prev + delta);
     prevAngleRef.current = updated;
     setAngle(updated);
-  }, []);
+    onPreviewProgress?.(updated / 360);
+  }, [onPreviewProgress]);
 
   // build gesture handlers (no tap flicker, snap on release)
   const panResponder = useMemo(
@@ -114,6 +117,7 @@ export default function TimeTracker({
           if (disabled) return;
           const a = clamp360(getTouchAngle(e));
           tapStartAngleRef.current = a;
+          onPreviewProgress?.(a / 360);
         },
 
         // drag smoothly after a tiny movement threshold
@@ -128,6 +132,7 @@ export default function TimeTracker({
           const snapped = snapAngle(prevAngleRef.current || tapStartAngleRef.current);
           prevAngleRef.current = snapped;
           setAngle(snapped);
+          onPreviewProgress?.(null);
           onChange?.(snapped / 360);
         },
 
@@ -136,24 +141,25 @@ export default function TimeTracker({
           const snapped = snapAngle(prevAngleRef.current || tapStartAngleRef.current);
           prevAngleRef.current = snapped;
           setAngle(snapped);
+          onPreviewProgress?.(null);
           onChange?.(snapped / 360);
         },
       }),
-    [disabled, isTouchOnRing, getTouchAngle, updateAngleSmooth, snapAngle, onChange]
+    [disabled, isTouchOnRing, getTouchAngle, updateAngleSmooth, snapAngle, onChange, onPreviewProgress]
   );
 
   // handle position
   const handleRad = ((angle - 90) * Math.PI) / 180;
   const handleX = center + radius * Math.cos(handleRad);
   const handleY = center + radius * Math.sin(handleRad);
-  const HANDLE_RADIUS = 16;
+  const HANDLE_RADIUS = 20;
 
   return (
     <View style={{ width: CANVAS_SIZE, height: CANVAS_SIZE }} {...panResponder.panHandlers}>
       <Svg width={CANVAS_SIZE} height={CANVAS_SIZE} viewBox={`${-PAD} ${-PAD} ${CANVAS_SIZE + PAD * 2} ${CANVAS_SIZE + PAD * 2}`}>
         {/* center fill */}
         {centerFillColor ? (
-          <Circle cx={center} cy={center} r={radius - 8} fill={centerFillColor} />
+          <Circle cx={center} cy={center} r={radius - 11} fill={centerFillColor} />
         ) : null}
         {/* background ring */}
         <Circle cx={center} cy={center} r={radius} stroke={trackBgColor} strokeWidth={TRACK_STROKE} fill="none" opacity={hideRing ? 0 : 1} />
@@ -167,7 +173,7 @@ export default function TimeTracker({
           fill="none"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
+          strokeLinecap="butt"
           rotation={-90}
           originX={center}
           originY={center}
