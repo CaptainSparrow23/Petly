@@ -9,6 +9,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 console.log("[GlobalProvider] API_BASE_URL:", API_BASE_URL);
 
+const toNumber = (value: unknown, fallback = 0) => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 interface UserProfile {
     userId: string;
     username: string | null;
@@ -21,6 +27,9 @@ interface UserProfile {
     coins: number;
     ownedPets: string[];
     selectedPet: string | null;
+    dailyStreak: number;
+    highestStreak: number;
+    totalFocusSeconds: number;
 }
 
 type BannerType = "success" | "error" | "info" | "warning";
@@ -116,18 +125,23 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
             console.log("📦 Backend response:", data);
 
             if (data.success && data.data) {
-                const profile = data.data as UserProfile;
+                const profile = data.data as Partial<UserProfile>;
 
                 // Compute minutes (rounded down) - note: backend returns timeActiveToday in SECONDS
-                const timeActiveTodayMinutes = Math.floor((profile.timeActiveToday ?? 0) / 60);
+                const timeActiveTodayValue = toNumber(profile.timeActiveToday);
+                const timeActiveTodayMinutes = Math.floor(timeActiveTodayValue / 60);
 
                 const updatedProfile = {
                     ...profile,
+                    timeActiveToday: timeActiveTodayValue,
                     timeActiveTodayMinutes,
                     minutesByHour: Array.isArray(profile.minutesByHour) ? profile.minutesByHour : Array(24).fill(0),
-                    coins: typeof profile.coins === "number" ? profile.coins : 0,
+                    coins: toNumber(profile.coins),
                     ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_skye"],
-                };
+                    dailyStreak: toNumber(profile.dailyStreak),
+                    highestStreak: toNumber(profile.highestStreak),
+                    totalFocusSeconds: toNumber(profile.totalFocusSeconds),
+                } as UserProfile;
 
                 setUserProfile(updatedProfile);
                 console.log("✅ User profile updated:", updatedProfile);

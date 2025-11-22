@@ -41,6 +41,7 @@ export default function IndexScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [stopModalOpen, setStopModalOpen] = useState(false);
   const [lastCountdownTargetSec, setLastCountdownTargetSec] = useState(INITIAL_COUNTDOWN_SECONDS);
+  const [previewSeconds, setPreviewSeconds] = useState<number | null>(null);
 
   const { loggedIn } = useLocalSearchParams();
   const { showBanner, userProfile, refetchUserProfile, appSettings } = useGlobalContext();
@@ -235,9 +236,19 @@ export default function IndexScreen() {
       setLastCountdownTargetSec(next);
     }
   };
+  const handlePreviewProgress = (progress: number | null) => {
+    if (progress == null) {
+      setPreviewSeconds(null);
+      return;
+    }
+    const SNAP_S = 300;
+    const raw = progress * maxSessionSeconds;
+    const next = Math.round(raw / SNAP_S) * SNAP_S;
+    setPreviewSeconds(next);
+  };
   const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
 
-  const displaySeconds = secondsToShow;
+  const displaySeconds = previewSeconds ?? secondsToShow;
   const totalMinutes = Math.floor(displaySeconds / 60);
   const seconds = Math.floor(displaySeconds % 60);
   const mm = totalMinutes.toString().padStart(2, "0");
@@ -250,8 +261,8 @@ export default function IndexScreen() {
   const idleAnimationView = idleAnimationSource ? (
     <PetAnimation
       source={idleAnimationSource}
-      containerStyle={{ marginTop: 25 }}
-      animationStyle={{ width: "230%", height: "230%" }}
+      containerStyle={{ marginTop: 35 }}
+      animationStyle={{ width: "200%", height: "200%" }}
     />
   ) : null;
 
@@ -259,7 +270,7 @@ export default function IndexScreen() {
     <PetAnimation
       source={focusAnimationSource}
       containerStyle={{ paddingLeft: 28, paddingTop: 12 }}
-      animationStyle={{ width: "72%", height: "72%" }}
+      animationStyle={{ width: "65%", height: "65%" }}
     />
   ) : null;
 
@@ -267,7 +278,7 @@ export default function IndexScreen() {
     <PetAnimation
       source={restAnimationSource}
       containerStyle={{ marginLeft: 20, marginTop: 10 }}
-      animationStyle={{ width: "80%", height: "80%" }}
+      animationStyle={{ width: "70%", height: "70%" }}
     />
   ) : null;
 
@@ -342,7 +353,7 @@ export default function IndexScreen() {
       <CoinBadge />
 
       <View
-        className="absolute -top-12 left-1/2 -translate-x-1/2 z-10 flex-row rounded-full overflow-hidden"
+        className="absolute -top-14 left-1/2 -translate-x-1/2 z-10 flex-row rounded-full overflow-hidden"
         style={{
           backgroundColor: CoralPalette.surfaceAlt,
           borderColor: CoralPalette.border,
@@ -352,7 +363,7 @@ export default function IndexScreen() {
         <TouchableOpacity
           onPress={() => setMode("countdown")}
           disabled={running}
-          className="w-12 items-center py-2"
+          className="w-16 items-center py-3"
           style={{ backgroundColor: mode === "countdown" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
         >
           <Hourglass size={20} color={mode === "countdown" ? "#ffffff" : CoralPalette.primary} />
@@ -360,7 +371,7 @@ export default function IndexScreen() {
         <TouchableOpacity
           onPress={() => setMode("timer")}
           disabled={running}
-          className="w-12 items-center py-2"
+          className="w-16 items-center py-3"
           style={{ backgroundColor: mode === "timer" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
         >
           <Timer size={20} color={mode === "timer" ? "#ffffff" : CoralPalette.primary} />
@@ -382,6 +393,7 @@ export default function IndexScreen() {
             showHandle={mode === "countdown" && !running && !stopModalOpen}
             trackColor={trackColor}
             trackBgColor={trackBgColor}
+            onPreviewProgress={handlePreviewProgress}
             centerContent={animationCenterContent}
             centerFillColor={centerFillColor}
             maxSeconds={maxSessionSeconds}
@@ -415,28 +427,29 @@ export default function IndexScreen() {
           </TouchableOpacity>
         </View>
 
-        <View className="w-full items-center justify-center mt-[12%] mb-4 relative">
+        <View className="w-full items-center justify-center mt-10 relative">
           <Text
             className="text-8xl tracking-widest opacity-0 color-secondary-500"
             style={{
               ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
               fontFamily: "Nunito",
               includeFontPadding: false,
-              lineHeight: 100,
+              lineHeight: 120,
             }}
           >
             00:00
           </Text>
 
           <Text
-            className="text-8xl tracking-widest text-white absolute left-0 right-0 text-center"
+            className="tracking-widest text-white absolute left-0 right-0 text-center"
             selectable={false}
             style={{
               ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
               fontFamily: "Nunito",
               fontWeight: "100",
               includeFontPadding: false,
-              lineHeight: 100,
+              lineHeight: 120,
+              fontSize: 90,
             }}
           >
             {`${mm}:${ss}`}
@@ -445,7 +458,7 @@ export default function IndexScreen() {
 
         <TouchableOpacity
           onPress={handleStartStop}
-          className="w-40 items-center py-3 mb-4 mt-2 rounded-full shadow-sm opacity-100"
+          className="w-40 items-center py-3 mb-10 mt-2 rounded-full shadow-sm opacity-100"
           style={{
             backgroundColor: CoralPalette.primary,
             opacity: running ? 0.9 : 1,

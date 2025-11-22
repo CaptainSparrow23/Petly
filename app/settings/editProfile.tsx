@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
  ScrollView,
  Text,
@@ -11,10 +11,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useFocusEffect } from "@react-navigation/native";
 import { ChevronLeft, Check, Edit2 } from "lucide-react-native";
 import { router } from "expo-router";
 import Constants from "expo-constants";
 import { ProfilePicture } from "@/components/other/ProfilePicture";
+import { CoralPalette } from "@/constants/colors";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
@@ -25,7 +27,7 @@ const PROFILE_OPTIONS = [
 ];
 
 const EditProfile = () => {
- const { userProfile, updateUserProfile } = useGlobalContext();
+ const { userProfile, updateUserProfile, refetchUserProfile } = useGlobalContext();
  const [username, setUsername] = useState("");
  const [selectedProfileId, setSelectedProfileId] = useState<number>(1);
  const [showProfilePicker, setShowProfilePicker] = useState(false);
@@ -47,6 +49,13 @@ const EditProfile = () => {
    setUsernameDraft(currentUsername);
   }
  }, [userProfile]);
+
+ useFocusEffect(
+  useCallback(() => {
+   if (!userProfile?.userId) return;
+   refetchUserProfile().catch((err) => console.error("Failed to refetch profile", err));
+  }, [userProfile?.userId, refetchUserProfile])
+ );
 
  const handleSave = async () => {
   if (!userProfile?.userId) {
@@ -118,28 +127,31 @@ const EditProfile = () => {
   }
  };
 
- const hasChanges =
-  username.trim() !== originalUsername ||
-  selectedProfileId !== originalProfileId;
+const hasChanges =
+ username.trim() !== originalUsername ||
+ selectedProfileId !== originalProfileId;
+
+const FONT = { fontFamily: "Nunito" };
 
  return (
-  <SafeAreaView className="flex-1 bg-[#f3f4f6]">
+  <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
    <View className="flex-row items-center justify-between px-4 py-4">
     <TouchableOpacity onPress={() => router.back()}>
-     <ChevronLeft size={24} color="#0f172a" />
+     <ChevronLeft size={24} color={CoralPalette.dark} />
     </TouchableOpacity>
-    <Text className="text-[17px] font-semibold text-black">
-     Edit Profile
+    <Text className="text-[17px] ml-4 font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
+     Profile
     </Text>
     <TouchableOpacity
-     onPress={handleSave}
-     disabled={isSaving || !hasChanges}
+      onPress={handleSave}
+      disabled={isSaving || !hasChanges}
     >
      {isSaving ? (
-      <ActivityIndicator size="small" color="#007AFF" />
+      <ActivityIndicator size="small" color={CoralPalette.primary} />
      ) : (
       <Text
-       className={`text-lg font-medium ${hasChanges ? "text-blue-500" : "text-gray-400"}`}
+       className="text-lg mb-1 font-medium"
+        style={[{ color: hasChanges ? CoralPalette.primary : "transparent" }, FONT]}
       >
        Done
       </Text>
@@ -152,27 +164,43 @@ const EditProfile = () => {
     showsVerticalScrollIndicator={false}
     contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
    >
-    <View className="rounded-3xl border border-gray-100 bg-white px-8 py-8 shadow-sm">
+    <View
+      className="rounded-3xl px-8 py-8 mt-16 shadow-sm"
+      style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+    >
      <TouchableOpacity
       className="items-center"
       activeOpacity={0.8}
       onPress={() => setShowProfilePicker(true)}
      >
-      <ProfilePicture profileId={selectedProfileId} size={120} />
-      <Text className="mt-4 text-2xl font-bold text-black">
+      <View className="-mt-24">
+       <View
+        className="relative rounded-full overflow-hidden border-4 border-white"
+        style={{ width: 120, height: 120 }}
+       >
+        <ProfilePicture profileId={selectedProfileId} size={120} />
+        <View className="absolute bottom-0 left-0 right-0 bg-black/70 items-center justify-center" style={{ height: 25 }}>
+         <Text className="text-xs font-semibold tracking-wider text-white" style={FONT}>
+          Edit
+         </Text>
+        </View>
+       </View>
+      </View>
+      <Text className="mt-1 text-2xl font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
        {userProfile?.displayName || "Petly Explorer"}
       </Text>
      </TouchableOpacity>
 
-     <View className="px-2 py-2">
+     <View className="px-2 py-1 -mt-3">
       <View className="flex-row items-center justify-center">
        <View className="mr-3">
-        <Text className="mt-2 ml-8 text-lg text-gray-800">
+        <Text className="mt-2 ml-8 text-lg" style={[{ color: CoralPalette.mutedDark }, FONT]}>
          @ {username || "Not set"}
         </Text>
        </View>
        <TouchableOpacity
         className="flex-row items-center rounded-full mt-2 border border-gray-200 px-2 py-1.5"
+        style={{ borderColor: CoralPalette.border }}
         onPress={() => {
          setUsernameDraft(username);
          setShowUsernameModal(true);
@@ -181,6 +209,25 @@ const EditProfile = () => {
         <Edit2 size={16} color="#64748b" />
        </TouchableOpacity>
       </View>
+     </View>
+
+     <View className="flex-row items-center justify-between">
+      <View className="flex-1 items-center justify-center">
+       <Text className="mt-4 text-center text-base font-sm" style={[{ color: CoralPalette.dark }, FONT]}>
+        Highest Streak
+       </Text>
+       <Text className="mt-2 text-center text-4xl font-bold" style={[{ color: CoralPalette.primary }, FONT]}>
+        {`${userProfile?.highestStreak ?? 0}`}
+       </Text>
+      </View>
+     <View className="flex-1 items-center justify-center">
+        <Text className="mt-4 text-center text-base font-sm" style={[{ color: CoralPalette.dark }, FONT]}>
+          Total Focus Hours
+        </Text>
+        <Text className="mt-2 text-center text-4xl font-bold" style={[{ color: CoralPalette.primary }, FONT]}>
+         {((userProfile?.totalFocusSeconds ?? 0) / 3600).toFixed(0)}
+        </Text>
+     </View>
      </View>
     </View>
    </ScrollView>
@@ -202,7 +249,7 @@ const EditProfile = () => {
       className="bg-white rounded-3xl p-6 mx-6 w-11/12 max-w-md"
       onPress={(e) => e.stopPropagation()}
      >
-      <Text className="text-2xl font-bold text-gray-900 mb-4 text-center">
+      <Text className="text-2xl font-bold text-gray-900 mb-4 text-center" style={FONT}>
        Choose Profile Picture
       </Text>
 
@@ -216,23 +263,24 @@ const EditProfile = () => {
          <View className="relative">
           <ProfilePicture profileId={option.id} size={100} />
           {selectedProfileId === option.id && (
-           <View className="absolute -top-2 -right-2 bg-blue-500 rounded-full p-1">
+           <View className="absolute -top-2 -right-2 rounded-full p-1" style={{ backgroundColor: CoralPalette.primary }}>
             <Check size={20} color="#fff" />
            </View>
           )}
-         </View>
-         <Text className="text-base text-gray-700 mt-2">
-          {option.name}
-         </Text>
+        </View>
+        <Text className="text-base mt-2" style={[{ color: CoralPalette.mutedDark }, FONT]}>
+         {option.name}
+        </Text>
         </TouchableOpacity>
        ))}
       </View>
 
       <TouchableOpacity
        onPress={() => setShowProfilePicker(false)}
-       className="bg-blue-500 rounded-xl py-3 px-6"
+       className="rounded-xl py-3 px-6"
+       style={{ backgroundColor: CoralPalette.primary }}
       >
-       <Text className="text-lg font-medium text-white text-center">
+        <Text className="text-lg font-medium text-white text-center" style={FONT}>
         Done
        </Text>
       </TouchableOpacity>
@@ -254,15 +302,20 @@ const EditProfile = () => {
     >
      <TouchableOpacity
       activeOpacity={1}
-      className="bg-white rounded-3xl p-5 mx-6 w-2/3"
+      className="rounded-3xl p-5 mx-6 w-2/3"
+      style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
       onPress={(e) => e.stopPropagation()}
      >
-      <Text className="text-xl font-bold text-gray-900 mb-4 text-center">
+      <Text className="text-xl font-bold mb-4 text-center" style={[{ color: CoralPalette.dark }, FONT]}>
        Edit Username
       </Text>
-      <View className="rounded-2xl border border-gray-200 bg-gray-50 py-4 px-4 justify-center ">
+      <View
+        className="rounded-2xl py-4 px-4 justify-center"
+        style={{ borderColor: CoralPalette.border, borderWidth: 1, backgroundColor: CoralPalette.surface }}
+      >
        <TextInput
-        className="text-xl text-gray-900"
+        className="text-xl"
+         style={[{ color: CoralPalette.dark, lineHeight: 0 }, FONT]}
         placeholder="Enter a new username"
         value={usernameDraft}
         onChangeText={setUsernameDraft}
@@ -271,15 +324,15 @@ const EditProfile = () => {
         autoCorrect={false}
         placeholderTextColor="#94a3b8"
         textAlign="center"
-        style={{ lineHeight: 0 }}
-       />
+      />
       </View>
       <View className="flex-row justify-between mt-4 gap-3">
        <TouchableOpacity
         onPress={() => setShowUsernameModal(false)}
-        className="rounded-full border border-gray-200 w-[48%] items-center justify-center px-4 py-4"
+        className="rounded-full w-[48%] items-center justify-center px-4 py-4"
+        style={{ borderColor: CoralPalette.border, borderWidth: 1 }}
        >
-        <Text className="text-md font-medium text-gray-600">
+        <Text className="text-md font-medium" style={[{ color: CoralPalette.mutedDark }, FONT]}>
          Cancel
         </Text>
        </TouchableOpacity>
@@ -288,9 +341,10 @@ const EditProfile = () => {
          setUsername(usernameDraft);
          setShowUsernameModal(false);
         }}
-        className="rounded-full bg-blue-500 w-[48%] items-center justify-center px-4 py-4"
+        className="rounded-full w-[48%] items-center justify-center px-4 py-4"
+        style={{ backgroundColor: CoralPalette.primary }}
        >
-        <Text className="text-md font-semibold text-white">Save</Text>
+        <Text className="text-md font-semibold text-white" style={FONT}>Save</Text>
        </TouchableOpacity>
       </View>
      </TouchableOpacity>
