@@ -11,15 +11,16 @@ import { useFocusEffect } from "@react-navigation/native";
 import Constants from "expo-constants";
 import { ScrollView, SheetManager } from "react-native-actions-sheet";
 
-import Filters, { type SpeciesValue } from "@/components/store/Filters";
-import { Tile, PetTileItem } from "@/components/store/Tiles";
+import Filters, { type CategoryValue } from "@/components/store/Filters";
+import { Tile, StoreItem } from "@/components/store/Tiles";
 import { useStoreCatalog } from "@/hooks/useStore";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import CoinBadge from "@/components/other/CoinBadge";
-import { Scroll } from "lucide-react-native";
+import { ArrowUpDown } from "lucide-react-native";
 import { CoralPalette } from "@/constants/colors";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
+const FONT = { fontFamily: "Nunito" };
 
 // layout constants
 const HORIZONTAL_PADDING = 24; // matches header px-6
@@ -42,7 +43,7 @@ const Store = () => {
     refetch: refetchCatalog,
   } = useStoreCatalog(userProfile?.ownedPets, { autoFetch: false });
 
-  const [selectedSpecies, setSelectedSpecies] = useState<SpeciesValue>("all");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("Pet");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] =
     useState<string | null>(null);
@@ -57,7 +58,7 @@ const Store = () => {
 
   // confirm purchase flow
   const handleConfirmPurchase = useCallback(
-    async (pet: PetTileItem) => {
+    async (pet: StoreItem) => {
       try {
         if (userProfile?.coins && userProfile.coins < pet.priceCoins) {
           await SheetManager.hide("store-confirmation");
@@ -137,7 +138,7 @@ const Store = () => {
   );
 
   const handlePurchasePress = useCallback(
-    (pet: PetTileItem) => {
+    (pet: StoreItem) => {
       void SheetManager.show("store-confirmation", {
         payload: {
           petName: pet.name,
@@ -151,7 +152,7 @@ const Store = () => {
   );
 
   const handleTilePress = useCallback(
-    (pet: PetTileItem) => {
+    (pet: StoreItem) => {
       setRecentlyPurchasedPetName(null);
       void SheetManager.show("store-preview", {
         payload: {
@@ -165,7 +166,7 @@ const Store = () => {
   );
 
   const renderTile = useCallback(
-    ({ item }: { item: PetTileItem }) => (
+    ({ item }: { item: StoreItem }) => (
       <View style={{ width: itemWidth, flexGrow: 0 }}>
         <Tile item={item} onPress={() => handleTilePress(item)} />
       </View>
@@ -173,20 +174,20 @@ const Store = () => {
     [handleTilePress, itemWidth]
   );
 
-  const keyExtractor = useCallback((item: PetTileItem) => item.id, []);
+  const keyExtractor = useCallback((item: StoreItem) => item.id, []);
 
-  const visiblePets = useMemo(() => {
+  const visibleItems = useMemo(() => {
     const filtered =
-      selectedSpecies === "all"
+      selectedCategory === "all"
         ? availablePets
-        : availablePets.filter((pet) => pet.species === selectedSpecies);
+        : availablePets.filter((item) => item.category === selectedCategory);
 
     return [...filtered].sort((a, b) =>
       sortOrder === "asc"
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name)
     );
-  }, [availablePets, selectedSpecies, sortOrder]);
+  }, [availablePets, selectedCategory, sortOrder]);
 
   const toggleSortOrder = useCallback(() => {
     setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
@@ -194,85 +195,97 @@ const Store = () => {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator size="large" color="#191d31" />
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: CoralPalette.surface }}>
+        <ActivityIndicator size="large" color={CoralPalette.primary} />
+        <Text className="mt-3 text-base font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
+          Loading the store...
+        </Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View className="flex-1 bg-white items-center justify-center px-6">
-        <Text className="text-base font-medium text-black-300">
-          Something went wrong
+      <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: CoralPalette.surface }}>
+        <Text className="text-lg font-extrabold text-center" style={[{ color: CoralPalette.dark }, FONT]}>
+          We hit a snag
         </Text>
-        <Text className="text-sm text-black-200 mt-2 text-center">{error}</Text>
+        <Text className="text-sm mt-2 text-center" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
+          {error}
+        </Text>
       </View>
     );
   }
 
   const EmptyState = () => (
-    <View className="flex-1 bg-white items-center justify-center px-6">
-      <Text className="text-base font-medium text-white-300">
-        No pets found
+    <View className="flex-1 items-center justify-center px-6">
+      <Text className="text-base font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
+        No items found
       </Text>
-      <Text className="text-sm text-white-200 mt-2 text-center">
-        Check back later for new companions.
+      <Text className="text-sm mt-2 text-center" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
+        Check back later for more pets and accessories.
       </Text>
     </View>
   );
 
   return (
-    <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
+    <View className="flex-1 relative" style={{ backgroundColor: CoralPalette.surfaceAlt }}>
       <CoinBadge />
 
-      <ScrollView
-      showsVerticalScrollIndicator={false}>
-        <View className="pt-3 mt-3 ml-2" style={{ backgroundColor: "transparent" }}>
-          <View className="px-6">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-2xl font-bold" style={{ color: CoralPalette.dark }}>
-                All Pets
-              </Text>
-              <TouchableOpacity onPress={toggleSortOrder} activeOpacity={0.7}>
-                <Text className="text-sm font-semibold" style={{ color: CoralPalette.dark }}>
-                  {sortOrder === "asc" ? "Sort: A → Z" : "Sort: Z → A"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <Text className="text-sm font-semibold mt-1" style={{ color: CoralPalette.mutedDark }}>
-              Browse every pet available in the store.
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32, paddingTop: 16 }}>
+        <View className="px-6 flex-row items-start justify-between">
+          <View className="flex-1 pr-3">
+            <Text className="text-xs font-extrabold uppercase" style={[{ color: CoralPalette.primaryMuted, letterSpacing: 1 }, FONT]}>
+              Petly store
+            </Text>
+            <Text className="text-3xl font-extrabold mt-2" style={[{ color: CoralPalette.dark }, FONT]}>
+              Pets and accessories
+            </Text>
+            <Text className="text-sm mt-1" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
+              Browse buddies plus hats, collars, and gadgets to style them.
             </Text>
           </View>
-          <View className="mt-3 mb-2">
-            <Filters
-              selectedSpecies={selectedSpecies}
-              onSpeciesChange={setSelectedSpecies}
-            />
-          </View>
+
+          <TouchableOpacity
+            onPress={toggleSortOrder}
+            activeOpacity={0.85}
+            className="flex-row items-center mt-1"
+          >
+            <ArrowUpDown size={18} color={CoralPalette.primary} />
+            <Text className="ml-2 text-sm font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
+              {sortOrder === "asc" ? "Sort A → Z" : "Sort Z → A"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View className="px-6 mt-5">
+          <Filters
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
         </View>
 
         {/* grid */}
         <FlatList
           className="mt-5"
-          data={visiblePets}
+          data={visibleItems}
           keyExtractor={keyExtractor}
           renderItem={renderTile}
           numColumns={2}
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={false}
-        ListEmptyComponent={EmptyState}
-        contentContainerStyle={{
-          paddingHorizontal: HORIZONTAL_PADDING,
-          paddingTop: 8,
-          paddingBottom: 32,
-        }}
-        columnWrapperStyle={{
-          columnGap: HORIZONTAL_GAP,
-          justifyContent: "flex-start",
-        }}
-        ItemSeparatorComponent={() => <View style={{ height: VERTICAL_GAP }} />}
-      />
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
+          ListEmptyComponent={EmptyState}
+          contentContainerStyle={{
+            paddingHorizontal: HORIZONTAL_PADDING,
+            paddingTop: 8,
+            paddingBottom: 32,
+          }}
+          columnWrapperStyle={{
+            columnGap: HORIZONTAL_GAP,
+            justifyContent: "flex-start",
+          }}
+          ItemSeparatorComponent={() => <View style={{ height: VERTICAL_GAP }} />}
+        />
       </ScrollView>
     </View>
   );

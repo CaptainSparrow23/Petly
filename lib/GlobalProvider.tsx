@@ -137,7 +137,7 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     timeActiveTodayMinutes,
                     minutesByHour: Array.isArray(profile.minutesByHour) ? profile.minutesByHour : Array(24).fill(0),
                     coins: toNumber(profile.coins),
-                    ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_skye"],
+                    ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_smurf"],
                     dailyStreak: toNumber(profile.dailyStreak),
                     highestStreak: toNumber(profile.highestStreak),
                     totalFocusSeconds: toNumber(profile.totalFocusSeconds),
