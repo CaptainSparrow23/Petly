@@ -7,7 +7,6 @@ import {
   AppState,
   AppStateStatus,
   StatusBar,
-  Animated,
 } from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
 import ModePickerModal from "../../components/focus/ModePickerModal";
@@ -19,7 +18,7 @@ import { useLocalSearchParams } from "expo-router";
 import CoinBadge from "@/components/other/CoinBadge";
 import { useSessionUploader, SessionActivity } from "@/hooks/useFocus";
 import SessionEndModal from "@/components/focus/SessionEndModal";
-import { getPetAnimation } from "@/constants/animations";
+import { getPetAnimationConfig } from "@/constants/animations";
 import { CoralPalette } from "@/constants/colors";
 
 /**
@@ -57,17 +56,6 @@ export default function IndexScreen() {
     durationSec: 0,
     activity: "Focus",
   });
-
-  const animationFade = useRef(new Animated.Value(0)).current;
-  const idleOpacity = animationFade.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
-
-  useEffect(() => {
-    Animated.timing(animationFade, {
-      toValue: running ? 1 : 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [running, activity, animationFade]);
 
   const { upload } = useSessionUploader();
   const sessionStartMsRef = useRef<number | null>(null);
@@ -254,69 +242,24 @@ export default function IndexScreen() {
   const mm = totalMinutes.toString().padStart(2, "0");
   const ss = seconds.toString().padStart(2, "0");
 
-  const idleAnimationSource = getPetAnimation(userProfile?.selectedPet, "idle");
-  const focusAnimationSource = getPetAnimation(userProfile?.selectedPet, "focus");
-  const restAnimationSource = getPetAnimation(userProfile?.selectedPet, "rest");
+  const petAnimationConfig = useMemo(
+    () => getPetAnimationConfig(userProfile?.selectedPet),
+    [userProfile?.selectedPet]
+  );
 
-  const idleAnimationView = idleAnimationSource ? (
+  const petAnimationView = petAnimationConfig ? (
     <PetAnimation
-      source={idleAnimationSource}
+      source={petAnimationConfig.source}
+      stateMachineName={petAnimationConfig.stateMachineName}
+      focusInputName={petAnimationConfig.focusInputName}
+      isFocus={running}
       containerStyle={{ marginTop: 35 }}
       animationStyle={{ width: "200%", height: "200%" }}
     />
   ) : null;
-
-  const focusAnimationView = focusAnimationSource ? (
-    <PetAnimation
-      source={focusAnimationSource}
-      containerStyle={{ paddingLeft: 28, paddingTop: 12 }}
-      animationStyle={{ width: "65%", height: "65%" }}
-    />
-  ) : null;
-
-  const restAnimationView = restAnimationSource ? (
-    <PetAnimation
-      source={restAnimationSource}
-      containerStyle={{ marginLeft: 20, marginTop: 10 }}
-      animationStyle={{ width: "70%", height: "70%" }}
-    />
-  ) : null;
-
-  const activeAnimationView = isRest ? restAnimationView : focusAnimationView;
   const animationCenterContent = (
     <View pointerEvents="none" style={{ width: "100%", height: "100%" }}>
-      {idleAnimationView ? (
-        <Animated.View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: idleOpacity,
-          }}
-        >
-          {idleAnimationView}
-        </Animated.View>
-      ) : null}
-      {activeAnimationView ? (
-        <Animated.View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: animationFade,
-          }}
-        >
-          {activeAnimationView}
-        </Animated.View>
-      ) : null}
+      {petAnimationView}
     </View>
   );
   const dailyFocusLabel = useCallback(() => {

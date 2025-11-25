@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Constants from "expo-constants";
-import type { PetTileItem } from "@/components/store/Tiles";
+import type { StoreItem } from "@/components/store/Tiles";
 
 // Resolve the backend base URL once so every hook caller uses the same endpoint.
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 interface StoreCatalogResponse {
   success: boolean;
-  data?: PetTileItem[];
+  data?: StoreItem[];
   message?: string;
 }
 
@@ -25,7 +25,7 @@ export const useStoreCatalog = (
   ownedIds?: string[] | null,
   options?: UseStoreCatalogOptions,
 ) => {
-  const [catalog, setCatalog] = useState<PetTileItem[]>([]);
+  const [catalog, setCatalog] = useState<StoreItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,14 +89,14 @@ export const useStoreCatalog = (
     if (!ownedIdSet) {
       return [];
     }
-    return catalog.filter((pet) => ownedIdSet.has(pet.id));
+    return catalog.filter((item) => ownedIdSet.has(item.id));
   }, [catalog, ownedIdSet]);
 
   const availablePets = useMemo(() => {
     if (!ownedIdSet) {
       return catalog;
     }
-    return catalog.filter((pet) => !ownedIdSet.has(pet.id));
+    return catalog.filter((item) => !ownedIdSet.has(item.id));
   }, [catalog, ownedIdSet]);
 
   const refetch = useCallback(() => fetchCatalog(), [fetchCatalog]);

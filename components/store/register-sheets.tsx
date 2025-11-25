@@ -12,11 +12,11 @@ import {
   PurchaseConfirmationCard,
   PurchaseSuccessCard,
 } from "./Sheets";
-import type { PetTileItem } from "./Tiles";
+import type { StoreItem } from "./Tiles";
 
 type PreviewPayload = {
-  pet: PetTileItem | null;
-  onPurchase?: (pet: PetTileItem) => void;
+  pet: StoreItem | null;
+  onPurchase?: (pet: StoreItem) => void;
   onClosed?: () => void;
 };
 

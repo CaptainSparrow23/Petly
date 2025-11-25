@@ -1,17 +1,28 @@
-import skyeIdle from "../assets/animations/skye_idle.riv";
-import skyeFocus from "../assets/animations/skye_focus.riv";
-import skyeRest from "../assets/animations/skye_rest.riv";
+import smurf from "../assets/animations/smurf.riv";
+import chedrick from "../assets/animations/chedrick.riv";
+import pebbles from "../assets/animations/pebbles.riv";
+import gooner from "../assets/animations/gooner.riv";
 
 type AnimationAsset = number;
-export type PetAnimationState = "idle" | "focus" | "rest";
 
-const petAnimations: Record<string, Partial<Record<PetAnimationState, AnimationAsset>>> = {
-  pet_skye: { idle: skyeIdle, focus: skyeFocus, rest: skyeRest },
+export type PetAnimationState = "idle" | "focus";
+
+export interface PetAnimationConfig {
+  source: AnimationAsset;
+  stateMachineName?: string;
+  focusInputName?: string;
+}
+
+const petAnimations: Record<string, PetAnimationConfig> = {
+  pet_smurf: { source: smurf, stateMachineName: "State Machine 1", focusInputName: "focus" },
+  pet_chedrick: { source: chedrick, stateMachineName: "State Machine 1", focusInputName: "focus" },
+  pet_pebbles: { source: pebbles, stateMachineName: "State Machine 1", focusInputName: "focus" },
+  pet_gooner: { source: gooner, stateMachineName: "State Machine 1", focusInputName: "focus" },
 };
 
-export const getPetAnimation = (
-  petId?: string | null,
-  state: PetAnimationState = "idle"
-): AnimationAsset | undefined => (petId ? petAnimations[petId]?.[state] : undefined);
+export const getPetAnimationConfig = (petId?: string | null): PetAnimationConfig | undefined => {
+  if (!petId) return undefined;
+  return petAnimations[petId];
+};
 
 export { petAnimations };

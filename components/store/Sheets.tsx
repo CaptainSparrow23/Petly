@@ -1,10 +1,10 @@
 import React from "react";
 import { Text, TouchableOpacity, View, Image } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
-import { PetTileItem, resolvePetImage, formatSpeciesUtil } from "./Tiles";
+import { StoreItem, resolveItemImage } from "./Tiles";
 
 type PetPreviewCardProps = {
- pet: PetTileItem | null;
+ pet: StoreItem | null;
  onPurchase: () => void;
  isPurchasing: boolean;
  purchaseError?: string | null;
@@ -25,7 +25,7 @@ export const PetPreviewCard = ({
  >
   {pet && (
    <Image
-    source={resolvePetImage(pet)}
+    source={resolveItemImage(pet)}
     resizeMode="cover"
     style={{ width: "100%", height: 400, borderRadius: 20, marginTop: 10 }}
    />
@@ -35,12 +35,9 @@ export const PetPreviewCard = ({
    <Text
     className="px-6 text-3xl font-bold text-black-900"
     numberOfLines={1}
-   >
-    {pet?.name}
-   </Text>
-   <Text className="px-6 mt-3 text-sm text-slate-500">
-    {pet?.species ? formatSpeciesUtil(pet.species) : ""}
-   </Text>
+  >
+   {pet?.name}
+  </Text>
    {!!pet?.description && (
     <Text className="px-6 mt-3 text-sm leading-5 text-slate-600">
      {pet.description}
@@ -99,7 +96,7 @@ export const InsufficientCoinsCard = ({
    Not enough coins
   </Text>
   <Text className="mt-2 text-sm leading-5 text-slate-600">
-   You need more coins to adopt {petName ?? "this pet"}.
+   You need more coins to purchase {petName ?? "this item"}.
   </Text>
 
   <View className="mt-6 flex-row items-center justify-between">
@@ -166,7 +163,7 @@ export const PurchaseConfirmationCard = ({
    Are you sure?
   </Text>
   <Text className="mt-2 text-sm leading-5 text-slate-600">
-   Do you want to adopt {petName ?? "this pet"} for{" "}
+   Do you want to purchase {petName ?? "this item"} for{" "}
    {petPrice?.toLocaleString() ?? ""} coins?
   </Text>
 
