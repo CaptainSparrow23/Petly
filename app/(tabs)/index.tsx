@@ -253,8 +253,8 @@ export default function IndexScreen() {
       stateMachineName={petAnimationConfig.stateMachineName}
       focusInputName={petAnimationConfig.focusInputName}
       isFocus={running}
-      containerStyle={{ marginTop: 35 }}
-      animationStyle={{ width: "200%", height: "200%" }}
+      containerStyle={{ marginTop: 15, marginLeft: 5 }}
+      animationStyle={{ width: "70%", height: "70%" }}
     />
   ) : null;
   const animationCenterContent = (

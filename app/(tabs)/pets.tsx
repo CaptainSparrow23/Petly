@@ -154,9 +154,6 @@ const Profile = () => {
        <Text className="text-xl font-extrabold" style={[{ color: CoralPalette.dark }, FONT]}>
         Your pets
        </Text>
-       <Text className="text-sm mt-1" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
-        Tap a buddy to decide who joins you while you focus. We keep the pick saved.
-       </Text>
       </View>
 
       <FlatList

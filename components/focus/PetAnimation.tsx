@@ -48,7 +48,7 @@ const PetAnimation: React.FC<Props> = ({
         ref={riveRef}
         source={source}
         stateMachineName={stateMachineName}
-        style={[{ width: "100%", height: "100%" }, animationStyle]}
+        style={animationStyle}
         fit={Fit.Contain}
         autoplay
       />
