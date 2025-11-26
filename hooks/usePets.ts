@@ -153,11 +153,11 @@ export const usePets = ({
 
   // Save the selected pet
   const saveSelectedPet = useCallback(
-    async (onSuccess?: () => void, onError?: (error: string) => void) => {
+    async (petIdToSave: string, onSuccess?: () => void, onError?: (error: string) => void) => {
       if (isSaving) return;
       
-      const changed = !!focusedPet && focusedPet !== selectedPet;
-      if (!changed || !focusedPet) {
+      const changed = !!petIdToSave && petIdToSave !== selectedPet;
+      if (!changed || !petIdToSave) {
         onSuccess?.();
         return;
       }
@@ -165,7 +165,7 @@ export const usePets = ({
       setIsSaving(true);
 
       try {
-        await persistSelectedPet(focusedPet);
+        await persistSelectedPet(petIdToSave);
         onSuccess?.();
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Failed to update pet';
@@ -176,7 +176,7 @@ export const usePets = ({
         setIsSaving(false);
       }
     },
-    [focusedPet, isSaving, persistSelectedPet, selectedPet]
+    [isSaving, persistSelectedPet, selectedPet]
   );
 
   return {

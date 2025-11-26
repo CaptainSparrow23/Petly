@@ -40,7 +40,7 @@ const CustomDrawerContent = (props: any) => {
         <TouchableOpacity
           className="py-5 items-center"
           style={{ backgroundColor: CoralPalette.primaryMuted }}
-          onPress={() => router.replace('/(tabs)/settings')}
+          onPress={() => router.push('/settings/editProfile')}
           activeOpacity={0.7}
         >
           <ProfilePicture
@@ -116,7 +116,7 @@ const DrawerLayout = () => {
         drawerInactiveTintColor: CoralPalette.white,
         drawerLabelStyle: { fontFamily: "Nunito", fontSize: 16, fontWeight: '700' },
         drawerType: 'front',
-        swipeEnabled: true,
+        swipeEnabled: false,
       }}
     >
       <Drawer.Screen
