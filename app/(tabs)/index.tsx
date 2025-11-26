@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   StatusBar,
 } from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
+import { DrawerActions } from "@react-navigation/native";
+import { useNavigation } from "expo-router";
+import { DrawerToggleButton } from "@react-navigation/drawer";
 import ModePickerModal from "../../components/focus/ModePickerModal";
 import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
 import TimeTracker from "../../components/focus/TimeTracker";
@@ -44,6 +47,7 @@ export default function IndexScreen() {
 
   const { loggedIn } = useLocalSearchParams();
   const { showBanner, userProfile, refetchUserProfile, appSettings } = useGlobalContext();
+  const navigation = useNavigation();
   // Tracker drag state for previewing countdown adjustments
   const [sessionSummary, setSessionSummary] = useState<{
     visible: boolean;
@@ -56,6 +60,22 @@ export default function IndexScreen() {
     durationSec: 0,
     activity: "Focus",
   });
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <View style={{ marginLeft: 3, width: 44, height: 44, justifyContent: "center", alignItems: "center", opacity: running ? 0.4 : 1 }}>
+          <DrawerToggleButton tintColor="#ffffff" />
+          <TouchableOpacity
+            onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+            disabled={running}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
+          />
+        </View>
+      ),
+    });
+  }, [navigation, running]);
 
   const { upload } = useSessionUploader();
   const sessionStartMsRef = useRef<number | null>(null);
@@ -253,8 +273,8 @@ export default function IndexScreen() {
       stateMachineName={petAnimationConfig.stateMachineName}
       focusInputName={petAnimationConfig.focusInputName}
       isFocus={running}
-      containerStyle={{ marginTop: 15, marginLeft: 5 }}
-      animationStyle={{ width: "70%", height: "70%" }}
+      containerStyle={{ marginTop: 23, marginLeft: 2 }}
+      animationStyle={{ width: "65%", height: "65%" }}
     />
   ) : null;
   const animationCenterContent = (

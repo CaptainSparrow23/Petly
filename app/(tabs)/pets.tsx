@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
  Text,
  View,
@@ -6,14 +6,12 @@ import {
  FlatList,
  Image,
  TouchableOpacity,
- Pressable,
  ActivityIndicator,
 } from 'react-native';
-import { DrawerActions } from '@react-navigation/native';
 import { useNavigation } from 'expo-router';
 import images from '@/constants/images';
 import { useGlobalContext } from '@/lib/GlobalProvider';
-import { Star } from 'lucide-react-native';
+import { Star, Check } from 'lucide-react-native';
 import { DrawerToggleButton } from '@react-navigation/drawer';
 import { usePets } from '@/hooks/usePets';
 import PetAnimation from '@/components/focus/PetAnimation';
@@ -40,54 +38,27 @@ const Profile = () => {
   userId: userProfile?.userId,
  });
 
- const handleMenuPress = useCallback(async () => {
-  if (isSaving) return;
+ const hasUnsavedChange = useMemo(
+  () => !!focusedPet && focusedPet !== userProfile?.selectedPet,
+  [focusedPet, userProfile?.selectedPet]
+ );
 
-  const openDrawer = () => navigation.dispatch(DrawerActions.toggleDrawer());
-  
-  // Save pet selection before opening drawer
+  const handleSaveSelection = useCallback(async () => {
+  if (!focusedPet || isSaving) return;
+
   await saveSelectedPet(
+   focusedPet,
    () => {
-    // Success - update global profile and open drawer
-    if (focusedPet) {
-     updateUserProfile({ selectedPet: focusedPet });
-    }
-    openDrawer();
+    updateUserProfile({ selectedPet: focusedPet });
+    showBanner('Active pet updated', 'success');
    },
    (error) => {
-    // Error - show banner and still open drawer
-    showBanner('We could not update your pet right now. Please try again.', 'error');
-    openDrawer();
+    showBanner(error || 'We could not update your pet right now. Please try again.', 'error');
    }
   );
- }, [isSaving, navigation, saveSelectedPet, focusedPet, updateUserProfile, showBanner]);
+ }, [focusedPet, isSaving, saveSelectedPet, showBanner, updateUserProfile]);
 
- // Put an invisible overlay over the default hamburger to intercept presses ie so we can click the menu button from this file
- useLayoutEffect(() => {
-  navigation.setOptions({
-   headerLeft: ({ tintColor }: { tintColor: string }) => (
-    <View
-     style={{
-      marginLeft: 8,
-      width: 44,
-      height: 44,
-      justifyContent: 'center',
-      alignItems: 'center',
-     }}
-    >
-     <DrawerToggleButton tintColor={tintColor} />
-     <Pressable
-      onPress={handleMenuPress}
-      style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-      hitSlop={10}
-      disabled={isSaving}
-     />
-    </View>
-   ),
-  });
- }, [handleMenuPress, isSaving, navigation]);
-
- const petAnimationConfig = getPetAnimationConfig(userProfile?.selectedPet);
+ const petAnimationConfig = getPetAnimationConfig(focusedPet || userProfile?.selectedPet);
  const showPetAnimation = !!petAnimationConfig;
 
  if (petsLoading) {
@@ -120,9 +91,25 @@ const Profile = () => {
     source={images.roomBackGround}
     style={{ flex: 1 }}
     resizeMode="cover"
-    imageStyle={{ transform: [{ translateY: -100 }] }}
+    imageStyle={{ transform: [{ translateY: -150 }] }}
    >
-    <View className="flex-1" style={{ backgroundColor: 'rgba(252, 244, 227, 0.7)' }}>
+    <View className="mt-16 mr-6 flex-row items-end justify-end">
+       {hasUnsavedChange && (
+        <TouchableOpacity
+         onPress={handleSaveSelection}
+         activeOpacity={0.85}
+         className="p-2 rounded-full"
+         style={{
+          backgroundColor: isSaving ? CoralPalette.primaryLight : CoralPalette.primary,
+          opacity: isSaving ? 0.7 : 1,
+          position: 'absolute',
+         }}
+        >
+         <Check size={35} color={CoralPalette.white} />
+        </TouchableOpacity>
+       )}
+      </View>
+    <View className="flex-1" >
      <View className="flex-1 items-center justify-center px-6 pt-10">
       {showPetAnimation && petAnimationConfig ? (
        <PetAnimation
@@ -130,7 +117,8 @@ const Profile = () => {
         stateMachineName={petAnimationConfig.stateMachineName}
         focusInputName={petAnimationConfig.focusInputName}
         isFocus={false}
-        animationStyle={{ width: '160%', height: '160%' }}
+        containerStyle={{ marginTop: 100 }}
+        animationStyle={{ width: '60%', height: '60%' }}
        />
       ) : (
  <View
@@ -141,19 +129,24 @@ const Profile = () => {
         Active pet companion
        </Text>
       </View>
-      )}
-
+      
+    )}
+  
       
      </View>
+       
 
-     <View
-      className="flex-2 rounded-t-3xl shadow-lg pt-6 pb-10"
-      style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
-     >
-      <View className="px-6 mb-3">
-       <Text className="text-xl font-extrabold" style={[{ color: CoralPalette.dark }, FONT]}>
-        Your pets
-       </Text>
+    <View
+     className="flex-2 rounded-t-3xl shadow-lg pt-6 pb-10"
+     style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+    >
+      <View className="px-6 mb-3 flex-row items-center justify-between">
+       <View>
+        <Text className="text-xl font-extrabold" style={[{ color: CoralPalette.dark }, FONT]}>
+         Your pets
+        </Text>
+       </View>
+       
       </View>
 
       <FlatList
@@ -175,8 +168,8 @@ const Profile = () => {
         </View>
        }
        renderItem={({ item }) => {
-        const isFocused = item.id === focusedPet;
-        const resolvedImage = item.image ?? images.skyeHead;
+       const isFocused = item.id === focusedPet;
+        const resolvedImage = item.image ?? images.lighting;
 
         return (
          <View className="w-[48%]">
@@ -213,34 +206,8 @@ const Profile = () => {
               {item.name}
              </Text>
 
-             {isFocused && (
-              <View className="ml-2 rounded-full px-2 py-0.5" style={{ backgroundColor: CoralPalette.primary }}>
-               <Text className="text-[11px] font-bold" style={[{ color: CoralPalette.white }, FONT]}>
-                Active
-               </Text>
-              </View>
-             )}
             </View>
 
-            <Text
-             className="text-xs mt-1 uppercase"
-             style={[{ color: CoralPalette.mutedDark, letterSpacing: 0.5 }, FONT]}
-             numberOfLines={1}
-            >
-             {item.type}
-            </Text>
-
-            <View className="flex-row items-center mt-2">
-             {Array.from({ length: Math.max(0, Math.floor(item.rating || 0)) }).map((_, index) => (
-              <Star
-               key={`star-${index}`}
-               size={16}
-               color={CoralPalette.primary}
-               fill={CoralPalette.primary}
-               style={index > 0 ? { marginLeft: 4 } : undefined}
-              />
-             ))}
-            </View>
            </View>
           </TouchableOpacity>
          </View>
