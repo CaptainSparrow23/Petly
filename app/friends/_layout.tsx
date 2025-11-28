@@ -1,26 +1,23 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
 
 export default function FriendsLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: 'slide_from_right',
+        animation: "slide_from_right",
         gestureEnabled: true,
-        gestureDirection: 'horizontal',
+        gestureDirection: "horizontal",
         fullScreenGestureEnabled: true,
       }}
     >
-      <Stack.Screen 
-        name="search" 
+      <Stack.Screen
+        name="friendProfile"
         options={{
-          presentation: 'card',
-          animation: 'slide_from_right',
-          gestureEnabled: true,
-          gestureDirection: 'horizontal',
-          fullScreenGestureEnabled: true,
+          presentation: "card",
         }}
       />
+      <Stack.Screen name="search" />
     </Stack>
   );
 }

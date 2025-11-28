@@ -12,15 +12,18 @@ import * as SplashScreen from "expo-splash-screen";
 SplashScreen.preventAutoHideAsync().catch(() => null);
 
 const applyDefaultFont = () => {
-  if (!Text.defaultProps) Text.defaultProps = {};
-  Text.defaultProps.style = {
-    ...(Text.defaultProps.style as object | undefined),
+  const TextAny = Text as any;
+  const TextInputAny = TextInput as any;
+
+  if (!TextAny.defaultProps) TextAny.defaultProps = {};
+  TextAny.defaultProps.style = {
+    ...(TextAny.defaultProps.style as object | undefined),
     fontFamily: "Nunito",
   };
 
-  if (!TextInput.defaultProps) TextInput.defaultProps = {};
-  TextInput.defaultProps.style = {
-    ...(TextInput.defaultProps.style as object | undefined),
+  if (!TextInputAny.defaultProps) TextInputAny.defaultProps = {};
+  TextInputAny.defaultProps.style = {
+    ...(TextInputAny.defaultProps.style as object | undefined),
     fontFamily: "Nunito",
   };
 };
@@ -53,6 +56,13 @@ export default function RootLayout() {
             gestureEnabled: false,
           }}
         >
+          <Stack.Screen
+            name="(tabs)"
+            options={{
+              animation: "none",
+              gestureEnabled: false,
+            }}
+          />
           <Stack.Screen
             name="(auth)"
             options={{

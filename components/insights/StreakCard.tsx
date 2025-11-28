@@ -7,8 +7,8 @@ const FONT = { fontFamily: "Nunito" };
 export default function StreakCard({ streak = 0 }: { streak?: number }) {
   return (
     <View
-      className="rounded-3xl p-5 justify-between"
-      style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+      className="rounded-3xl p-4 justify-between"
+      style={{ width: "31%", backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
     >
       <Text style={[{ color: CoralPalette.mutedDark, fontSize: 14 }, FONT]}>Focus streak</Text>
       <View className="mt-1 items-end justify-between">

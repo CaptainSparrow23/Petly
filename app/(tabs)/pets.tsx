@@ -17,6 +17,7 @@ import { usePets } from '@/hooks/usePets';
 import PetAnimation from '@/components/focus/PetAnimation';
 import { getPetAnimationConfig } from '@/constants/animations';
 import { CoralPalette } from '@/constants/colors';
+import type { ImageSourcePropType } from 'react-native';
 
 const FONT = { fontFamily: 'Nunito' };
 
@@ -37,6 +38,28 @@ const Profile = () => {
   selectedPet: userProfile?.selectedPet,
   userId: userProfile?.userId,
  });
+
+ const resolvePetImage = useCallback(
+  (pet: { id?: string; image?: ImageSourcePropType | string }) => {
+   // explicit string key
+   if (typeof pet.image === 'string') {
+    const img = images[pet.image as keyof typeof images] as ImageSourcePropType | undefined;
+    if (img) return img;
+   } else if (pet.image) {
+    // already a source
+    return pet.image;
+   }
+
+   // try pet id as a key
+   if (pet.id) {
+    const byId = images[pet.id as keyof typeof images] as ImageSourcePropType | undefined;
+    if (byId) return byId;
+   }
+
+   return images.lighting;
+  },
+  []
+ );
 
  const hasUnsavedChange = useMemo(
   () => !!focusedPet && focusedPet !== userProfile?.selectedPet,
@@ -93,7 +116,7 @@ const Profile = () => {
     resizeMode="cover"
     imageStyle={{ transform: [{ translateY: -150 }] }}
    >
-    <View className="mt-16 mr-6 flex-row items-end justify-end">
+    <View className="mt-16 mr-2 flex-row items-end justify-end">
        {hasUnsavedChange && (
         <TouchableOpacity
          onPress={handleSaveSelection}
@@ -138,7 +161,7 @@ const Profile = () => {
 
     <View
      className="flex-2 rounded-t-3xl shadow-lg pt-6 pb-10"
-     style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+     style={{ backgroundColor: CoralPalette.surface, borderColor: CoralPalette.border, borderWidth: 1 }}
     >
       <View className="px-6 mb-3 flex-row items-center justify-between">
        <View>
@@ -169,7 +192,7 @@ const Profile = () => {
        }
        renderItem={({ item }) => {
        const isFocused = item.id === focusedPet;
-        const resolvedImage = item.image ?? images.lighting;
+        const resolvedImage = resolvePetImage(item);
 
         return (
          <View className="w-[48%]">
@@ -183,12 +206,12 @@ const Profile = () => {
              paddingVertical: 12,
              borderRadius: 20,
              borderWidth: 1,
-             borderColor: CoralPalette.border,
-             backgroundColor: CoralPalette.surface,
+             borderColor: CoralPalette.surfaceAlt,
+             backgroundColor: CoralPalette.surfaceAlt,
              shadowColor: '#000',
              shadowOpacity: 0.08,
-             shadowRadius: 8,
-             shadowOffset: { width: 0, height: 4 },
+             shadowRadius: 2,
+             shadowOffset: { width: 0, height: 2 },
              elevation: 2,
             },
             isFocused && {
@@ -198,7 +221,7 @@ const Profile = () => {
             },
            ]}
           >
-           <Image source={resolvedImage} className="w-16 h-16 rounded-2xl mr-3" resizeMode="contain" />
+           <Image source={resolvedImage} className="w-14 h-14 rounded-2xl mr-5 ml-2" resizeMode="contain" />
 
            <View className="flex-1">
             <View className="flex-row items-center justify-between">

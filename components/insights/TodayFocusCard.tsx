@@ -1,7 +1,12 @@
-import React, { useMemo } from "react";
-import { View, Text } from "react-native";
+import React, { useMemo, useRef, useEffect } from "react";
+import { View, Text, InteractionManager } from "react-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
+import Rive, { Fit, RiveRef } from "rive-react-native";
+import smurfInsights from "@/assets/animations/smurf_insights.riv";
+import chedrickInsights from "@/assets/animations/chedrick_insights.riv";
+import pebblesInsights from "@/assets/animations/pebbles_insights.riv";
+import goonerInsights from "@/assets/animations/gooner_insights.riv";
 
 const FONT = { fontFamily: "Nunito" };
 
@@ -33,6 +38,8 @@ const formatSingleUnit = (totalSeconds: number) => {
 
 export default function TodayFocusCard() {
   const { userProfile } = useGlobalContext();
+  const riveRef = useRef<RiveRef | null>(null);
+  const selectedPet = userProfile?.selectedPet ?? null;
 
   // Support both correct and misspelled field names; accept number (secs) or a "Xm Ys" string.
   const raw = userProfile?.timeActiveToday ?? 0;
@@ -45,31 +52,106 @@ export default function TodayFocusCard() {
 
   const durationLabel = useMemo(() => formatSingleUnit(totalSeconds), [totalSeconds]);
   const statusMessage = useMemo(() => {
-    if (totalSeconds < 60) return "Get back to work!";
+    if (totalSeconds < 1800) return "Get back to work!";
     if (totalSeconds < 3600) return "Keep working hard!";
     if (totalSeconds < 7200) return "You're doing great!";
     if (totalSeconds < 10800) return "Amazing work today!";
-    if (totalSeconds < 14400) return "Someone's a workaholic!";
+    if (totalSeconds < 14400) return "You workaholic!";
     return "Maybe a break now?";
   }, [totalSeconds]);
 
+  // const moodValue = useMemo(() => {
+  //   if (totalSeconds < 1800) return 1;
+  //   if (totalSeconds < 7200) return 2;
+  //   return 3;
+  // }, [totalSeconds]);
+
+
+  const moodValue = 1;
+
+  const insightsAnimations: Record<
+    string,
+    { source: number; stateMachineName: string; moodInputName: string }
+  > = {
+    pet_smurf: { source: smurfInsights, stateMachineName: "State Machine 1", moodInputName: "mood" },
+    pet_chedrick: { source: chedrickInsights, stateMachineName: "State Machine 1", moodInputName: "mood" },
+    pet_pebbles: { source: pebblesInsights, stateMachineName: "State Machine 1", moodInputName: "mood" },
+    pet_gooner: { source: goonerInsights, stateMachineName: "State Machine 1", moodInputName: "mood" },
+    // add additional pets here, keyed by pet id
+  };
+
+  const animationConfig = useMemo(
+    () => (selectedPet ? insightsAnimations[selectedPet] : undefined),
+    [insightsAnimations, selectedPet]
+  );
+
+  useEffect(() => {
+    if (!riveRef.current || !animationConfig) return;
+
+    const applyMood = () => {
+      try {
+        riveRef.current?.setInputState(
+          animationConfig.stateMachineName,
+          animationConfig.moodInputName,
+          moodValue
+        );
+      } catch {
+        // ignore if state machine/input not available yet
+      }
+    };
+
+    applyMood();
+    const interactionHandle = InteractionManager.runAfterInteractions(applyMood);
+    const timer = setTimeout(applyMood, 120);
+
+    return () => {
+      interactionHandle?.cancel?.();
+      clearTimeout(timer);
+    };
+  }, [animationConfig, moodValue]);
 
   return (
-    <View
-      className="w-[65%] rounded-3xl p-5"
-      style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
-    >
-      <View className="items-end">
-        <Text style={[{ color: CoralPalette.mutedDark, fontSize: 16 }, FONT]}>Today's Focus</Text>
-       
-      </View>
+    <View style={{ width: "65%", position: "relative" }}>
+      {animationConfig ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width: 155,
+            height: 124,
+            opacity: 0.9,
+            overflow: "hidden",
+            zIndex: 1,
+          }}
+        >
+          <Rive
+            ref={riveRef}
+            source={animationConfig.source}
+            stateMachineName={animationConfig.stateMachineName}
+            fit={Fit.Contain}
+            style={{ width: "150%", height: "180%", transform: [{ translateX: -40 }] }}
+            autoplay
+          />
+        </View>
+      ) : null}
 
-      <Text className="" style={[{ fontSize: 40, fontWeight: "800", color: CoralPalette.dark, textAlign: "right" }, FONT]}>
-        {durationLabel}
-      </Text>
-      <Text className="text-right" style={[{ fontSize: 13, color: CoralPalette.primary, fontWeight: "700" }, FONT]}>
-        {statusMessage}
-      </Text>
+      <View
+        className="rounded-3xl p-4"
+        style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+      >
+        <View className="items-end">
+          <Text style={[{ color: CoralPalette.mutedDark, fontSize: 16 }, FONT]}>Today's Focus</Text>
+        </View>
+
+        <Text className="" style={[{ fontSize: 40, fontWeight: "800", color: CoralPalette.dark, textAlign: "right" }, FONT]}>
+          {durationLabel}
+        </Text>
+        <Text className="text-right" style={[{ fontSize: 13, color: CoralPalette.primary, fontWeight: "700" }, FONT]}>
+          {statusMessage}
+        </Text>
+      </View>
     </View>
   );
 }

@@ -19,12 +19,7 @@ export default function SessionEndModal({
   activity,
   onClose,
 }: Props) {
-  const durationLabel =
-    durationMinutes <= 0
-      ? "less than 1 minute"
-      : durationMinutes === 1
-        ? "1 minute"
-        : `${durationMinutes} minutes`;
+
   const rewardText =
     coinsAwarded > 0
       ? `+${coinsAwarded} coins`
@@ -37,7 +32,7 @@ export default function SessionEndModal({
           className="flex-col items-center rounded-2xl w-2/3 h-3/10 p-5"
           style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
         >
-          <Text className="text-2xl font-semibold mb-2" style={{ color: CoralPalette.dark }}>
+          <Text className="text-xl font-semibold mb-2" style={{ color: CoralPalette.dark }}>
             Session Complete!
           </Text>
           <View className="items-center">
@@ -50,7 +45,7 @@ export default function SessionEndModal({
                   <MaterialCommunityIcons name="currency-usd" size={22} color={CoralPalette.white} />
                 </View>
                 <View className="py-2">
-                  <Text className="text-xl font-semibold" style={{ color: CoralPalette.dark }}>
+                  <Text className="text-xl" style={{ color: CoralPalette.dark }}>
                     {rewardText}
                   </Text>
                 </View>

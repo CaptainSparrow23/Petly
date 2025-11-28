@@ -26,7 +26,13 @@ interface TileProps {
 export const resolveItemImage = (item: StoreItem): ImageSourcePropType => {
   const key = `${(item.imageKey || item.name || "").toLowerCase()}_head`;
   const found = images[key as keyof typeof images] as ImageSourcePropType | undefined;
-  return found ?? images.lighting;
+  if (found) return found;
+
+  const baseKey = (item.imageKey || item.name || "").toLowerCase();
+  const direct = baseKey ? (images[baseKey as keyof typeof images] as ImageSourcePropType | undefined) : undefined;
+  if (direct) return direct;
+
+  return images.lighting;
 };
 
 export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
