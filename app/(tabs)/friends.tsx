@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { Plus, Users, Trash2, Check, Edit3 } from "lucide-react-native";
+import { Plus, Users } from "lucide-react-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { router, useFocusEffect } from "expo-router";
 import Constants from "expo-constants";
@@ -64,7 +64,7 @@ const FriendDropdownBadge = ({
         <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
           <Path
             d={`M 0 0 L ${width} 0 L ${width} ${rectH} L ${midX} ${pointY} L 0 ${rectH} Z`}
-            fill={CoralPalette.primary}
+            fill={CoralPalette.primaryMuted}
           />
         </Svg>
         <View
@@ -187,27 +187,43 @@ const MyDropdownBadge = ({
 
 const FriendCard = ({
   friend,
-  isEditMode,
-  isSelected,
-  onToggleSelect,
 }: {
   friend: Friend;
-  isEditMode: boolean;
-  isSelected: boolean;
-  onToggleSelect?: (friendId: string) => void;
 }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const animateScale = (toValue: number) => {
+    Animated.spring(scaleAnim, {
+      toValue,
+      useNativeDriver: true,
+      friction: 7,
+      tension: 120,
+    }).start();
+  };
+
   const handlePress = () => {
-    if (isEditMode && onToggleSelect) onToggleSelect(friend.userId);
+ router.push(`/friends/friendProfile?userId=${friend.userId}`);
   };
 
   return (
-    <Pressable
-      className={`rounded-2xl p-4 mb-3 shadow-sm border ${
-        isSelected ? "border-red-500 bg-red-50" : "border-gray-100 bg-white"
-      }`}
-      onPress={handlePress}
-      disabled={!isEditMode}
-    >
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Pressable
+        className="rounded-2xl p-4 mb-3 shadow-sm bg-white"
+        onPress={handlePress}
+        onPressIn={() => animateScale(0.97)}
+        onPressOut={() => animateScale(1)}
+        style={({ pressed }) => [
+          {
+            backgroundColor: CoralPalette.white,
+            opacity: pressed ? 0.9 : 1,
+            shadowColor: "#000",
+            shadowOpacity: pressed ? 0.08 : 0.12,
+            shadowRadius: pressed ? 6 : 10,
+            shadowOffset: { width: 0, height: pressed ? 1 : 4 },
+            elevation: pressed ? 1 : 3,
+          },
+        ]}
+      >
       <FriendDropdownBadge
         labelTop={`${friend.timeActiveToday}m`}
         labelBottom="today"
@@ -220,16 +236,6 @@ const FriendCard = ({
 
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center flex-1">
-          {isEditMode && (
-            <View
-              className={`w-6 h-6 rounded-full border-2 mr-3 items-center justify-center ${
-                isSelected ? "bg-red-500 border-red-500" : "border-gray-300"
-              }`}
-            >
-              {isSelected && <Check size={16} color="#ffffff" />}
-            </View>
-          )}
-
           <ProfilePicture profileId={friend.profileId} size={48} />
 
           <View className="ml-3 flex-1">
@@ -244,22 +250,18 @@ const FriendCard = ({
           </View>
         </View>
       </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 };
 
 const Friends = () => {
-  const { userProfile, showBanner } = useGlobalContext();
+  const { userProfile } = useGlobalContext();
   const [tab, setTab] = useState<"friends" | "global">("friends");
   const tabTranslate = useRef(new Animated.Value(0)).current;
   const [tabPillDims, setTabPillDims] = useState({ width: 0, height: 0 });
   const [friends, setFriends] = useState<Friend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [selectedFriends, setSelectedFriends] = useState<Set<string>>(
-    new Set()
-  );
-  const [isDeletingFriends, setIsDeletingFriends] = useState(false);
 
   const fetchFriends = useCallback(async () => {
     if (!userProfile?.userId) {
@@ -304,69 +306,6 @@ const Friends = () => {
     }).start();
   }, [tab, tabTranslate]);
 
-  const handleToggleEdit = () => {
-    if (isEditMode) setSelectedFriends(new Set());
-    setIsEditMode(!isEditMode);
-  };
-
-  const handleToggleSelect = (friendId: string) => {
-    setSelectedFriends((prev) => {
-      const next = new Set(prev);
-      next.has(friendId) ? next.delete(friendId) : next.add(friendId);
-      return next;
-    });
-  };
-
-  const handleDeleteSelected = async () => {
-    if (selectedFriends.size === 0 || !userProfile?.userId) return;
-    Alert.alert(
-      "Remove Friends",
-      `Are you sure you want to remove ${selectedFriends.size} friend${selectedFriends.size > 1 ? "s" : ""}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            setIsDeletingFriends(true);
-            try {
-              const removePromises = Array.from(selectedFriends).map(
-                (friendId) =>
-                  fetch(`${API_BASE_URL}/api/friends/remove`, {
-                    method: "DELETE",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      userId: userProfile.userId,
-                      friendId,
-                    }),
-                  })
-              );
-              await Promise.all(removePromises);
-              setFriends((prev) =>
-                prev.filter((f) => !selectedFriends.has(f.userId))
-              );
-              setSelectedFriends(new Set());
-              setIsEditMode(false);
-              const count = selectedFriends.size;
-              showBanner(
-                `${count} friend${count > 1 ? "s" : ""} removed successfully`,
-                "success"
-              );
-            } catch (e) {
-              console.error("Error removing friends:", e);
-              showBanner(
-                "Failed to remove friends. Please try again.",
-                "error"
-              );
-            } finally {
-              setIsDeletingFriends(false);
-            }
-          },
-        },
-      ]
-    );
-  };
-
   useFocusEffect(
     useCallback(() => {
       if (tab === "friends") {
@@ -390,57 +329,12 @@ const Friends = () => {
     <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
       {/* Top right buttons */}
       <View className="absolute -top-14 right-0 z-10 pt-2 pr-6 flex-row gap-2">
-        {!isEditMode ? (
-          <>
-            {friends.length > 0 && (
-              <Pressable
-                onPress={handleToggleEdit}
-                className="rounded-full w-9 h-9 items-center justify-center"
-              >
-                <Edit3 size={20} color={CoralPalette.white} />
-              </Pressable>
-            )}
-            <Pressable
-              onPress={handleAddFriend}
-              className="rounded-full w-9 h-9 items-center justify-center"
-            >
-              <Plus size={30} color={CoralPalette.white} />
-            </Pressable>
-          </>
-        ) : (
-          <>
-            {selectedFriends.size > 0 && (
-              <Pressable
-                onPress={handleDeleteSelected}
-                className="bg-red-500 rounded-full px-3 py-2 flex-row items-center"
-                disabled={isDeletingFriends}
-              >
-                {isDeletingFriends ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Trash2 size={18} color="#ffffff" />
-                )}
-              </Pressable>
-            )}
-            <Pressable
-              onPress={handleToggleEdit}
-              className="rounded-full px-2 py-2"
-              style={{
-                backgroundColor: CoralPalette.surfaceAlt,
-                borderColor: CoralPalette.border,
-                borderWidth: 1,
-              }}
-              disabled={isDeletingFriends}
-            >
-              <Text
-                className="font-medium"
-                style={[nunitoFont, { color: CoralPalette.mutedDark }]}
-              >
-                Cancel
-              </Text>
-            </Pressable>
-          </>
-        )}
+        <Pressable
+          onPress={handleAddFriend}
+          className="rounded-full w-9 h-9 items-center justify-center"
+        >
+          <Plus size={30} color={CoralPalette.white} />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -451,7 +345,7 @@ const Friends = () => {
           <View
             className="flex-row rounded-full flex-1"
             style={{
-              backgroundColor: CoralPalette.surfaceAlt,
+              backgroundColor: CoralPalette.white,
               padding: 4,
               position: "relative",
             }}
@@ -526,8 +420,8 @@ const Friends = () => {
             <View
               className="rounded-3xl p-6 mt-10 items-center"
               style={{
-                backgroundColor: CoralPalette.surfaceAlt,
-                borderColor: CoralPalette.border,
+                backgroundColor: CoralPalette.surface,
+                borderColor: CoralPalette.surface,
                 borderWidth: 1,
               }}
             >
@@ -559,9 +453,6 @@ const Friends = () => {
               <FriendCard
                 key={friend.userId}
                 friend={friend}
-                isEditMode={isEditMode}
-                isSelected={selectedFriends.has(friend.userId)}
-                onToggleSelect={handleToggleSelect}
               />
             ))
           )
@@ -586,21 +477,12 @@ const Friends = () => {
         <View className="h-6" />
       </ScrollView>
 
-      <View className="absolute bottom-0 left-0 right-0 overflow-hidden bg-primary-100">
+      <View className="absolute bottom-0 left-0 right-0 overflow-hidden">
         <View
-          style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
+          style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0,
+            backgroundColor: CoralPalette.primary
+           }}
         >
-          <Svg
-            height="100%"
-            width="100%"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-          >
-            <Path
-              d="M 0 100 L 0 0 L 90 0 L 35 100 L 0 100 Z"
-              fill={CoralPalette.primary}
-            />
-          </Svg>
         </View>
 
         {/* the white dropdown coming from the top center */}
@@ -611,13 +493,16 @@ const Friends = () => {
         />
 
         {/* content row */}
-        <View className="px-6 pt-4 pb-8">
+        <View className="px-6 pt-4 pb-6">
           <View className="flex-row items-center">
             <ProfilePicture
               profileId={userProfile?.profileId || null}
               size={54}
+              className="border-2 border-white"
+      
+            
             />
-            <View className="ml-3 flex-1">
+            <View className="ml-4 flex-1">
               <Text
                 className="font-extrabold text-xl mb-1 text-white"
                 style={nunitoFont}
@@ -626,7 +511,7 @@ const Friends = () => {
               </Text>
               {userProfile?.username && (
                 <Text
-                  className="text-m font-semibold text-gray-100"
+                  className="text-sm font-bold text-gray-100"
                   style={nunitoFont}
                 >
                   @{userProfile?.username}

@@ -218,7 +218,7 @@ const Store = () => {
   }
 
   const EmptyState = () => (
-    <View className="flex-1 items-center justify-center px-6">
+    <View className="flex-1 items-center justify-center px-6 mt-20">
       <Text className="text-base font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
         No items found
       </Text>
@@ -229,7 +229,7 @@ const Store = () => {
   );
 
   return (
-    <View className="flex-1 relative" style={{ backgroundColor: CoralPalette.surfaceAlt }}>
+    <View className="flex-1 relative" style={{ backgroundColor: CoralPalette.surface }}>
       <CoinBadge />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32, paddingTop: 16 }}>

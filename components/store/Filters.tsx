@@ -43,8 +43,9 @@ const FilterChip = ({
         shadowRadius: 6,
         shadowOffset: { width: 0, height: 4 },
         elevation: active ? 2 : 0,
+        minWidth: 83,
       }}
-      className="flex-row items-center mr-3 px-4 py-2.5 rounded-full"
+      className="flex-row items-center justify-center mr-3 px-4 py-2.5 rounded-full"
     >
       <Icon size={16} color={textColor} />
       <Text className="ml-2 text-sm font-bold" style={{ color: textColor }}>
