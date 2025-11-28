@@ -7,8 +7,10 @@ import {
   View,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
+  RefreshControl,
 } from "react-native";
-import { Plus, Users } from "lucide-react-native";
+import { Check, Mail, Plus, UsersRound, X } from "lucide-react-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { router, useFocusEffect } from "expo-router";
 import Constants from "expo-constants";
@@ -25,6 +27,14 @@ interface Friend {
   profileId: number | null;
   userId: string;
   timeActiveToday: number;
+}
+
+interface FriendRequest {
+  userId: string;
+  displayName: string;
+  username: string | null;
+  profileId: number | null;
+  email: string | null;
 }
 
 const FriendDropdownBadge = ({
@@ -185,6 +195,8 @@ const MyDropdownBadge = ({
   );
 };
 
+const FriendDropdownBadgeMemo = React.memo(FriendDropdownBadge);
+
 const FriendCard = ({
   friend,
 }: {
@@ -202,7 +214,7 @@ const FriendCard = ({
   };
 
   const handlePress = () => {
- router.push(`/friends/friendProfile?userId=${friend.userId}`);
+    router.push(`/friends/friendProfile?userId=${friend.userId}`);
   };
 
   return (
@@ -224,49 +236,123 @@ const FriendCard = ({
           },
         ]}
       >
-      <FriendDropdownBadge
-        labelTop={`${friend.timeActiveToday}m`}
-        labelBottom="today"
-        width={50}
-        height={65}
-        fontSize={15}
-        smallFontSize={11}
-        top={10}
-      />
+        <FriendDropdownBadgeMemo
+          labelTop={`${friend.timeActiveToday}m`}
+          labelBottom="today"
+          width={50}
+          height={65}
+          fontSize={15}
+          smallFontSize={11}
+          top={10}
+        />
 
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center flex-1">
-          <ProfilePicture profileId={friend.profileId} size={48} />
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center flex-1">
+            <ProfilePicture profileId={friend.profileId} size={48} />
 
-          <View className="ml-3 flex-1">
-            <Text className="font-bold text-gray-900" style={nunitoFont}>
-              {friend.displayName}
-            </Text>
-            {friend.username && (
-              <Text className="text-sm text-gray-400 mt-0.5" style={nunitoFont}>
-                @{friend.username}
+            <View className="ml-3 flex-1">
+              <Text className="font-bold text-gray-900" style={nunitoFont}>
+                {friend.displayName}
               </Text>
-            )}
+              {friend.username && (
+                <Text className="text-sm text-gray-400 mt-0.5" style={nunitoFont}>
+                  @{friend.username}
+                </Text>
+              )}
+            </View>
           </View>
         </View>
-      </View>
       </Pressable>
     </Animated.View>
   );
 };
 
+const RequestCard = ({
+  request,
+  onRespond,
+  isProcessing,
+}: {
+  request: FriendRequest;
+  onRespond: (action: "accept" | "decline") => void;
+  isProcessing: boolean;
+}) => {
+  const usernameOrEmail = request.username
+    ? `@${request.username}`
+    : request.email || "";
+
+  const renderButtonContent = (type: "accept" | "decline") => {
+
+    return type === "accept" ? (
+      <Check size={20} color={CoralPalette.white} />
+    ) : (
+      <X size={20} color={CoralPalette.dark} />
+    );
+  };
+
+  return (
+    <View
+      className="rounded-2xl p-4 mb-3 shadow-sm"
+      style={{
+        backgroundColor: CoralPalette.surfaceAlt,
+      }}
+    >
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center flex-1">
+          <ProfilePicture profileId={request.profileId} size={48} />
+          <View className="ml-3 flex-1">
+            <Text className="font-bold" style={[nunitoFont, { color: CoralPalette.dark }]}>
+              {request.displayName}
+            </Text>
+            {usernameOrEmail ? (
+              <Text className="text-sm mt-1" style={[nunitoFont, { color: CoralPalette.mutedDark }]}>
+                {usernameOrEmail}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity
+            className="w-11 h-11 rounded-full items-center justify-center"
+            style={{ backgroundColor: CoralPalette.primary }}
+            disabled={isProcessing}
+            onPress={() => onRespond("accept")}
+          >
+            {renderButtonContent("accept")}
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="w-11 h-11 rounded-full items-center justify-center"
+            style={{ backgroundColor: CoralPalette.primaryLight }}
+            disabled={isProcessing}
+            onPress={() => onRespond("decline")}
+          >
+            {renderButtonContent("decline")}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 const Friends = () => {
   const { userProfile } = useGlobalContext();
-  const [tab, setTab] = useState<"friends" | "global">("friends");
+  const [tab, setTab] = useState<"friends" | "requests">("friends");
   const tabTranslate = useRef(new Animated.Value(0)).current;
+  const plusScale = useRef(new Animated.Value(1)).current;
   const [tabPillDims, setTabPillDims] = useState({ width: 0, height: 0 });
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchFriends = useCallback(async () => {
+  const fetchFriends = useCallback(async (showSpinner = true) => {
     if (!userProfile?.userId) {
       setIsLoading(false);
       return;
+    }
+    if (showSpinner) {
+      setIsLoading(true);
     }
     try {
       const response = await fetch(
@@ -275,6 +361,7 @@ const Friends = () => {
       if (response.ok) {
         const result = await response.json();
         setFriends(result.data?.friends || []);
+        setRequests(result.data?.requests || []);
       } else {
         const errorText = await response.text();
         console.error(
@@ -288,16 +375,51 @@ const Friends = () => {
       console.error("Error fetching friends:", error);
       Alert.alert("Error", "Failed to load friends. Please try again.");
     } finally {
-      setIsLoading(false);
+      if (showSpinner) {
+        setIsLoading(false);
+      }
     }
   }, [userProfile?.userId]);
 
   const handleAddFriend = () => router.push("/friends/search" as any);
 
-  const handleSwitchTab = (next: typeof tab) => {
-    if (next === tab) return;
-    setTab(next);
+  const handleSwitchTab = (next: "friends" | "requests") => {
+    if (next !== tab) setTab(next);
   };
+
+  const handleRespond = useCallback(
+    async (requesterId: string, action: "accept" | "decline") => {
+      if (!userProfile?.userId) return;
+      setRespondingId(requesterId);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/friends/respond`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: userProfile.userId,
+            requesterId,
+            action,
+          }),
+        });
+
+        if (response.ok) {
+          await fetchFriends(false);
+        
+        } else {
+          const errorText = await response.text();
+          Alert.alert("Error", errorText || "Failed to update friend request");
+        }
+      } catch (error) {
+        console.error("Error responding to friend request:", error);
+        Alert.alert("Error", "Failed to update friend request. Please try again.");
+      } finally {
+        setRespondingId(null);
+      }
+    },
+    [fetchFriends, userProfile?.userId]
+  );
 
   useEffect(() => {
     Animated.spring(tabTranslate, {
@@ -306,13 +428,34 @@ const Friends = () => {
     }).start();
   }, [tab, tabTranslate]);
 
+  const animatePlus = useCallback(
+    (toValue: number) => {
+      Animated.spring(plusScale, {
+        toValue,
+        useNativeDriver: true,
+        friction: 7,
+        tension: 120,
+      }).start();
+    },
+    [plusScale]
+  );
+
   useFocusEffect(
     useCallback(() => {
-      if (tab === "friends") {
-        fetchFriends();
-      }
-    }, [fetchFriends, tab])
+      setTab("friends");
+      tabTranslate.setValue(0);
+      fetchFriends();
+    }, [fetchFriends, tabTranslate])
   );
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchFriends(false);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchFriends]);
 
   if (isLoading && tab === "friends") {
     return (
@@ -329,17 +472,30 @@ const Friends = () => {
     <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
       {/* Top right buttons */}
       <View className="absolute -top-14 right-0 z-10 pt-2 pr-6 flex-row gap-2">
-        <Pressable
-          onPress={handleAddFriend}
-          className="rounded-full w-9 h-9 items-center justify-center"
-        >
-          <Plus size={30} color={CoralPalette.white} />
-        </Pressable>
+        <Animated.View style={{ transform: [{ scale: plusScale }] }}>
+          <Pressable
+            onPress={handleAddFriend}
+            className="rounded-full w-9 h-9 items-center justify-center"
+            onPressIn={() => animatePlus(0.85)}
+            onPressOut={() => animatePlus(1)}
+            style={{ backgroundColor: CoralPalette.primaryMuted }}
+          >
+            <Plus size={30} color={CoralPalette.white} />
+          </Pressable>
+        </Animated.View>
       </View>
 
       <ScrollView
         className="flex-1 px-6"
         contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={CoralPalette.primary}
+            colors={[CoralPalette.primary]}
+          />
+        }
       >
         <View className="flex-row items-center gap-2 mt-6 mb-5">
           <View
@@ -399,22 +555,22 @@ const Friends = () => {
             </Pressable>
             <Pressable
               className="flex-1 py-2.5 rounded-full px-4"
-              onPress={() => handleSwitchTab("global")}
+              onPress={() => handleSwitchTab("requests")}
             >
               <Text
                 className="text-center font-semibold"
                 style={[
                   nunitoFont,
-                  { color: tab === "global" ? "#fff" : CoralPalette.mutedDark },
+                  { color: tab === "requests" ? "#fff" : CoralPalette.mutedDark },
                 ]}
               >
-                Global
+                Requests
               </Text>
             </Pressable>
           </View>
         </View>
 
-        {/* Toggle between Friends and Global */}
+        {/* Toggle between Friends and Requests */}
         {tab === "friends" ? (
           friends.length === 0 ? (
             <View
@@ -425,7 +581,7 @@ const Friends = () => {
                 borderWidth: 1,
               }}
             >
-              <Users size={48} color={CoralPalette.primary} />
+              <UsersRound size={48} color={CoralPalette.primary} />
               <Text
                 className="font-bold text-lg mt-4"
                 style={[nunitoFont, { color: CoralPalette.dark }]}
@@ -450,28 +606,41 @@ const Friends = () => {
             </View>
           ) : (
             friends.map((friend) => (
-              <FriendCard
-                key={friend.userId}
-                friend={friend}
-              />
+              <FriendCard key={friend.userId} friend={friend} />
             ))
           )
-        ) : (
-          <View className="rounded-3xl p-6 mt-10 items-center">
-            <Users size={48} color={CoralPalette.primary} />
+        ) : requests.length === 0 ? (
+          <View
+            className="rounded-3xl p-6 mt-10 items-center"
+            style={{
+              backgroundColor: CoralPalette.surface,
+              borderColor: CoralPalette.surface,
+              borderWidth: 1,
+            }}
+          >
+            <Mail size={48} color={CoralPalette.primary} />
             <Text
               className="font-bold text-lg mt-4"
               style={[nunitoFont, { color: CoralPalette.dark }]}
             >
-              Global Ranking
+              No Requests Yet
             </Text>
             <Text
               className="text-center mt-2"
               style={[nunitoFont, { color: CoralPalette.mutedDark }]}
             >
-              Coming soon. Stay tuned!
+              Friend requests you receive will show up here.
             </Text>
           </View>
+        ) : (
+          requests.map((request) => (
+            <RequestCard
+              key={request.userId}
+              request={request}
+              isProcessing={respondingId === request.userId}
+              onRespond={(action) => handleRespond(request.userId, action)}
+            />
+          ))
         )}
 
         <View className="h-6" />
@@ -479,11 +648,15 @@ const Friends = () => {
 
       <View className="absolute bottom-0 left-0 right-0 overflow-hidden">
         <View
-          style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0,
-            backgroundColor: CoralPalette.primary
-           }}
-        >
-        </View>
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            backgroundColor: CoralPalette.primary,
+          }}
+        />
 
         {/* the white dropdown coming from the top center */}
         <MyDropdownBadge
@@ -493,14 +666,12 @@ const Friends = () => {
         />
 
         {/* content row */}
-        <View className="px-6 pt-4 pb-6">
+        <View className="px-6 pt-4 pb-8">
           <View className="flex-row items-center">
             <ProfilePicture
               profileId={userProfile?.profileId || null}
               size={54}
               className="border-2 border-white"
-      
-            
             />
             <View className="ml-4 flex-1">
               <Text
