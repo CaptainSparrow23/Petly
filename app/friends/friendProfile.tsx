@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import { ProfilePicture } from "@/components/other/ProfilePicture";
 import { CoralPalette } from "@/constants/colors";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
@@ -13,6 +14,8 @@ const FONT = { fontFamily: "Nunito" };
 export default function FriendProfile() {
   const { userId } = useLocalSearchParams<{ userId?: string }>();
   const [profile, setProfile] = useState<any>(null);
+  const [removing, setRemoving] = useState(false);
+  const { userProfile, showBanner } = useGlobalContext();
 
   console.log("[FriendProfile] Mounted with userId:", userId);
 
@@ -40,16 +43,54 @@ export default function FriendProfile() {
     void fetchProfile();
   }, [fetchProfile]);
 
+  const handleRemoveFriend = useCallback(async () => {
+    if (!userProfile?.userId || !userId) return;
+    setRemoving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/friends/remove`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: userProfile.userId, friendId: userId }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to remove friend");
+      }
+      showBanner?.("Friend removed", "success");
+      router.back();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to remove friend";
+      Alert.alert("Error", message);
+      showBanner?.(message, "error");
+    } finally {
+      setRemoving(false);
+    }
+  }, [API_BASE_URL, showBanner, userId, userProfile?.userId]);
+
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
       <View className="flex-row items-center justify-between px-4 py-4">
         <TouchableOpacity onPress={() => router.back()}>
           <ChevronLeft size={24} color={CoralPalette.dark} />
         </TouchableOpacity>
-        <Text className="text-[17px] ml-4 font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
+        <Text className="text-[17px] ml-14 font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
           Profile
         </Text>
-        <View style={{ width: 32 }} />
+        <TouchableOpacity
+          disabled={removing}
+          onPress={handleRemoveFriend}
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 999,
+            backgroundColor: CoralPalette.surface,
+
+          }}
+        >
+          <Text style={[{ fontSize: 14, color: CoralPalette.primary, fontFamily: "Nunito", fontWeight: "700", opacity: removing ? 0.7 : 1,}]}>
+            Remove
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -101,5 +142,3 @@ export default function FriendProfile() {
     </SafeAreaView>
   );
 };
-
-

@@ -23,7 +23,7 @@ const FONT = { fontFamily: 'Nunito' };
 
 const Profile = () => {
  const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
- const navigation = useNavigation();
+
  
  const { 
   pets, 
@@ -140,7 +140,7 @@ const Profile = () => {
         stateMachineName={petAnimationConfig.stateMachineName}
         focusInputName={petAnimationConfig.focusInputName}
         isFocus={false}
-        containerStyle={{ marginTop: 100 }}
+        containerStyle={{ position: 'absolute', top: -70 }}
         animationStyle={{ width: '60%', height: '60%' }}
        />
       ) : (
@@ -160,10 +160,10 @@ const Profile = () => {
        
 
     <View
-     className="flex-2 rounded-t-3xl shadow-lg pt-6 pb-10"
-     style={{ backgroundColor: CoralPalette.surface, borderColor: CoralPalette.border, borderWidth: 1 }}
+     className="flex-1 rounded-t-3xl shadow-lg pt-6"
+     style={{ position: 'absolute', top: 470, left: 0, right: 0, bottom: -100, backgroundColor: CoralPalette.surface }}
     >
-      <View className="px-6 mb-3 flex-row items-center justify-between">
+      <View className="pl-10 mt-2 mb-3 flex-row items-center justify-between">
        <View>
         <Text className="text-xl font-extrabold" style={[{ color: CoralPalette.dark }, FONT]}>
          Your pets
@@ -171,15 +171,15 @@ const Profile = () => {
        </View>
        
       </View>
-
+      <View style={{ position: 'absolute', top: 70, left: 0, right: 0, bottom: 0 }}>
       <FlatList
        data={pets}
        keyExtractor={(item) => item.id}
        numColumns={2}
        showsVerticalScrollIndicator={false}
        scrollEnabled={false}
-       contentContainerStyle={{ paddingBottom: 28, paddingHorizontal: 22, paddingTop: 8 }}
-       columnWrapperStyle={{ columnGap: 14, marginBottom: 16 }}
+       contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 8 }}
+       columnWrapperStyle={{ columnGap: 14, marginBottom: 14}}
        ListEmptyComponent={
         <View className="w-full items-center py-8">
          <Text className="text-base font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
@@ -237,6 +237,7 @@ const Profile = () => {
         );
        }}
       />
+      </View>
      </View>
     </View>
    </ImageBackground>

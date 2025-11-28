@@ -8,11 +8,12 @@ import {
  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Search, UserPlus, Users } from 'lucide-react-native';
+import { ChevronLeft, Search, UserRoundPlus, UsersRound, UserRoundCheck } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useGlobalContext } from '@/lib/GlobalProvider';
 import { ProfilePicture } from '@/components/other/ProfilePicture';
 import Constants from 'expo-constants';
+import { CoralPalette } from '@/constants/colors';
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
@@ -34,7 +35,10 @@ const UserCard = ({
  onAddFriend: (userId: string) => void;
  isAdding: boolean;
 }) => (
- <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm border border-gray-100">
+ <View
+  className="rounded-2xl p-4 mb-3 shadow-sm"
+  style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+ >
   <View className="flex-row items-center justify-between">
    <View className="flex-row items-center flex-1">
     <ProfilePicture 
@@ -43,28 +47,31 @@ const UserCard = ({
     />
     
     <View className="ml-3 flex-1">
-     <Text className="font-bold text-gray-900">{user.displayName}</Text>
-     <Text className="text-sm text-gray-600 mt-1">
+     <Text className="font-bold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>{user.displayName}</Text>
+     <Text className="text-sm mt-1" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
       {user.username ? `@${user.username}` : user.email}
      </Text>
     </View>
    </View>
 
    <TouchableOpacity 
-    className={`px-4 py-2 rounded-xl ${user.isFriend ? 'bg-gray-100' : 'bg-blue-500'}`}
+    className="px-4 py-4 rounded-full"
     onPress={() => onAddFriend(user.id)}
     disabled={user.isFriend || isAdding}
+    style={{
+      backgroundColor: CoralPalette.surfaceAlt,
+      opacity: user.isFriend || isAdding ? 0.7 : 1,
+    }}
    >
     {isAdding ? (
-     <ActivityIndicator size="small" color="white" />
+     <ActivityIndicator size="small" color={user.isFriend ? CoralPalette.dark : CoralPalette.white} />
     ) : (
      <>
       {user.isFriend ? (
-       <Text className="font-medium text-gray-600">Friends</Text>
+       <UserRoundCheck size={26} color={CoralPalette.primaryMuted} />
       ) : (
        <View className="flex-row items-center">
-        <UserPlus size={16} color="white" />
-        <Text className="font-medium text-white ml-1">Add</Text>
+        <UserRoundPlus size={26} color={CoralPalette.primary} />
        </View>
       )}
      </>
@@ -93,32 +100,33 @@ const SearchFriends = () => {
   setSearchPerformed(true);
   
   try {
-   const response = await fetch(
-    `${API_BASE_URL}/api/search_friends/${userProfile.userId}?query=${encodeURIComponent(query.trim())}`
+    const response = await fetch(
+     `${API_BASE_URL}/api/search_friends/${userProfile.userId}?query=${encodeURIComponent(query.trim())}`
    );
    
    if (response.ok) {
     const result = await response.json();
-    setSearchResults(result.data?.users || []);
+    const incomingUsers: SearchUser[] = result.data?.users || [];
+    setSearchResults(incomingUsers);
    } else {
     console.error('Search failed:', response.statusText);
     showBanner('Failed to search users. Please try again.', 'error');
    }
   } catch (error) {
    console.error('Error searching users:', error);
-   showBanner('Failed to search users. Please check your connection.', 'error');
+   showBanner('Failed to search. Please check your connection.', 'error');
   } finally {
    setIsSearching(false);
   }
  };
 
- const handleAddFriend = async (friendId: string) => {
+  const handleAddFriend = async (friendId: string) => {
   if (!userProfile?.userId) return;
 
   setAddingUserId(friendId);
   
   try {
-   const response = await fetch(`${API_BASE_URL}/api/friends/add`, {
+   const response = await fetch(`${API_BASE_URL}/api/friends/request`, {
     method: 'POST',
     headers: {
      'Content-Type': 'application/json',
@@ -130,24 +138,14 @@ const SearchFriends = () => {
    });
 
    if (response.ok) {
-    const result = await response.json();
-    
-    // Update the search results to mark this user as a friend
-    setSearchResults(prev => 
-     prev.map(searchUser => 
-      searchUser.id === friendId 
-       ? { ...searchUser, isFriend: true }
-       : searchUser
+    setSearchResults((prev) =>
+     prev.map((searchUser) =>
+      searchUser.id === friendId
+        ? { ...searchUser, isFriend: true }
+        : searchUser
      )
     );
-
-    const friendName = result.data?.friend?.displayName || 'this user';
-    showBanner(`You're now friends with ${friendName}!`, 'success');
-    
-    // Navigate back to trigger refresh on friends page
-    setTimeout(() => {
-     router.back();
-    }, 1500); // Give time to see the success banner
+    showBanner('Friend request sent!', 'success');
    } else {
     const errorData = await response.json();
     showBanner(errorData.error || 'Failed to add friend', 'error');
@@ -170,52 +168,57 @@ const SearchFriends = () => {
  }, [searchQuery, userProfile?.userId]);
 
  return (
-  <SafeAreaView className="flex-1 bg-white">
-   {/* Header */}
-   <View className="flex-row items-center justify-between px-4 py-2 bg-white">
-    <TouchableOpacity onPress={() => router.back()}>
-     <ChevronLeft size={24} color="#000" />
-    </TouchableOpacity>
-    <Text className="text-[17px] font-semibold text-black">Find Friends</Text>
-    <View className="w-6" />
-   </View>
-
-   {/* Search Input */}
-   <View className="px-4 py-4 bg-white border-b border-gray-100">
-    <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3">
-     <Search size={20} color="#6b7280" />
-     <TextInput
-      className="flex-1 ml-3 text-gray-900"
-      placeholder="Search by username..."
-      value={searchQuery}
-      onChangeText={setSearchQuery}
-      autoCapitalize="none"
-      autoCorrect={false}
-      placeholderTextColor="#9ca3af"
-     />
+  <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.primaryMuted }}>
+   <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
+    {/* Header */}
+    <View
+      className="flex-row items-center justify-between px-4 py-3"
+     style={{ backgroundColor: CoralPalette.primaryMuted }}
+    >
+     <TouchableOpacity onPress={() => router.back()}>
+      <ChevronLeft size={24} color={CoralPalette.white} />
+     </TouchableOpacity>
+     <Text className="text-[17px] font-semibold" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>Find Friends</Text>
+     <View style={{ width: 24 }} />
     </View>
-   </View>
 
-   {/* Search Results */}
-   <ScrollView className="flex-1 px-4 py-4">
+    {/* Search Input */}
+    <View className="px-4 py-4">
+     <View className="flex-row items-center rounded-xl px-4 py-3" style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}>
+      <Search size={20} color={CoralPalette.primary} />
+      <TextInput
+       className="flex-1 ml-3 text-gray-900"
+       placeholder="Search by username..."  
+       value={searchQuery}
+       onChangeText={setSearchQuery}
+       autoCapitalize="none"
+       autoCorrect={false}
+       placeholderTextColor={CoralPalette.mutedDark}
+       style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}
+      />
+     </View>
+    </View>
+
+    {/* Search Results */}
+    <ScrollView className="flex-1 px-4 py-1" showsVerticalScrollIndicator={false}>
     {isSearching ? (
      <View className="flex-1 items-center justify-center py-12">
-      <ActivityIndicator size="large" color="#3b82f6" />
-      <Text className="mt-4 text-gray-600 ">Searching users...</Text>
+      <ActivityIndicator size="large" color={CoralPalette.primary} />
+      <Text className="mt-4" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>Searching users...</Text>
      </View>
     ) : searchPerformed && searchResults.length === 0 ? (
      <View className="flex-1 items-center justify-center py-12">
-      <Users size={48} color="#9ca3af" />
-      <Text className="font-bold text-gray-900 text-lg mt-4">No Users Found</Text>
-      <Text className="text-gray-600 text-center mt-2">
+      <UsersRound size={48} color={CoralPalette.primary} />
+      <Text className="font-bold text-lg mt-4" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>No Users Found</Text>
+      <Text className="text-center mt-2" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
        Try searching with a different name or username
       </Text>
      </View>
     ) : searchQuery.trim().length < 2 ? (
      <View className="flex-1 items-center justify-center py-12">
-      <Search size={48} color="#9ca3af" />
-      <Text className="font-bold text-gray-900 text-lg mt-4">Search for Friends</Text>
-      <Text className="text-gray-600 text-center mt-2">
+      <Search size={48} color={CoralPalette.primary} />
+      <Text className="font-bold text-lg mt-4" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>Search for Friends</Text>
+      <Text className="text-center mt-2" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
        Enter a username to find other Petly users
       </Text>
      </View>
@@ -234,7 +237,8 @@ const SearchFriends = () => {
     )}
 
     <View className="h-6" />
-   </ScrollView>
+    </ScrollView>
+   </View>
   </SafeAreaView>
  );
 };
