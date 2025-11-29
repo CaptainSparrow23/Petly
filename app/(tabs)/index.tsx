@@ -274,7 +274,7 @@ export default function IndexScreen() {
       focusInputName={petAnimationConfig.focusInputName}
       isFocus={running}
       containerStyle={{ marginTop: 15, marginLeft: 5 }}
-      animationStyle={{ width: "65%", height: "65%" }}
+      animationStyle={{ width: "70%", height: "70%" }}
     />
   ) : null;
   const animationCenterContent = (
@@ -398,6 +398,7 @@ export default function IndexScreen() {
               fontFamily: "Nunito",
               includeFontPadding: false,
               lineHeight: 120,
+              fontSize: 90,
             }}
           >
             00:00

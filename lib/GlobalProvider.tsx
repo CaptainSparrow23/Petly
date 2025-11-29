@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import Constants from "expo-constants";
-import { Banner } from "@/components/other/Banner";
 import { auth } from "@/utils/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { signOutFromFirebase } from "./firebaseAuth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { toast } from "burnt";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 console.log("[GlobalProvider] API_BASE_URL:", API_BASE_URL);
@@ -34,6 +34,13 @@ interface UserProfile {
 
 type BannerType = "success" | "error" | "info" | "warning";
 
+type BannerOptions = {
+    title: string;
+    preset?: "done" | "error" | "none";
+    message?: string;
+    haptic?: "success" | "warning" | "error" | "none";
+};
+
 type AppSettings = {
     keepScreenOn: boolean;
     extendSessionLimit: boolean;
@@ -57,7 +64,10 @@ interface GlobalContextType {
     updateAppSettings: (patch: Partial<AppSettings>) => void;
     refetchUserProfile: () => Promise<void>;
     logout: () => Promise<boolean>;
-    showBanner: (message: string, type?: BannerType) => void;
+    showBanner: (
+        messageOrOptions: string | BannerOptions,
+        type?: BannerType
+    ) => void;
     updateUserProfile: (patch: Partial<UserProfile>) => void;
 }
 
@@ -68,9 +78,6 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [appSettings, setAppSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
-    const [bannerVisible, setBannerVisible] = useState(false);
-    const [bannerMessage, setBannerMessage] = useState("");
-    const [bannerType, setBannerType] = useState<BannerType>("info");
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -200,10 +207,33 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, []);
 
-    const showBanner = useCallback((message: string, type: BannerType = "info") => {
-        setBannerMessage(message);
-        setBannerType(type);
-        setBannerVisible(true);
+    const showBanner = useCallback((
+        messageOrOptions: string | BannerOptions,
+        type: BannerType = "info"
+    ) => {
+        const presetMap: Record<BannerType, "done" | "error" | "none"> = {
+            success: "done",
+            error: "error",
+            warning: "none",
+            info: "none",
+        };
+
+        const baseOptions: BannerOptions =
+            typeof messageOrOptions === "string"
+                ? { title: messageOrOptions, preset: presetMap[type] }
+                : messageOrOptions;
+
+        Promise.resolve(
+            toast({
+                title: baseOptions.title,
+                preset: baseOptions.preset ?? presetMap[type] ?? "none",
+                message: baseOptions.message,
+                haptic: baseOptions.haptic,
+                duration: 3,
+            })
+        ).catch((error: unknown) => {
+            console.warn("Failed to show Burnt toast", error);
+        });
     }, []);
 
     const isLoggedIn = !!userProfile;
@@ -223,13 +253,6 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                 updateUserProfile,
             }}
         >
-            <Banner
-                message={bannerMessage}
-                type={bannerType}
-                visible={bannerVisible}
-                onHide={() => setBannerVisible(false)}
-                duration={3000}
-            />
             {children}
         </GlobalContext.Provider>
     );

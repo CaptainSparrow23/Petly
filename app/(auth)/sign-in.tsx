@@ -12,7 +12,6 @@ import {
  View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Constants from "expo-constants";
-import { Banner } from "@/components/other/Banner";
 import { signInWithGoogle } from "@/lib/firebaseAuth";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
@@ -23,19 +22,23 @@ const SignIn = () => {
   loading,
   isLoggedIn,
   authUser,
+  showBanner,
  } = useGlobalContext();
  const { loggedOut } = useLocalSearchParams();
  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
  const [needsProfileSetup, setNeedsProfileSetup] = useState<boolean | null>(null);
- const [showBanner, setShowBanner] = useState(false);
  const [isSigningIn, setIsSigningIn] = useState(false);
 
  // Show banner if user just logged out
  useEffect(() => {
   if (loggedOut === "true") {
-   setShowBanner(true);
+   showBanner({
+    title: "Logged out successfully",
+    preset: "done",
+    haptic: "success",
+   });
   }
- }, [loggedOut]);
+  }, [loggedOut, showBanner]);
 
  // After login, check if user has username and redirect accordingly
  useEffect(() => {
@@ -145,13 +148,6 @@ const SignIn = () => {
 
  return (
   <SafeAreaView className="bg-white h-full">
-   <Banner
-    message="You have been logged out successfully"
-    type="success"
-    visible={showBanner}
-    onHide={() => setShowBanner(false)}
-    duration={3000}
-   />
    <ScrollView contentContainerClassName="h-full">
     <Image
      source={images.catFamily}

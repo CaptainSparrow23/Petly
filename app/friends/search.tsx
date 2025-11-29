@@ -110,11 +110,19 @@ const SearchFriends = () => {
     setSearchResults(incomingUsers);
    } else {
     console.error('Search failed:', response.statusText);
-    showBanner('Failed to search users. Please try again.', 'error');
+    showBanner({
+     title: 'Failed to search users. Please try again.',
+     preset: 'error',
+     haptic: 'error',
+    });
    }
   } catch (error) {
-   console.error('Error searching users:', error);
-   showBanner('Failed to search. Please check your connection.', 'error');
+  console.error('Error searching users:', error);
+  showBanner({
+   title: 'Failed to search. Please check your connection.',
+   preset: 'error',
+   haptic: 'error',
+  });
   } finally {
    setIsSearching(false);
   }
@@ -145,14 +153,26 @@ const SearchFriends = () => {
         : searchUser
      )
     );
-    showBanner('Friend request sent!', 'success');
+    showBanner({
+     title: 'Friend request sent!',
+     preset: 'done',
+     haptic: 'success',
+    });
    } else {
     const errorData = await response.json();
-    showBanner(errorData.error || 'Failed to add friend', 'error');
+    showBanner({
+     title: errorData.error || 'Failed to add friend',
+     preset: 'error',
+     haptic: 'error',
+    });
    }
   } catch (error) {
-   console.error('Error adding friend:', error);
-   showBanner('Failed to add friend. Please try again.', 'error');
+  console.error('Error adding friend:', error);
+  showBanner({
+   title: 'Failed to add friend. Please try again.',
+   preset: 'error',
+   haptic: 'error',
+  });
   } finally {
    setAddingUserId(null);
   }

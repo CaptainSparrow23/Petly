@@ -32,7 +32,11 @@ export default function FocusScreen() {
     try {
       const result = await updateGoals(daily, weekly);
       if (result) {
-        showBanner('Goals updated successfully!', 'success');
+          showBanner({
+            title: "Your new goals have been saved.",
+            preset: "done",
+            haptic: "success",
+          });
       }
       return result;
     } catch (error) {

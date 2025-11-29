@@ -242,7 +242,7 @@ const Store = () => {
               Pets and accessories
             </Text>
             <Text className="text-sm mt-1" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
-              Browse buddies plus hats, collars, and gadgets to style them.
+              Browse companions and different accessories
             </Text>
           </View>
 
