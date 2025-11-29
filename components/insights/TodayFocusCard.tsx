@@ -10,6 +10,46 @@ import goonerInsights from "@/assets/animations/gooner_insights.riv";
 
 const FONT = { fontFamily: "Nunito" };
 
+type PetAnimationStyle = {
+  width: number;
+  height: number;
+  translateX: number;
+  translateY: number;
+};
+
+const PET_ANIMATION_STYLE: Record<string, PetAnimationStyle> = {
+  default: {
+    width: 320,
+    height: 220,
+    translateX: -80,
+    translateY: 5,
+  },
+  pet_smurf: {
+    width: 320,
+    height: 220,
+    translateX: -80,
+    translateY: 5,
+  },
+  pet_chedrick: {
+    width: 330,
+    height: 240,
+    translateX: -89,
+    translateY: -17,
+  },
+  pet_pebbles: {
+    width: 280,
+    height: 250,
+    translateX: -67,
+    translateY: -21,
+  },
+  pet_gooner: {
+    width: 325,
+    height: 240,
+    translateX: -88,
+    translateY: -5,
+  },
+};
+
 const parseTimeStringToSeconds = (timeString?: string | null) => {
   if (!timeString) return 0;
   const minuteMatch = timeString.match(/(\d+)\s*min/);
@@ -60,14 +100,14 @@ export default function TodayFocusCard() {
     return "Maybe a break now?";
   }, [totalSeconds]);
 
-  // const moodValue = useMemo(() => {
-  //   if (totalSeconds < 1800) return 1;
-  //   if (totalSeconds < 7200) return 2;
-  //   return 3;
-  // }, [totalSeconds]);
+  const moodValue = useMemo(() => {
+    if (totalSeconds < 1800) return 1;
+    if (totalSeconds < 5400) return 2;
+    return 3;
+  }, [totalSeconds]);
 
 
-  const moodValue = 1;
+
 
   const insightsAnimations: Record<
     string,
@@ -84,6 +124,11 @@ export default function TodayFocusCard() {
     () => (selectedPet ? insightsAnimations[selectedPet] : undefined),
     [insightsAnimations, selectedPet]
   );
+
+  const animationStyle = useMemo(() => {
+    if (!selectedPet) return PET_ANIMATION_STYLE.default;
+    return PET_ANIMATION_STYLE[selectedPet] ?? PET_ANIMATION_STYLE.default;
+  }, [selectedPet]);
 
   useEffect(() => {
     if (!riveRef.current || !animationConfig) return;
@@ -119,8 +164,8 @@ export default function TodayFocusCard() {
             position: "absolute",
             left: 0,
             top: 0,
-            width: 155,
-            height: 124,
+            width: 150,
+            height: 123.5,
             opacity: 0.9,
             overflow: "hidden",
             zIndex: 1,
@@ -131,7 +176,14 @@ export default function TodayFocusCard() {
             source={animationConfig.source}
             stateMachineName={animationConfig.stateMachineName}
             fit={Fit.Contain}
-            style={{ width: "150%", height: "180%", transform: [{ translateX: -40 }] }}
+            style={{
+              width: animationStyle.width,
+              height: animationStyle.height,
+              transform: [
+                { translateX: animationStyle.translateX },
+                { translateY: animationStyle.translateY },
+              ],
+            }}
             autoplay
           />
         </View>

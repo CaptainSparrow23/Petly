@@ -204,8 +204,6 @@ const Settings = () => {
    </SectionCard>
 
    <SectionCard title="Insights Overview" icon={BarChart3}>
-     <LinkRow label="First Day of the Week" value="Sunday" />
-     <LinkRow label="Daily Start Time" value="00:00 (Default)" />
      <ToggleRow
       label="Display Focus Time in Hours"
       value={appSettings.displayFocusInHours}
@@ -214,13 +212,8 @@ const Settings = () => {
    </SectionCard>
 
    <SectionCard title="Social and Friends" icon={Users}>
-     <ToggleRow
-      label="Hidden from Global Ranking"
-      value={toggles.hiddenFromRanking}
-      onValueChange={(val) => updateToggle("hiddenFromRanking", val)}
-     />
       <ToggleRow
-      label="Allow Friend Requests Sent Through Profile"
+      label="Allow Friend Requests"
       value={toggles.allowFriendRequests}
       onValueChange={(val) => updateToggle("allowFriendRequests", val)}
       />

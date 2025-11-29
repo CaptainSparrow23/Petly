@@ -56,12 +56,20 @@ export default function FriendProfile() {
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Failed to remove friend");
       }
-      showBanner?.("Friend removed", "success");
+      showBanner?.({
+        title: "Friend removed",
+        preset: "done",
+        haptic: "success",
+      });
       router.back();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to remove friend";
       Alert.alert("Error", message);
-      showBanner?.(message, "error");
+      showBanner?.({
+        title: message,
+        preset: "error",
+        haptic: "error",
+      });
     } finally {
       setRemoving(false);
     }

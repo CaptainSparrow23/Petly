@@ -2,6 +2,8 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  RefreshControl,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -9,7 +11,7 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import Constants from "expo-constants";
-import { ScrollView, SheetManager } from "react-native-actions-sheet";
+import { SheetManager } from "react-native-actions-sheet";
 
 import Filters, { type CategoryValue } from "@/components/store/Filters";
 import { Tile, StoreItem } from "@/components/store/Tiles";
@@ -47,6 +49,7 @@ const Store = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] =
     useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // refresh data when screen gains focus
   useFocusEffect(
@@ -55,6 +58,15 @@ const Store = () => {
       return undefined;
     }, [refetchCatalog])
   );
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchCatalog();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refetchCatalog]);
 
   // confirm purchase flow
   const handleConfirmPurchase = useCallback(
@@ -193,7 +205,7 @@ const Store = () => {
     setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
   }, []);
 
-  if (loading) {
+  if (loading && !isRefreshing) {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: CoralPalette.surface }}>
         <ActivityIndicator size="large" color={CoralPalette.primary} />
@@ -232,7 +244,19 @@ const Store = () => {
     <View className="flex-1 relative" style={{ backgroundColor: CoralPalette.surface }}>
       <CoinBadge />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32, paddingTop: 16 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32, paddingTop: 16 }}
+        scrollEnabled={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={CoralPalette.primary}
+            colors={[CoralPalette.primary]}
+          />
+        }
+      >
         <View className="px-6 flex-row items-start justify-between">
           <View className="flex-1 pr-3">
             <Text className="text-xs font-extrabold uppercase" style={[{ color: CoralPalette.primaryMuted, letterSpacing: 1 }, FONT]}>
@@ -242,7 +266,7 @@ const Store = () => {
               Pets and accessories
             </Text>
             <Text className="text-sm mt-1" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
-              Browse buddies plus hats, collars, and gadgets to style them.
+              Browse companions and different accessories
             </Text>
           </View>
 

@@ -38,10 +38,6 @@ const FilterChip = ({
         backgroundColor: background,
         borderColor: border,
         borderWidth: 1,
-        shadowColor: "#000",
-        shadowOpacity: active ? 0.12 : 0,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 4 },
         elevation: active ? 2 : 0,
         minWidth: 83,
       }}
