@@ -90,7 +90,13 @@ export default function IndexScreen() {
   useEffect(() => { lastElapsedRef.current = secondsElapsed; }, [secondsElapsed]);
 
   useEffect(() => {
-    if (loggedIn === "true") showBanner("Successfully logged in", "success");
+    if (loggedIn === "true") {
+      showBanner({
+        title: "Successfully logged in",
+        preset: "done",
+        haptic: "success",
+      });
+    }
   }, [loggedIn, showBanner]);
   const maxSessionSeconds = appSettings.extendSessionLimit ? 3 * 60 * 60 : 2 * 60 * 60;
 
@@ -312,8 +318,6 @@ export default function IndexScreen() {
   return (
     <View className="flex-1 relative" style={{ backgroundColor: CoralPalette.primaryMuted }}>
       <StatusBar hidden={false} animated />
-
-      <CoinBadge />
 
       <View
         className="absolute -top-14 left-1/2 -translate-x-1/2 z-10 flex-row rounded-full overflow-hidden"

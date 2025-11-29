@@ -21,6 +21,7 @@ interface UserProfile {
     displayName: string | null;
     email: string | null;
     profileId: number | null;
+    allowFriendRequests: boolean;
     timeActiveToday: number; 
     timeActiveTodayMinutes: number;
     minutesByHour: number[]; // 24-element array for hourly chart
@@ -30,6 +31,8 @@ interface UserProfile {
     dailyStreak: number;
     highestStreak: number;
     totalFocusSeconds: number;
+    lastDailyGoalClaim: string | null;
+    lastWeeklyGoalClaim: string | null;
 }
 
 type BannerType = "success" | "error" | "info" | "warning";
@@ -45,12 +48,16 @@ type AppSettings = {
     keepScreenOn: boolean;
     extendSessionLimit: boolean;
     displayFocusInHours: boolean;
+    vibrations: boolean;
+    notifications: boolean;
 };
 
 const DEFAULT_APP_SETTINGS: AppSettings = {
     keepScreenOn: false,
     extendSessionLimit: false,
     displayFocusInHours: false,
+    vibrations: true,
+    notifications: true,
 };
 
 const SETTINGS_STORAGE_KEY = "petly_app_settings";
@@ -145,9 +152,14 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     minutesByHour: Array.isArray(profile.minutesByHour) ? profile.minutesByHour : Array(24).fill(0),
                     coins: toNumber(profile.coins),
                     ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_smurf"],
+                    allowFriendRequests: typeof profile.allowFriendRequests === "boolean"
+                        ? profile.allowFriendRequests
+                        : true,
                     dailyStreak: toNumber(profile.dailyStreak),
                     highestStreak: toNumber(profile.highestStreak),
                     totalFocusSeconds: toNumber(profile.totalFocusSeconds),
+                    lastDailyGoalClaim: profile.lastDailyGoalClaim ?? null,
+                    lastWeeklyGoalClaim: profile.lastWeeklyGoalClaim ?? null,
                 } as UserProfile;
 
                 setUserProfile(updatedProfile);
@@ -223,18 +235,21 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                 ? { title: messageOrOptions, preset: presetMap[type] }
                 : messageOrOptions;
 
+        // Respect vibrations setting - disable haptics if vibrations are off
+        const hapticValue = appSettings.vibrations ? baseOptions.haptic : "none";
+
         Promise.resolve(
             toast({
                 title: baseOptions.title,
                 preset: baseOptions.preset ?? presetMap[type] ?? "none",
                 message: baseOptions.message,
-                haptic: baseOptions.haptic,
+                haptic: hapticValue,
                 duration: 3,
             })
         ).catch((error: unknown) => {
             console.warn("Failed to show Burnt toast", error);
         });
-    }, []);
+    }, [appSettings.vibrations]);
 
     const isLoggedIn = !!userProfile;
 

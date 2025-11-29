@@ -23,15 +23,6 @@ type WeekResponse = {
   error?: string;
 };
 
-type GoalsResponse = {
-  success: boolean;
-  data?: {
-    dailyGoalMinutes: number;
-    weeklyGoalMinutes: number;
-  };
-  error?: string;
-};
-
 const API_BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://petly-gsxb.onrender.com";
 const LONDON_TZ = "Europe/London";
@@ -122,61 +113,8 @@ export function useInsights(
     getWeekFocus(todayMinutesFromProfile);
   }, [userId, todayMinutesFromProfile, getWeekFocus]);
 
-  // goals
-  const [dailyGoal, setDailyGoal] = useState<number>(120);
-  const [weeklyGoal, setWeeklyGoal] = useState<number>(600);
-  const [goalsLoading, setGoalsLoading] = useState<boolean>(!!userId);
-  const [goalsError, setGoalsError] = useState<string | null>(null);
-
-  const getGoals = useCallback(async () => {
-    if (!userId) return;
-    setGoalsLoading(true);
-    setGoalsError(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/get_goals/${encodeURIComponent(userId)}`);
-      const json: GoalsResponse = await res.json();
-      if (!res.ok || !json.success || !json.data) throw new Error(json.error || `HTTP ${res.status}`);
-      setDailyGoal(json.data.dailyGoalMinutes);
-      setWeeklyGoal(json.data.weeklyGoalMinutes);
-    } catch (e: any) {
-      setGoalsError(e?.message || "Failed to load goals");
-    } finally {
-      setGoalsLoading(false);
-    }
-  }, [userId]);
-
-  const updateGoals = useCallback(async (dailyGoalMinutes: number, weeklyGoalMinutes: number) => {
-    if (!userId) throw new Error("User ID is required");
-    
-    setGoalsLoading(true);
-    setGoalsError(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/update_goals/${encodeURIComponent(userId)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dailyGoalMinutes, weeklyGoalMinutes }),
-      });
-      
-      const json: GoalsResponse = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
-      
-      setDailyGoal(dailyGoalMinutes);
-      setWeeklyGoal(weeklyGoalMinutes);
-      return true;
-    } catch (e: any) {
-      setGoalsError(e?.message || "Failed to update goals");
-      throw e;
-    } finally {
-      setGoalsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (userId) getGoals();
-  }, [userId, getGoals]);
-
   // expose a single page-level loading helper
-  const anyLoading = weekLoading || streakLoading || goalsLoading;
+  const anyLoading = weekLoading || streakLoading;
 
   return {
     // streak
@@ -194,14 +132,6 @@ export function useInsights(
     weekLoading,
     weekError,
     refreshWeek: getWeekFocus,
-
-    // goals
-    dailyGoal,
-    weeklyGoal,
-    goalsLoading,
-    goalsError,
-    updateGoals,
-    refreshGoals: getGoals,
 
     // page-level helpers
     anyLoading,

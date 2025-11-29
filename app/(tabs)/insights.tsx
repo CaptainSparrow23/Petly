@@ -7,9 +7,10 @@ import FocusChart from "@/components/insights/FocusChart";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useInsights } from "@/hooks/useInsights";
 import { CoralPalette } from "@/constants/colors";
+import CoinBadge from "@/components/other/CoinBadge";
 
 export default function FocusScreen() {
-  const { userProfile, showBanner } = useGlobalContext();
+  const { userProfile } = useGlobalContext();
   const userId = String(userProfile?.userId || "");
   
   // Get today's data from global profile
@@ -19,31 +20,10 @@ export default function FocusScreen() {
   const {
     streak,
     currentWeekTotal,
-    dailyGoal,
-    weeklyGoal,
-    updateGoals,
     anyLoading,
     refreshStreak,
     refreshWeek,
-    refreshGoals,
   } = useInsights(userId, todayMinutesFromProfile, minutesByHourFromProfile);
-
-  const handleUpdateGoals = async (daily: number, weekly: number) => {
-    try {
-      const result = await updateGoals(daily, weekly);
-      if (result) {
-          showBanner({
-            title: "Your new goals have been saved.",
-            preset: "done",
-            haptic: "success",
-          });
-      }
-      return result;
-    } catch (error) {
-      showBanner('Failed to update goals', 'error');
-      throw error;
-    }
-  };
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -54,12 +34,11 @@ export default function FocusScreen() {
       await Promise.all([
         refreshStreak(),
         refreshWeek(todayMinutesFromProfile),
-        refreshGoals(),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [userId, refreshStreak, refreshWeek, refreshGoals, todayMinutesFromProfile]);
+  }, [userId, refreshStreak, refreshWeek, todayMinutesFromProfile]);
 
   const showBigLoader = anyLoading && !refreshing;
 
@@ -70,6 +49,7 @@ export default function FocusScreen() {
           <ActivityIndicator size="large" />
         </View>
       ) : (
+        
         <ScrollView
           showsVerticalScrollIndicator={false}
           className="w-full px-6"
@@ -79,6 +59,7 @@ export default function FocusScreen() {
           contentContainerStyle={{ paddingBottom: 32 }}
         >
           <View className="mt-6 mb-4 flex-row gap-4">
+     
             <TodayFocusCard />
             {/* StreakCard no longer handles loading; parent chooses when to show loader */}
             <StreakCard streak={streak} />
@@ -87,9 +68,6 @@ export default function FocusScreen() {
           <GoalsCard 
             todayTotalMinutes={todayMinutesFromProfile} 
             currentWeekTotal={currentWeekTotal}
-            dailyGoal={dailyGoal}
-            weeklyGoal={weeklyGoal}
-            onUpdateGoals={handleUpdateGoals}
           />
 
           <FocusChart title="Focused Time Distribution" />

@@ -3,10 +3,10 @@ import { View, Text, InteractionManager } from "react-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import Rive, { Fit, RiveRef } from "rive-react-native";
-import smurfInsights from "@/assets/animations/smurf_insights.riv";
-import chedrickInsights from "@/assets/animations/chedrick_insights.riv";
-import pebblesInsights from "@/assets/animations/pebbles_insights.riv";
-import goonerInsights from "@/assets/animations/gooner_insights.riv";
+import smurfAlt from "@/assets/animations/smurfAlt.riv";
+import chedrickAlt from "@/assets/animations/chedrickAlt.riv";
+import pebblesAlt from "@/assets/animations/pebblesAlt.riv";
+import goonerAlt from "@/assets/animations/goonerAlt.riv";
 
 const FONT = { fontFamily: "Nunito" };
 
@@ -61,9 +61,16 @@ const parseTimeStringToSeconds = (timeString?: string | null) => {
 
 const truncateToSingleDecimal = (value: number) => Math.floor(value * 10) / 10;
 
-const formatSingleUnit = (totalSeconds: number) => {
+const formatSingleUnit = (totalSeconds: number, showHours: boolean) => {
   const secs = Math.max(0, Math.floor(totalSeconds));
 
+  // If user prefers hours, always show in hours
+  if (showHours) {
+    const hours = truncateToSingleDecimal(secs / 3600);
+    return `${hours.toFixed(1)} hr`;
+  }
+
+  // Default behavior: auto-scale based on duration
   if (secs >= 3600) {
     const hours = truncateToSingleDecimal(secs / 3600);
     return `${hours.toFixed(1)} hr`;
@@ -77,9 +84,10 @@ const formatSingleUnit = (totalSeconds: number) => {
 };
 
 export default function TodayFocusCard() {
-  const { userProfile } = useGlobalContext();
+  const { userProfile, appSettings } = useGlobalContext();
   const riveRef = useRef<RiveRef | null>(null);
   const selectedPet = userProfile?.selectedPet ?? null;
+  const showHours = appSettings.displayFocusInHours;
 
   // Support both correct and misspelled field names; accept number (secs) or a "Xm Ys" string.
   const raw = userProfile?.timeActiveToday ?? 0;
@@ -90,7 +98,7 @@ export default function TodayFocusCard() {
     return 0;
   }, [raw]);
 
-  const durationLabel = useMemo(() => formatSingleUnit(totalSeconds), [totalSeconds]);
+  const durationLabel = useMemo(() => formatSingleUnit(totalSeconds, showHours), [totalSeconds, showHours]);
   const statusMessage = useMemo(() => {
     if (totalSeconds < 1800) return "Get back to work!";
     if (totalSeconds < 3600) return "Keep working hard!";
@@ -102,7 +110,7 @@ export default function TodayFocusCard() {
 
   const moodValue = useMemo(() => {
     if (totalSeconds < 1800) return 1;
-    if (totalSeconds < 5400) return 2;
+    if (totalSeconds < 3600) return 2;
     return 3;
   }, [totalSeconds]);
 
@@ -113,10 +121,10 @@ export default function TodayFocusCard() {
     string,
     { source: number; stateMachineName: string; moodInputName: string }
   > = {
-    pet_smurf: { source: smurfInsights, stateMachineName: "State Machine 1", moodInputName: "mood" },
-    pet_chedrick: { source: chedrickInsights, stateMachineName: "State Machine 1", moodInputName: "mood" },
-    pet_pebbles: { source: pebblesInsights, stateMachineName: "State Machine 1", moodInputName: "mood" },
-    pet_gooner: { source: goonerInsights, stateMachineName: "State Machine 1", moodInputName: "mood" },
+    pet_smurf: { source: smurfAlt, stateMachineName: "State Machine 1", moodInputName: "mood" },
+    pet_chedrick: { source: chedrickAlt, stateMachineName: "State Machine 1", moodInputName: "mood" },
+    pet_pebbles: { source: pebblesAlt, stateMachineName: "State Machine 1", moodInputName: "mood" },
+    pet_gooner: { source: goonerAlt, stateMachineName: "State Machine 1", moodInputName: "mood" },
     // add additional pets here, keyed by pet id
   };
 

@@ -230,9 +230,9 @@ const Store = () => {
   }
 
   const EmptyState = () => (
-    <View className="flex-1 items-center justify-center px-6 mt-20">
+    <View className="flex-1 items-center justify-center h-full w-full pt-40 ">
       <Text className="text-base font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
-        No items found
+        Sold Out!
       </Text>
       <Text className="text-sm mt-2 text-center" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
         Check back later for more pets and accessories.
@@ -242,7 +242,7 @@ const Store = () => {
 
   return (
     <View className="flex-1 relative" style={{ backgroundColor: CoralPalette.surface }}>
-      <CoinBadge />
+ 
 
       <ScrollView
         showsVerticalScrollIndicator={false}

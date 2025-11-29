@@ -27,7 +27,7 @@ const PROFILE_OPTIONS = [
 ];
 
 const EditProfile = () => {
- const { userProfile, updateUserProfile, refetchUserProfile } = useGlobalContext();
+ const { userProfile, updateUserProfile, refetchUserProfile, showBanner } = useGlobalContext();
  const [username, setUsername] = useState("");
  const [selectedProfileId, setSelectedProfileId] = useState<number>(1);
  const [showProfilePicker, setShowProfilePicker] = useState(false);
@@ -59,7 +59,11 @@ const EditProfile = () => {
 
  const handleSave = async () => {
   if (!userProfile?.userId) {
-   Alert.alert("Error", "User not found. Please try again.");
+   showBanner({
+    title: "User not found. Please try again.",
+    preset: "error",
+    haptic: "error",
+   });
    return;
   }
 
@@ -73,7 +77,11 @@ const EditProfile = () => {
   }
 
   if (username.trim().length < 2) {
-   Alert.alert("Error", "Username must be at least 2 characters long");
+   showBanner({
+    title: "Username must be at least 2 characters long",
+    preset: "error",
+    haptic: "error",
+   });
    return;
   }
 
@@ -114,14 +122,21 @@ const EditProfile = () => {
     profileId: selectedProfileId,
    });
 
-   Alert.alert("Success", "Profile updated successfully!", [
-    { text: "OK", onPress: () => router.back() },
-   ]);
+  showBanner({
+   title: "Profile updated successfully!",
+   preset: "done",
+   haptic: "success",
+  });
+  router.back();
   } catch (error) {
    console.error("❌ Error updating profile:", error);
    const errorMessage =
     error instanceof Error ? error.message : "Failed to update profile";
-   Alert.alert("Error", errorMessage);
+  showBanner({
+   title: errorMessage,
+   preset: "error",
+   haptic: "error",
+  });
   } finally {
    setIsSaving(false);
   }
@@ -135,13 +150,15 @@ const FONT = { fontFamily: "Nunito" };
 
  return (
   <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
-   <View className="flex-row items-center justify-between px-4 py-4">
+   <View className="relative flex-row mb-1 items-center justify-between px-4 py-4">
     <TouchableOpacity onPress={() => router.back()}>
      <ChevronLeft size={24} color={CoralPalette.dark} />
     </TouchableOpacity>
-    <Text className="text-[17px] ml-4 font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
+    <View className="absolute items-center justify-center left-0 right-0">
+    <Text className="text-[17px] font-bold" style={[{color: CoralPalette.dark }, FONT]}>
      Profile
     </Text>
+    </View>
     <TouchableOpacity
       onPress={handleSave}
       disabled={isSaving || !hasChanges}
@@ -150,7 +167,7 @@ const FONT = { fontFamily: "Nunito" };
       <ActivityIndicator size="small" color={CoralPalette.primary} />
      ) : (
       <Text
-       className="text-lg mb-1 font-medium"
+       className="text-lg font-medium"
         style={[{ color: hasChanges ? CoralPalette.primary : "transparent" }, FONT]}
       >
        Done

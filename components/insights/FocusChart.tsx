@@ -120,6 +120,10 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
           Total Focused Time: {(() => {
             const total = Math.floor(totalMinutes);
             const s = { color: CoralPalette.primary };
+            if (showHours && total < 60) {
+              const hours = (total / 60).toFixed(1);
+              return <><Text style={s}>{hours}</Text> hours</>;
+            }
             if (total < 60) return <><Text style={s}>{total}</Text> minutes</>;
             const h = Math.floor(total / 60);
             const m = total % 60;

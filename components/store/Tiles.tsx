@@ -1,8 +1,20 @@
-import React, { useMemo } from "react";
-import { Image, ImageSourcePropType, Text, TouchableOpacity, View } from "react-native";
+import React from "react";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import images from "@/constants/images";
 import { CoralPalette } from "@/constants/colors";
+import Rive, { Fit } from "rive-react-native";
+import smurfAlt from "@/assets/animations/smurfAlt.riv";
+import chedrickAlt from "@/assets/animations/chedrickAlt.riv";
+import pebblesAlt from "@/assets/animations/pebblesAlt.riv";
+import goonerAlt from "@/assets/animations/goonerAlt.riv";
+
+const altAnimations: Record<string, number> = {
+  pet_smurf: smurfAlt,
+  pet_chedrick: chedrickAlt,
+  pet_pebbles: pebblesAlt,
+  pet_gooner: goonerAlt,
+};
 
 export type StoreCategory = "Pet" | "Hat" | "Collar" | "Gadget";
 
@@ -22,22 +34,8 @@ interface TileProps {
  onPress?: () => void;
 }
 
-/* exports kept for other modules (e.g., Sheets.tsx) */
-export const resolveItemImage = (item: StoreItem): ImageSourcePropType => {
-  const key = `${(item.imageKey || item.name || "").toLowerCase()}_head`;
-  const found = images[key as keyof typeof images] as ImageSourcePropType | undefined;
-  if (found) return found;
-
-  const baseKey = (item.imageKey || item.name || "").toLowerCase();
-  const direct = baseKey ? (images[baseKey as keyof typeof images] as ImageSourcePropType | undefined) : undefined;
-  if (direct) return direct;
-
-  return images.lighting;
-};
-
 export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
  const { name, priceCoins, owned } = item;
- const imageSource = useMemo(() => resolveItemImage(item), [item]);
 
  return (
  <TouchableOpacity
@@ -47,8 +45,8 @@ export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
   className="flex-1 w-full"
   style={{
     backgroundColor: CoralPalette.white,
-    borderRadius: 18,
-    padding: 12,
+    borderRadius: 20,
+    padding: 16,
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 7,
@@ -75,14 +73,31 @@ export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
    )}
 
    <View
-    className="items-center justify-center mb-4"
+    className="relative items-center justify-center"
     style={{
      backgroundColor: CoralPalette.white,
      borderRadius: 14,
-     paddingVertical: 16,
+     paddingVertical: 10,
+
     }}
    >
-    <Image source={imageSource} resizeMode="contain" style={{ width: 130, height: 130 }} />
+      {item.category === "Pet" && altAnimations[item.id] ? (
+        <View style={{ width: 400, height: 120, overflow: "hidden" }}>
+        <Rive
+          source={altAnimations[item.id]}
+          stateMachineName="State Machine 1"
+          style={{ width: 400, height: 250, transform: [{ translateY: -20 }] }}
+          fit={Fit.Contain}
+          autoplay
+        />
+        </View>
+      ) : (
+        <Image
+          source={images[item.id as keyof typeof images] ?? images.lighting}
+          resizeMode="contain"
+          style={{ width: 130, height: 130 }}
+        />
+      )}
    </View>
 
    <View className="w-full">
@@ -92,10 +107,10 @@ export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
 
     <View className="flex-row items-center mt-3">
      <View
-      className="h-8 w-8 items-center justify-center rounded-full"
+      className="h-7 w-7 items-center justify-center rounded-full"
       style={{ backgroundColor: CoralPalette.primary }}
      >
-      <MaterialCommunityIcons name="currency-usd" size={15} color={CoralPalette.white} />
+      <MaterialCommunityIcons name="currency-usd" size={13} color={CoralPalette.white} />
      </View>
      <Text className="ml-2 text-lg font-semibold" style={{ color: CoralPalette.dark }}>
       {priceCoins.toLocaleString()}

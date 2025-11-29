@@ -8,7 +8,7 @@ import {
  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Search, UserRoundPlus, UsersRound, UserRoundCheck } from 'lucide-react-native';
+import { ChevronLeft, Search, UserRoundPlus, UsersRound, UserRoundCheck, Mail } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useGlobalContext } from '@/lib/GlobalProvider';
 import { ProfilePicture } from '@/components/other/ProfilePicture';
@@ -24,62 +24,88 @@ interface SearchUser {
  email: string;
  profileId: number | null;
  isFriend: boolean;
+ requestedByYou?: boolean;
+ requestedYou?: boolean;
 }
 
 const UserCard = ({ 
  user, 
  onAddFriend, 
+ onPendingRequestPress,
  isAdding 
 }: { 
  user: SearchUser; 
  onAddFriend: (userId: string) => void;
+ onPendingRequestPress: () => void;
  isAdding: boolean;
-}) => (
- <View
-  className="rounded-2xl p-4 mb-3 shadow-sm"
-  style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
- >
-  <View className="flex-row items-center justify-between">
-   <View className="flex-row items-center flex-1">
-    <ProfilePicture 
-     profileId={user.profileId} 
-     size={48}
-    />
-    
-    <View className="ml-3 flex-1">
-     <Text className="font-bold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>{user.displayName}</Text>
-     <Text className="text-sm mt-1" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
-      {user.username ? `@${user.username}` : user.email}
-     </Text>
+}) => {
+ const showMailIcon = !!user.requestedYou;
+ const showCheckIcon = !!user.requestedByYou || user.isFriend;
+ const disabled = isAdding || (showCheckIcon && !showMailIcon);
+
+ const handlePress = () => {
+  if (isAdding) return;
+  if (showMailIcon) {
+   onPendingRequestPress();
+   return;
+  }
+  if (showCheckIcon) return;
+  onAddFriend(user.id);
+ };
+
+ const renderIcon = () => {
+  if (isAdding) {
+   return <ActivityIndicator size="small" color={CoralPalette.dark} />;
+  }
+  if (showMailIcon) {
+   return <Mail size={26} color={CoralPalette.primary} />;
+  }
+  if (showCheckIcon) {
+   return <UserRoundCheck size={26} color={CoralPalette.primaryMuted} />;
+  }
+  return (
+   <View className="flex-row items-center">
+    <UserRoundPlus size={26} color={CoralPalette.primary} />
+   </View>
+  );
+ };
+
+ return (
+  <View
+   className="relative rounded-2xl p-4 mb-3 shadow-sm"
+   style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+  >
+   <View className="flex-row items-center justify-between">
+    <View className="flex-row items-center flex-1">
+     <ProfilePicture 
+      profileId={user.profileId} 
+      size={48}
+     />
+     
+     <View className="ml-3 flex-1">
+      <Text className="font-bold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>{user.displayName}</Text>
+      <Text className="text-sm mt-1" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
+       {user.username ? `@${user.username}` : user.email}
+      </Text>
+     </View>
+    </View>
+    <View className='absolute right-1'>
+    <TouchableOpacity 
+     className="px-4 py-4 rounded-full"
+     onPress={handlePress}
+     disabled={disabled}
+     style={{
+       backgroundColor: CoralPalette.surfaceAlt,
+       opacity: disabled ? 0.7 : 1,
+     }}
+    >
+     {renderIcon()}
+    </TouchableOpacity>
     </View>
    </View>
-
-   <TouchableOpacity 
-    className="px-4 py-4 rounded-full"
-    onPress={() => onAddFriend(user.id)}
-    disabled={user.isFriend || isAdding}
-    style={{
-      backgroundColor: CoralPalette.surfaceAlt,
-      opacity: user.isFriend || isAdding ? 0.7 : 1,
-    }}
-   >
-    {isAdding ? (
-     <ActivityIndicator size="small" color={user.isFriend ? CoralPalette.dark : CoralPalette.white} />
-    ) : (
-     <>
-      {user.isFriend ? (
-       <UserRoundCheck size={26} color={CoralPalette.primaryMuted} />
-      ) : (
-       <View className="flex-row items-center">
-        <UserRoundPlus size={26} color={CoralPalette.primary} />
-       </View>
-      )}
-     </>
-    )}
-   </TouchableOpacity>
   </View>
- </View>
-);
+ );
+};
 
 const SearchFriends = () => {
  const { userProfile, showBanner } = useGlobalContext();
@@ -145,23 +171,28 @@ const SearchFriends = () => {
     }),
    });
 
-   if (response.ok) {
-    setSearchResults((prev) =>
-     prev.map((searchUser) =>
-      searchUser.id === friendId
-        ? { ...searchUser, isFriend: true }
-        : searchUser
-     )
-    );
+  if (response.ok) {
+   setSearchResults((prev) =>
+    prev.map((searchUser) =>
+    searchUser.id === friendId
+      ? { ...searchUser, requestedByYou: true }
+      : searchUser
+    )
+   );
     showBanner({
      title: 'Friend request sent!',
      preset: 'done',
      haptic: 'success',
     });
    } else {
-    const errorData = await response.json();
+    const errorData = await response.json().catch(() => null);
+    const message =
+     errorData?.error ||
+     (response.status === 403
+      ? 'This user does not allow friend requests.'
+      : 'Failed to add friend');
     showBanner({
-     title: errorData.error || 'Failed to add friend',
+     title: message,
      preset: 'error',
      haptic: 'error',
     });
@@ -176,6 +207,14 @@ const SearchFriends = () => {
   } finally {
    setAddingUserId(null);
   }
+ };
+
+ const handlePendingRequestPress = () => {
+  showBanner({
+   title: 'Pending request from this user.',
+   preset: 'none',
+   haptic: 'warning',
+  });
  };
 
  // Debounced search
@@ -250,6 +289,7 @@ const SearchFriends = () => {
         key={searchUser.id}
         user={searchUser}
         onAddFriend={handleAddFriend}
+        onPendingRequestPress={handlePendingRequestPress}
         isAdding={addingUserId === searchUser.id}
        />
       ))}
