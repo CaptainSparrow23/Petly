@@ -2,6 +2,7 @@ import React from "react";
 import { Text, TouchableOpacity, View, Image } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
 import { StoreItem, resolveItemImage } from "./Tiles";
+import { CoralPalette } from "@/constants/colors";
 
 type PetPreviewCardProps = {
  pet: StoreItem | null;
@@ -19,7 +20,7 @@ export const PetPreviewCard = ({
  <View
   style={{
    width: "100%",
-   borderRadius: 50,
+   borderRadius: 30,
    overflow: "hidden",
   }}
  >
@@ -31,71 +32,77 @@ export const PetPreviewCard = ({
    />
   )}
 
-  <View className="pt-5 bg-white">
-   <Text
-    className="px-6 text-3xl font-bold text-black-900"
-    numberOfLines={1}
-  >
-   {pet?.name}
-  </Text>
-   {!!pet?.description && (
-    <Text className="px-6 mt-3 text-sm leading-5 text-slate-600">
-     {pet.description}
+  <View className="pt-5" style={{ backgroundColor: CoralPalette.white}}>
+    <Text
+      className="px-6 text-3xl font-bold"
+      style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}
+      numberOfLines={1}
+    >
+      {pet?.name}
     </Text>
-   )}
-   <TouchableOpacity
-    activeOpacity={0.85}
-    onPress={onPurchase}
-    disabled={!pet || isPurchasing}
-    className="mx-6 mt-6 rounded-full bg-black-300 flex-row items-center justify-center"
-    style={{ opacity: pet && !isPurchasing ? 1 : 0.5 }}
-   >
-    <View className="h-8 w-8 items-center justify-center rounded-full bg-amber-400">
-     <MaterialCommunityIcons
-      name="currency-usd"
-      size={18}
-      color="#92400e"
-     />
-    </View>
+    {!!pet?.description && (
+      <Text className="px-6 mt-3 text-sm leading-5" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
+        {pet.description}
+      </Text>
+    )}
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPurchase}
+      disabled={!pet || isPurchasing}
+      className="mx-6 mt-6 rounded-full flex-row items-center justify-center"
+      style={{
+        opacity: pet && !isPurchasing ? 1 : 0.5,
+        backgroundColor: CoralPalette.primary,
+        paddingVertical: 10,
+      }}
+    >
+      <View className="h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: CoralPalette.surface }}>
+        <MaterialCommunityIcons
+          name="currency-usd"
+          size={18}
+          color={CoralPalette.primary}
+        />
+      </View>
 
-    <Text className="text-white py-3 ml-2 text-2xl">
-     {isPurchasing
-      ? "Purchasing..."
-      : pet
-      ? pet.priceCoins.toLocaleString()
-      : ""}
-    </Text>
-   </TouchableOpacity>
-   {!!purchaseError && (
-    <Text className="px-6 mt-3 text-xs text-red-500">{purchaseError}</Text>
-   )}
+      <Text className="py-3 ml-2 text-2xl" style={{ color: CoralPalette.white, fontFamily: "Nunito", fontWeight: "800" }}>
+        {isPurchasing
+          ? "Purchasing..."
+          : pet
+          ? pet.priceCoins.toLocaleString()
+          : ""}
+      </Text>
+    </TouchableOpacity>
+    {!!purchaseError && (
+      <Text className="px-6 mt-3 text-xs" style={{ color: CoralPalette.primary, fontFamily: "Nunito" }}>{purchaseError}</Text>
+    )}
   </View>
  </View>
 );
 
 type InsufficientCoinsCardProps = {
- petName?: string | null;
- onClose: () => void;
- onGetMoreCoins: () => void;
+  petName?: string | null;
+  onClose: () => void;
+  onGetMoreCoins: () => void;
 };
 
 export const InsufficientCoinsCard = ({
- petName,
- onClose,
- onGetMoreCoins,
+  petName,
+  onClose,
+  onGetMoreCoins,
 }: InsufficientCoinsCardProps) => (
  <View
   style={{
    width: "100%",
-   backgroundColor: "#ffffff",
+   backgroundColor: CoralPalette.white,
    paddingVertical: 24,
    paddingHorizontal: 20,
+
   }}
  >
-  <Text className="text-2xl font-extrabold text-black-900">
+  <Text className="text-2xl font-extrabold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>
    Not enough coins
   </Text>
-  <Text className="mt-2 text-sm leading-5 text-slate-600">
+  <Text className="mt-2 text-sm leading-5" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
    You need more coins to purchase {petName ?? "this item"}.
   </Text>
 
@@ -109,10 +116,10 @@ export const InsufficientCoinsCard = ({
      paddingVertical: 12,
      borderRadius: 9999,
      borderWidth: 1,
-     borderColor: "#d1d5db",
+     borderColor: CoralPalette.border,
     }}
    >
-    <Text className="text-center text-base font-medium text-slate-600">
+    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
      Back
     </Text>
    </TouchableOpacity>
@@ -125,10 +132,11 @@ export const InsufficientCoinsCard = ({
      marginLeft: 6,
      paddingVertical: 12,
      borderRadius: 9999,
-     backgroundColor: "#000000",
+     backgroundColor: CoralPalette.primary,
+     opacity: 0.95,
     }}
    >
-    <Text className="text-center text-base font-medium text-white">
+    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>
      Get more coins
     </Text>
    </TouchableOpacity>
@@ -154,15 +162,16 @@ export const PurchaseConfirmationCard = ({
  <View
   style={{
    width: "100%",
-   backgroundColor: "#ffffff",
+   backgroundColor: CoralPalette.white,
    paddingVertical: 24,
    paddingHorizontal: 20,
+
   }}
  >
-  <Text className="text-2xl font-extrabold text-black-900">
+  <Text className="text-2xl font-extrabold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>
    Are you sure?
   </Text>
-  <Text className="mt-2 text-sm leading-5 text-slate-600">
+  <Text className="mt-2 text-sm leading-5" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
    Do you want to purchase {petName ?? "this item"} for{" "}
    {petPrice?.toLocaleString() ?? ""} coins?
   </Text>
@@ -178,10 +187,10 @@ export const PurchaseConfirmationCard = ({
      paddingVertical: 12,
      borderRadius: 9999,
      borderWidth: 1,
-     borderColor: "#d1d5db",
+     borderColor: CoralPalette.border,
     }}
    >
-    <Text className="text-center text-base font-medium text-slate-600">
+    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
      Cancel
     </Text>
    </TouchableOpacity>
@@ -195,10 +204,11 @@ export const PurchaseConfirmationCard = ({
      marginLeft: 6,
      paddingVertical: 12,
      borderRadius: 9999,
-     backgroundColor: "#000000",
+     backgroundColor: CoralPalette.primary,
+     opacity: 0.95,
     }}
    >
-    <Text className="text-center text-base font-medium text-white">
+    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>
      {isConfirming ? "Confirming..." : "Confirm"}
     </Text>
    </TouchableOpacity>
@@ -218,15 +228,16 @@ export const PurchaseSuccessCard = ({
  <View
   style={{
    width: "100%",
-   backgroundColor: "#ffffff",
+   backgroundColor: CoralPalette.white,
    paddingVertical: 24,
    paddingHorizontal: 20,
+
   }}
  >
-  <Text className="text-2xl font-extrabold text-black-900">
+  <Text className="text-2xl font-extrabold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>
    Purchase successful!
   </Text>
-  <Text className="mt-2 text-sm leading-5 text-slate-600">
+  <Text className="mt-2 text-sm leading-5" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
    {petName ?? "Your new companion"} has been added to your collection.
   </Text>
 
@@ -237,10 +248,13 @@ export const PurchaseSuccessCard = ({
     marginTop: 24,
     paddingVertical: 12,
     borderRadius: 9999,
-    backgroundColor: "#191d31",
+    backgroundColor: CoralPalette.primary,
+    opacity: 0.95,
    }}
   >
-   <Text className="text-center text-base text-white">Back to store</Text>
+   <Text className="text-center text-base" style={{ color: CoralPalette.white, fontFamily: "Nunito", fontWeight: "700" }}>
+    Back to store
+   </Text>
   </TouchableOpacity>
  </View>
 );
