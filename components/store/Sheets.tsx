@@ -1,8 +1,11 @@
 import React from "react";
-import { Text, TouchableOpacity, View, Image } from "react-native";
+import { Text, TouchableOpacity, View, Image, ImageBackground } from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
-import { StoreItem, resolveItemImage } from "./Tiles";
+import { StoreItem } from "./Tiles";
 import { CoralPalette } from "@/constants/colors";
+import images from "@/constants/images";
+import PetAnimation from "@/components/focus/PetAnimation";
+import { getPetAnimationConfig } from "@/constants/animations";
 
 type PetPreviewCardProps = {
  pet: StoreItem | null;
@@ -25,11 +28,34 @@ export const PetPreviewCard = ({
   }}
  >
   {pet && (
-   <Image
-    source={resolveItemImage(pet)}
+   <ImageBackground
+    source={images.roomBackGround}
     resizeMode="cover"
-    style={{ width: "100%", height: 400, borderRadius: 20, marginTop: 10 }}
-   />
+    style={{ width: "100%", height: 400, borderRadius: 20, marginTop: 10, overflow: "hidden" }}
+   >
+    {(() => {
+      const animConfig = getPetAnimationConfig(pet.id);
+      if (animConfig) {
+        return (
+          <PetAnimation
+            source={animConfig.source}
+            stateMachineName={animConfig.stateMachineName}
+            focusInputName={animConfig.focusInputName}
+            isFocus={false}
+            containerStyle={{ flex: 1, position: "absolute", top: 50, left: 0, right: 0, bottom: 0 }}
+            animationStyle={{ width: "50%", height: "50%" }}
+          />
+        );
+      }
+      return (
+        <Image
+          source={images[pet.id as keyof typeof images] ?? images.lighting}
+          resizeMode="contain"
+          style={{ width: "100%", height: "100%" }}
+        />
+      );
+    })()}
+   </ImageBackground>
   )}
 
   <View className="pt-5" style={{ backgroundColor: CoralPalette.white}}>

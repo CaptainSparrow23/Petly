@@ -21,6 +21,9 @@ import { useGlobalContext } from "@/lib/GlobalProvider";
 import { ProfilePicture } from "@/components/other/ProfilePicture";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { CoralPalette } from "@/constants/colors";
+import Constants from "expo-constants";
+
+const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 const CardSeparator = () => (
  <View
@@ -99,9 +102,10 @@ type ToggleRowProps = {
  label: string;
  value: boolean;
  onValueChange: (val: boolean) => void;
+ disabled?: boolean;
 };
 
-const ToggleRow = ({ label, value, onValueChange }: ToggleRowProps) => (
+const ToggleRow = ({ label, value, onValueChange, disabled }: ToggleRowProps) => (
  <View className="flex-row items-center justify-between px-5 py-4">
   <Text className="text-base " style={{ color: CoralPalette.dark }}>
    {label}
@@ -109,6 +113,7 @@ const ToggleRow = ({ label, value, onValueChange }: ToggleRowProps) => (
   <Switch
    value={value}
    onValueChange={onValueChange}
+  disabled={disabled}
    trackColor={{ false: "#d1d5db", true: CoralPalette.primaryLight }}
    thumbColor={value ? CoralPalette.primary : "#f9fafb"}
   />
@@ -151,19 +156,75 @@ const ProfileCard = () => {
 };
 
 const Settings = () => {
- const { appSettings, updateAppSettings } = useGlobalContext();
+ const {
+  appSettings,
+  updateAppSettings,
+  userProfile,
+  updateUserProfile,
+  showBanner,
+ } = useGlobalContext();
  const [toggles, setToggles] = useState({
   rewardedAds: false,
   expandForest: false,
   arrangeTrees: true,
   hiddenFromRanking: false,
   allowFriendRequests: true,
-  vibrations: true,
-  notifications: true,
  });
+ const [isUpdatingFriendSetting, setIsUpdatingFriendSetting] = useState(false);
 
  const updateToggle = (key: keyof typeof toggles, value: boolean) => {
   setToggles((prev) => ({ ...prev, [key]: value }));
+ };
+
+ useEffect(() => {
+  setToggles((prev) => ({
+   ...prev,
+   allowFriendRequests:
+    userProfile?.allowFriendRequests ?? true,
+  }));
+ }, [userProfile?.allowFriendRequests]);
+
+ const handleAllowFriendRequestsChange = async (value: boolean) => {
+  if (isUpdatingFriendSetting) return;
+  if (!userProfile?.userId || !API_BASE_URL) {
+   return;
+  }
+  setToggles((prev) => ({ ...prev, allowFriendRequests: value }));
+  setIsUpdatingFriendSetting(true);
+  try {
+   const response = await fetch(
+    `${API_BASE_URL}/api/user/update_profile/${userProfile.userId}`,
+    {
+     method: "PUT",
+     headers: {
+      "Content-Type": "application/json",
+     },
+        body: JSON.stringify({
+          allowFriendRequests: value,
+          profileId: userProfile.profileId ?? undefined,
+        }),
+    }
+   );
+
+   if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || "Failed to update preference");
+   }
+
+   updateUserProfile({ allowFriendRequests: value });
+  } catch (error) {
+   setToggles((prev) => ({
+    ...prev,
+    allowFriendRequests: userProfile?.allowFriendRequests ?? true,
+   }));
+   const message =
+    error instanceof Error
+     ? error.message
+     : "Failed to update preference";
+   showBanner({ title: message, preset: "error", haptic: "error" });
+  } finally {
+   setIsUpdatingFriendSetting(false);
+  }
  };
 
  useEffect(() => {
@@ -214,21 +275,22 @@ const Settings = () => {
    <SectionCard title="Social and Friends" icon={Users}>
       <ToggleRow
       label="Allow Friend Requests"
-      value={toggles.allowFriendRequests}
-      onValueChange={(val) => updateToggle("allowFriendRequests", val)}
+    value={toggles.allowFriendRequests}
+    onValueChange={handleAllowFriendRequestsChange}
+    disabled={isUpdatingFriendSetting}
       />
    </SectionCard>
 
     <SectionCard title="Sound and Notification" icon={Bell}>
      <ToggleRow
       label="Vibrations"
-      value={toggles.vibrations}
-      onValueChange={(val) => updateToggle("vibrations", val)}
+      value={appSettings.vibrations}
+      onValueChange={(val) => updateAppSettings({ vibrations: val })}
      />
       <ToggleRow
       label="Notifications"
-      value={toggles.notifications}
-      onValueChange={(val) => updateToggle("notifications", val)}
+      value={appSettings.notifications}
+      onValueChange={(val) => updateAppSettings({ notifications: val })}
       />
    </SectionCard>
 

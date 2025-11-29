@@ -7,6 +7,7 @@ import { Cat, Home, Settings, Store, UsersRound, BarChart3, LogOut } from 'lucid
 import React, { useState } from 'react';
 import { Text, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
 import { CoralPalette } from '@/constants/colors';
+import CoinBadge from '@/components/other/CoinBadge';
 
 const CustomDrawerContent = (props: any) => {
   const { userProfile, logout } = useGlobalContext();
@@ -36,9 +37,9 @@ const CustomDrawerContent = (props: any) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: CoralPalette.primaryMuted }}>
-      <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 50 }}>
+      <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 80 }}>
         <TouchableOpacity
-          className="py-5 items-center"
+          className=" items-center"
           style={{ backgroundColor: CoralPalette.primaryMuted }}
           onPress={() => router.push('/settings/editProfile')}
           activeOpacity={0.7}
@@ -127,6 +128,7 @@ const DrawerLayout = () => {
           // headerRight removed (coins)
           drawerLabel: 'Focus',
           drawerIcon: ({ color, size }) => <Home color={color} size={size} />,
+          headerRight: () => <CoinBadge />
         }}
       />
         <Drawer.Screen
@@ -135,6 +137,7 @@ const DrawerLayout = () => {
             title: 'Insights',
             drawerLabel: 'Insights',
             drawerIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
+            headerRight: () => <CoinBadge />
           }}
         />
       <Drawer.Screen
@@ -142,6 +145,7 @@ const DrawerLayout = () => {
         options={{
           title: 'My Pets',
           drawerIcon: ({ color, size }) => <Cat color={color} size={size} />,
+          headerRight: () => <CoinBadge />
         }}
       />
       <Drawer.Screen
@@ -150,6 +154,7 @@ const DrawerLayout = () => {
           title: 'Store',
           // headerRight removed (coins)
           drawerIcon: ({ color, size }) => <Store color={color} size={size} />,
+           headerRight: () => <CoinBadge />
         }}
       />
       <Drawer.Screen

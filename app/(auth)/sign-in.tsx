@@ -4,7 +4,6 @@ import { Redirect, useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
  ActivityIndicator,
- Alert,
  Image,
  ScrollView,
  Text,
@@ -33,7 +32,7 @@ const SignIn = () => {
  useEffect(() => {
   if (loggedOut === "true") {
    showBanner({
-    title: "Logged out successfully",
+    title: "Logged out",
     preset: "done",
     haptic: "success",
    });
@@ -140,7 +139,12 @@ const SignIn = () => {
    await refetchUserProfile();
   } catch (error) {
    console.error("❌ Google Sign-In failed:", error);
-   Alert.alert("Login failed", "Please try again");
+   showBanner({
+    title: "Login failed",
+    message: "Please try again",
+    preset: "error",
+    haptic: "error",
+   });
   } finally {
    setIsSigningIn(false);
   }

@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Check, Mail, Plus, UsersRound, X } from "lucide-react-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import Svg, { Path } from "react-native-svg";
 import { ProfilePicture } from "@/components/other/ProfilePicture";
@@ -335,7 +335,11 @@ const RequestCard = ({
 };
 
 const Friends = () => {
-  const { userProfile } = useGlobalContext();
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const normalizedRequestedTab = Array.isArray(params.tab)
+    ? params.tab?.[0]?.toLowerCase()
+    : params.tab?.toLowerCase();
+  const { userProfile, showBanner } = useGlobalContext();
   const [tab, setTab] = useState<"friends" | "requests">("friends");
   const tabTranslate = useRef(new Animated.Value(0)).current;
   const plusScale = useRef(new Animated.Value(1)).current;
@@ -406,7 +410,13 @@ const Friends = () => {
 
         if (response.ok) {
           await fetchFriends(false);
-        
+          if (action === "accept") {
+            showBanner({
+              title: "Friend request accepted",
+              preset: "done",
+              haptic: "success",
+            });
+          }
         } else {
           const errorText = await response.text();
           Alert.alert("Error", errorText || "Failed to update friend request");
@@ -418,7 +428,7 @@ const Friends = () => {
         setRespondingId(null);
       }
     },
-    [fetchFriends, userProfile?.userId]
+    [fetchFriends, showBanner, userProfile?.userId]
   );
 
   useEffect(() => {
@@ -442,10 +452,13 @@ const Friends = () => {
 
   useFocusEffect(
     useCallback(() => {
-      setTab("friends");
-      tabTranslate.setValue(0);
       fetchFriends();
-    }, [fetchFriends, tabTranslate])
+      if (normalizedRequestedTab === "requests") {
+        setTab("requests");
+        tabTranslate.setValue(1);
+        router.setParams({ tab: undefined });
+      }
+    }, [fetchFriends, normalizedRequestedTab, tabTranslate])
   );
 
   const handleRefresh = useCallback(async () => {

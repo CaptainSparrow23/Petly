@@ -17,7 +17,6 @@ import { usePets } from '@/hooks/usePets';
 import PetAnimation from '@/components/focus/PetAnimation';
 import { getPetAnimationConfig } from '@/constants/animations';
 import { CoralPalette } from '@/constants/colors';
-import type { ImageSourcePropType } from 'react-native';
 
 const FONT = { fontFamily: 'Nunito' };
 
@@ -38,28 +37,6 @@ const Profile = () => {
   selectedPet: userProfile?.selectedPet,
   userId: userProfile?.userId,
  });
-
- const resolvePetImage = useCallback(
-  (pet: { id?: string; image?: ImageSourcePropType | string }) => {
-   // explicit string key
-   if (typeof pet.image === 'string') {
-    const img = images[pet.image as keyof typeof images] as ImageSourcePropType | undefined;
-    if (img) return img;
-   } else if (pet.image) {
-    // already a source
-    return pet.image;
-   }
-
-   // try pet id as a key
-   if (pet.id) {
-    const byId = images[pet.id as keyof typeof images] as ImageSourcePropType | undefined;
-    if (byId) return byId;
-   }
-
-   return images.lighting;
-  },
-  []
- );
 
  const hasUnsavedChange = useMemo(
   () => !!focusedPet && focusedPet !== userProfile?.selectedPet,
@@ -192,7 +169,6 @@ const Profile = () => {
        }
        renderItem={({ item }) => {
        const isFocused = item.id === focusedPet;
-        const resolvedImage = resolvePetImage(item);
 
         return (
          <View className="w-[48%]">
@@ -216,12 +192,16 @@ const Profile = () => {
             },
             isFocused && {
              borderColor: CoralPalette.primary,
-             backgroundColor: `${CoralPalette.primaryLight}55`,
+             backgroundColor: `${CoralPalette.primary}25`,
              shadowOpacity: 0.14,
             },
            ]}
           >
-           <Image source={resolvedImage} className="w-14 h-14 rounded-2xl mr-5 ml-2" resizeMode="contain" />
+           <Image
+             source={images[item.id as keyof typeof images] ?? images.lighting}
+             className="w-16 h-20 rounded-2xl mr-5 ml-1"
+             resizeMode="contain"
+           />
 
            <View className="flex-1">
             <View className="flex-row items-center justify-between">
