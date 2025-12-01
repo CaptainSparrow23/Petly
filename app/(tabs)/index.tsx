@@ -275,11 +275,14 @@ export default function IndexScreen() {
 
   const petAnimationView = petAnimationConfig ? (
     <PetAnimation
+      key={`${userProfile?.selectedPet}-${userProfile?.selectedHat}-${userProfile?.selectedCollar}`}
       source={petAnimationConfig.source}
       stateMachineName={petAnimationConfig.stateMachineName}
       focusInputName={petAnimationConfig.focusInputName}
       isFocus={running}
-      containerStyle={{ marginTop: 15, marginLeft: 5 }}
+      selectedHat={userProfile?.selectedHat}
+      selectedCollar={userProfile?.selectedCollar}
+      containerStyle={{ marginTop: 20, marginLeft: 5 }}
       animationStyle={{ width: "70%", height: "70%" }}
     />
   ) : null;

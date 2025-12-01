@@ -24,6 +24,14 @@ import { CoralPalette } from "@/constants/colors";
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
 
+// Maps category to userProfile field
+const categoryToField: Record<string, 'ownedPets' | 'ownedHats' | 'ownedCollars' | 'ownedGadgets'> = {
+  Pet: 'ownedPets',
+  Hat: 'ownedHats',
+  Collar: 'ownedCollars',
+  Gadget: 'ownedGadgets',
+};
+
 // layout constants
 const HORIZONTAL_PADDING = 24; // matches header px-6
 const HORIZONTAL_GAP = 20;
@@ -43,7 +51,12 @@ const Store = () => {
     loading,
     error,
     refetch: refetchCatalog,
-  } = useStoreCatalog(userProfile?.ownedPets, { autoFetch: false });
+  } = useStoreCatalog({
+    ownedPets: userProfile?.ownedPets,
+    ownedHats: userProfile?.ownedHats,
+    ownedCollars: userProfile?.ownedCollars,
+    ownedGadgets: userProfile?.ownedGadgets,
+  }, { autoFetch: false });
 
   const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("Pet");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -108,12 +121,14 @@ const Store = () => {
 
         setRecentlyPurchasedPetName(pet.name);
 
-        // update user profile locally
+        // update user profile locally based on item category
+        const ownedField = categoryToField[pet.category] || 'ownedPets';
+        const currentOwned = userProfile?.[ownedField] || [];
         updateUserProfile({
           coins: Math.max(0, (userProfile?.coins ?? 0) - pet.priceCoins),
-          ownedPets: userProfile?.ownedPets.includes(pet.id)
-            ? userProfile?.ownedPets
-            : [...(userProfile?.ownedPets || []), pet.id],
+          [ownedField]: currentOwned.includes(pet.id)
+            ? currentOwned
+            : [...currentOwned, pet.id],
         });
 
         void refetchCatalog();

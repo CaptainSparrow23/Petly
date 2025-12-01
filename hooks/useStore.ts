@@ -16,13 +16,20 @@ interface UseStoreCatalogOptions {
   autoFetch?: boolean;
 }
 
+interface OwnedItems {
+  ownedPets?: string[];
+  ownedHats?: string[];
+  ownedCollars?: string[];
+  ownedGadgets?: string[];
+}
+
 /**
  * Fetch and partition the store catalog.
- * - `availablePets`: pets not yet owned (for the store grid).
- * - `ownedPets`: pets that match the supplied owned ids (for profile/pets tab).
+ * - `availablePets`: items not yet owned (for the store grid).
+ * - `ownedPets`: items that match the supplied owned ids (for profile/pets tab).
  */
 export const useStoreCatalog = (
-  ownedIds?: string[] | null,
+  ownedItems?: OwnedItems | null,
   options?: UseStoreCatalogOptions,
 ) => {
   const [catalog, setCatalog] = useState<StoreItem[]>([]);
@@ -82,8 +89,14 @@ export const useStoreCatalog = (
 
   // Memoize the owned-id set so filtering stays cheap.
   const ownedIdSet = useMemo(() => {
-    return ownedIds && ownedIds.length ? new Set(ownedIds) : null;
-  }, [ownedIds]);
+    const allOwned = [
+      ...(ownedItems?.ownedPets || []),
+      ...(ownedItems?.ownedHats || []),
+      ...(ownedItems?.ownedCollars || []),
+      ...(ownedItems?.ownedGadgets || []),
+    ];
+    return allOwned.length ? new Set(allOwned) : null;
+  }, [ownedItems]);
 
   const ownedPets = useMemo(() => {
     if (!ownedIdSet) {
