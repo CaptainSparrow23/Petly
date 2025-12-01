@@ -128,6 +128,8 @@ export const Banner: React.FC<BannerProps> = ({
         >
           {message}
         </Text>
+        {/* Spacer to balance the icon on the left */}
+        <View style={{ width: 24, marginLeft: 12 }} />
       </View>
     </Animated.View>
   );
