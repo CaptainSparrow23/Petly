@@ -28,34 +28,46 @@ export const PetPreviewCard = ({
   }}
  >
   {pet && (
-   <ImageBackground
-    source={images.roomBackGround}
-    resizeMode="cover"
-    style={{ width: "100%", height: 400, borderRadius: 20, marginTop: 10, overflow: "hidden" }}
-   >
-    {(() => {
-      const animConfig = getPetAnimationConfig(pet.id);
-      if (animConfig) {
+   <>
+    {pet.category === 'Pet' ? (
+     <ImageBackground
+      source={images.roomBackGround}
+      resizeMode="cover"
+      style={{ width: "100%", height: 400, borderRadius: 20, marginTop: 10, overflow: "hidden" }}
+     >
+      {(() => {
+        const animConfig = getPetAnimationConfig(pet.id);
+        if (animConfig) {
+          return (
+            <PetAnimation
+              source={animConfig.source}
+              stateMachineName={animConfig.stateMachineName}
+              focusInputName={animConfig.focusInputName}
+              isFocus={false}
+              containerStyle={{ flex: 1, position: "absolute", top: 50, left: 0, right: 0, bottom: 0 }}
+              animationStyle={{ width: "50%", height: "50%" }}
+            />
+          );
+        }
         return (
-          <PetAnimation
-            source={animConfig.source}
-            stateMachineName={animConfig.stateMachineName}
-            focusInputName={animConfig.focusInputName}
-            isFocus={false}
-            containerStyle={{ flex: 1, position: "absolute", top: 50, left: 0, right: 0, bottom: 0 }}
-            animationStyle={{ width: "50%", height: "50%" }}
+          <Image
+            source={images[pet.id as keyof typeof images] ?? images.lighting}
+            resizeMode="contain"
+            style={{ width: "100%", height: "100%" }}
           />
         );
-      }
-      return (
-        <Image
-          source={images[pet.id as keyof typeof images] ?? images.lighting}
-          resizeMode="contain"
-          style={{ width: "100%", height: "100%" }}
-        />
-      );
-    })()}
-   </ImageBackground>
+      })()}
+     </ImageBackground>
+    ) : (
+     <View style={{ width: "100%", height: 400, borderRadius: 20, marginTop: 10, overflow: "hidden", backgroundColor: CoralPalette.white, alignItems: "center", justifyContent: "center" }}>
+      <Image
+        source={images[pet.id as keyof typeof images] ?? images.lighting}
+        resizeMode="contain"
+        style={{ width: "70%", height: "70%" }}
+      />
+     </View>
+    )}
+   </>
   )}
 
   <View className="pt-5" style={{ backgroundColor: CoralPalette.white}}>

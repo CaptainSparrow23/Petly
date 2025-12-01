@@ -27,7 +27,13 @@ interface UserProfile {
     minutesByHour: number[]; // 24-element array for hourly chart
     coins: number;
     ownedPets: string[];
+    ownedHats: string[];
+    ownedCollars: string[];
+    ownedGadgets: string[];
     selectedPet: string | null;
+    selectedHat: string | null;
+    selectedCollar: string | null;
+    selectedGadget: string | null;
     dailyStreak: number;
     highestStreak: number;
     totalFocusSeconds: number;
@@ -152,6 +158,12 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     minutesByHour: Array.isArray(profile.minutesByHour) ? profile.minutesByHour : Array(24).fill(0),
                     coins: toNumber(profile.coins),
                     ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_smurf"],
+                    ownedHats: Array.isArray(profile.ownedHats) ? profile.ownedHats : [],
+                    ownedCollars: Array.isArray(profile.ownedCollars) ? profile.ownedCollars : [],
+                    ownedGadgets: Array.isArray(profile.ownedGadgets) ? profile.ownedGadgets : ["gadget_laptop"],
+                    selectedHat: profile.selectedHat ?? null,
+                    selectedCollar: profile.selectedCollar ?? null,
+                    selectedGadget: profile.selectedGadget ?? "gadget_laptop",
                     allowFriendRequests: typeof profile.allowFriendRequests === "boolean"
                         ? profile.allowFriendRequests
                         : true,

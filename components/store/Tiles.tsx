@@ -16,6 +16,8 @@ const altAnimations: Record<string, number> = {
   pet_gooner: goonerAlt,
 };
 
+const FONT = { fontFamily: "Nunito" };
+
 export type StoreCategory = "Pet" | "Hat" | "Collar" | "Gadget";
 
 export interface StoreItem {
@@ -66,7 +68,7 @@ export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
       backgroundColor: `${CoralPalette.primaryLight}55`,
     }}
     >
-     <Text className="text-xs font-bold" style={{ color: CoralPalette.primary }}>
+     <Text className="text-xs font-bold" style={[{ color: CoralPalette.primary }, FONT]}>
       Owned
      </Text>
     </View>
@@ -95,24 +97,24 @@ export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
         <Image
           source={images[item.id as keyof typeof images] ?? images.lighting}
           resizeMode="contain"
-          style={{ width: 130, height: 130 }}
+          style={{ width: 120, height: 120 }}
         />
       )}
    </View>
 
-   <View className="w-full">
-    <Text className="text-xl font-extrabold ml-2" style={{ color: CoralPalette.dark }} numberOfLines={1}>
+   <View className="w-full mt-5">
+    <Text className="text-xl font-extrabold ml-2" style={[{ color: CoralPalette.dark }, FONT]} numberOfLines={1}>
      {name}
     </Text>
 
-    <View className="flex-row items-center mt-3">
+    <View className="flex-row items-center mt-3 ml-2">
      <View
       className="h-7 w-7 items-center justify-center rounded-full"
       style={{ backgroundColor: CoralPalette.primary }}
      >
       <MaterialCommunityIcons name="currency-usd" size={13} color={CoralPalette.white} />
      </View>
-     <Text className="ml-2 text-lg font-semibold" style={{ color: CoralPalette.dark }}>
+     <Text className="ml-2 text-lg font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
       {priceCoins.toLocaleString()}
      </Text>
     </View>
