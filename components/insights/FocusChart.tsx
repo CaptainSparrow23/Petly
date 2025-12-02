@@ -142,12 +142,12 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
         )}
         
         {chartWidth > 0 && (
-          <VictoryChart width={chartWidth} height={250} domain={{ y: [0, Math.ceil(maxY * 1.1)] }} domainPadding={{ x: 28, y: [0, 8] }} padding={{ top: 8, bottom: 30, left: 30, right: 0 }}>
+          <VictoryChart width={chartWidth} height={250} domain={{ y: [0, Math.ceil(maxY * 1.1)] }} domainPadding={{ x: 30, y: [0, 8] }} padding={{ top: 8, bottom: 30, left: 30, right: 0 }}>
             <VictoryAxis
               tickValues={xTickValues}
               tickFormat={(t) => {
                 if (view.mode === "day") return ["00:00", "06:00", "12:00", "18:00", "23:00"].includes(t) ? t : "";
-                if (view.mode === "year") return ["Jan", "Apr", "Jul", "Oct", "Dec"].includes(t) ? t : "";
+                if (view.mode === "year") return ["Jan", "Mar", "May", "Aug", "Oct", "Dec"].includes(t) ? t : "";
                 if (view.mode === "month") {
                    const d = parseInt(t, 10);
                    const lastDay = new Date(view.year, view.month + 1, 0).getDate();
