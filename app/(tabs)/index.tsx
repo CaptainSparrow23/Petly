@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect, use } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
 import { DrawerActions } from "@react-navigation/native";
-import { useNavigation } from "expo-router";
+import { useFocusEffect, useNavigation } from "expo-router";
 import { DrawerToggleButton } from "@react-navigation/drawer";
 import ModePickerModal from "../../components/focus/ModePickerModal";
 import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
@@ -18,7 +18,7 @@ import TimeTracker from "../../components/focus/TimeTracker";
 import PetAnimation from "../../components/focus/PetAnimation";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useLocalSearchParams } from "expo-router";
-import CoinBadge from "@/components/other/CoinBadge";
+
 import { useSessionUploader, SessionActivity } from "@/hooks/useFocus";
 import SessionEndModal from "@/components/focus/SessionEndModal";
 import { getPetAnimationConfig } from "@/constants/animations";
@@ -60,6 +60,8 @@ export default function IndexScreen() {
     durationSec: 0,
     activity: "Focus",
   });
+  
+
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -76,6 +78,12 @@ export default function IndexScreen() {
       ),
     });
   }, [navigation, running]);
+
+  useEffect(() => {
+    refetchUserProfile().catch((err) => {
+      console.error("❌ Failed to refetch profile on focus screen mount:", err);
+    } );
+  }, [refetchUserProfile]);
 
   const { upload } = useSessionUploader();
   const sessionStartMsRef = useRef<number | null>(null);
@@ -275,7 +283,6 @@ export default function IndexScreen() {
 
   const petAnimationView = petAnimationConfig ? (
     <PetAnimation
-      key={`${userProfile?.selectedPet}-${userProfile?.selectedHat}-${userProfile?.selectedCollar}`}
       source={petAnimationConfig.source}
       stateMachineName={petAnimationConfig.stateMachineName}
       focusInputName={petAnimationConfig.focusInputName}
@@ -283,7 +290,7 @@ export default function IndexScreen() {
       selectedHat={userProfile?.selectedHat}
       selectedCollar={userProfile?.selectedCollar}
       containerStyle={{ marginTop: 20, marginLeft: 5 }}
-      animationStyle={{ width: "70%", height: "70%" }}
+      animationStyle={{ width: "68%", height: "68%" }}
     />
   ) : null;
   const animationCenterContent = (

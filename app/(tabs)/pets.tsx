@@ -91,14 +91,13 @@ const Profile = () => {
     }
   }, [userProfile?.selectedHat, userProfile?.selectedCollar, userProfile?.selectedGadget]);
 
-  const hasUnsavedChange = useMemo(() => {
+  const changeFlags = useMemo(() => {
     const petChanged = !!focusedPet && focusedPet !== userProfile?.selectedPet;
     const hatChanged = focusedHat !== (userProfile?.selectedHat ?? null);
-    const collarChanged =
-      focusedCollar !== (userProfile?.selectedCollar ?? null);
-    const gadgetChanged =
-      focusedGadget !== (userProfile?.selectedGadget ?? "gadget_laptop");
-    return petChanged || hatChanged || collarChanged || gadgetChanged;
+    const collarChanged = focusedCollar !== (userProfile?.selectedCollar ?? null);
+    const gadgetChanged = focusedGadget !== (userProfile?.selectedGadget ?? "gadget_laptop");
+    const accessoryChanged = hatChanged || collarChanged || gadgetChanged;
+    return { petChanged, hatChanged, collarChanged, gadgetChanged, accessoryChanged };
   }, [
     focusedPet,
     focusedHat,
@@ -110,15 +109,19 @@ const Profile = () => {
     userProfile?.selectedGadget,
   ]);
 
-  const handleSaveSelection = useCallback(async () => {
-    if (isSaving || isSavingAccessories) return;
+  const hasUnsavedChange = useMemo(
+    () =>
+      changeFlags.petChanged ||
+      changeFlags.hatChanged ||
+      changeFlags.collarChanged ||
+      changeFlags.gadgetChanged,
+    [changeFlags]
+  );
 
-    const petChanged = !!focusedPet && focusedPet !== userProfile?.selectedPet;
-    const hatChanged = focusedHat !== (userProfile?.selectedHat ?? null);
-    const collarChanged =
-      focusedCollar !== (userProfile?.selectedCollar ?? null);
-    const gadgetChanged =
-      focusedGadget !== (userProfile?.selectedGadget ?? "gadget_laptop");
+  const handleSaveSelection = useCallback(async () => {
+    if (isSaving || isSavingAccessories || !hasUnsavedChange) return;
+
+    const { petChanged, accessoryChanged } = changeFlags;
 
     const promises: Promise<void>[] = [];
     let hasError = false;
@@ -139,13 +142,10 @@ const Profile = () => {
       );
     }
 
-    // Save accessories if any changed (including when pet changed)
-    const hasAccessoryChanges = hatChanged || collarChanged || gadgetChanged;
-    const accessoriesToSave = petChanged 
-      ? { selectedHat: focusedHat, selectedCollar: focusedCollar, selectedGadget: focusedGadget }
-      : null;
-    
-    if (hasAccessoryChanges || (petChanged && (focusedHat || focusedCollar || focusedGadget !== "gadget_laptop"))) {
+    // Save accessories if any changed OR if pet changed (always save current accessory state with pet change)
+    const shouldSaveAccessories = accessoryChanged || petChanged;
+
+    if (shouldSaveAccessories) {
       setIsSavingAccessories(true);
       promises.push(
         (async () => {
@@ -180,26 +180,27 @@ const Profile = () => {
     if (hasError) {
       showBanner("Could not save all changes. Please try again.", "error");
     } else {
-      // Update local profile state
       updateUserProfile({
         ...(petChanged && focusedPet ? { selectedPet: focusedPet } : {}),
-        ...(hatChanged || petChanged ? { selectedHat: focusedHat } : {}),
-        ...(collarChanged || petChanged ? { selectedCollar: focusedCollar } : {}),
-        ...(gadgetChanged || petChanged ? { selectedGadget: focusedGadget } : {}),
+        selectedHat: focusedHat,
+        selectedCollar: focusedCollar,
+        selectedGadget: focusedGadget,
       });
       showBanner("Changes saved", "success");
     }
   }, [
-    focusedPet,
-    focusedHat,
+    changeFlags,
     focusedCollar,
     focusedGadget,
+    focusedHat,
+    focusedPet,
     isSaving,
     isSavingAccessories,
     saveSelectedPet,
     showBanner,
     updateUserProfile,
     userProfile,
+    hasUnsavedChange,
   ]);
 
   const petAnimationConfig = getPetAnimationConfig(
@@ -283,7 +284,7 @@ const Profile = () => {
                 isFocus={false}
                 selectedHat={focusedHat}
                 selectedCollar={focusedCollar}
-                containerStyle={{ position: "absolute", top: -70 }}
+                containerStyle={{ position: "absolute", top: -68, left: 27, right: 0, bottom: 0 }}
                 animationStyle={{ width: "60%", height: "60%" }}
               />
             ) : (
