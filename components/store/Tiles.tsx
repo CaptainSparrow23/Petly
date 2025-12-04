@@ -18,7 +18,7 @@ const altAnimations: Record<string, number> = {
 
 const FONT = { fontFamily: "Nunito" };
 
-export type StoreCategory = "Pet" | "Hat" | "Collar" | "Gadget";
+export type StoreCategory = "Pet" | "Hat" | "Face" | "Collar" | "Gadget";
 
 export interface StoreItem {
  id: string;

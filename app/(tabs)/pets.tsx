@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   Text,
   View,
@@ -30,10 +31,29 @@ const Profile = () => {
   const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
   const [activeTab, setActiveTab] = useState<TabType>("pets");
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const panelSlideAnim = useRef(new Animated.Value(400)).current; // Start off-screen (below)
+
+  // Slide up animation every time page is focused
+  useFocusEffect(
+    useCallback(() => {
+      // Reset to off-screen position
+      panelSlideAnim.setValue(400);
+      // Animate slide up
+      Animated.spring(panelSlideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 12,
+      }).start();
+    }, [])
+  );
 
   // Focused accessory states (local selection before saving)
   const [focusedHat, setFocusedHat] = useState<string | null>(
     userProfile?.selectedHat ?? null
+  );
+  const [focusedFace, setFocusedFace] = useState<string | null>(
+    userProfile?.selectedFace ?? null
   );
   const [focusedCollar, setFocusedCollar] = useState<string | null>(
     userProfile?.selectedCollar ?? null
@@ -72,11 +92,13 @@ const Profile = () => {
     if (focusedPet && focusedPet !== userProfile?.selectedPet) {
       // User is previewing a different pet - reset accessories to defaults
       setFocusedHat(null);
+      setFocusedFace(null);
       setFocusedCollar(null);
       setFocusedGadget("gadget_laptop");
     } else if (focusedPet === userProfile?.selectedPet) {
       // User switched back to their current pet - restore saved accessories
       setFocusedHat(userProfile?.selectedHat ?? null);
+      setFocusedFace(userProfile?.selectedFace ?? null);
       setFocusedCollar(userProfile?.selectedCollar ?? null);
       setFocusedGadget(userProfile?.selectedGadget ?? "gadget_laptop");
     }
@@ -86,25 +108,29 @@ const Profile = () => {
   useEffect(() => {
     if (userProfile && (!focusedPet || focusedPet === userProfile.selectedPet)) {
       setFocusedHat(userProfile.selectedHat ?? null);
+      setFocusedFace(userProfile.selectedFace ?? null);
       setFocusedCollar(userProfile.selectedCollar ?? null);
       setFocusedGadget(userProfile.selectedGadget ?? "gadget_laptop");
     }
-  }, [userProfile?.selectedHat, userProfile?.selectedCollar, userProfile?.selectedGadget]);
+  }, [userProfile?.selectedHat, userProfile?.selectedFace, userProfile?.selectedCollar, userProfile?.selectedGadget]);
 
   const changeFlags = useMemo(() => {
     const petChanged = !!focusedPet && focusedPet !== userProfile?.selectedPet;
     const hatChanged = focusedHat !== (userProfile?.selectedHat ?? null);
+    const faceChanged = focusedFace !== (userProfile?.selectedFace ?? null);
     const collarChanged = focusedCollar !== (userProfile?.selectedCollar ?? null);
     const gadgetChanged = focusedGadget !== (userProfile?.selectedGadget ?? "gadget_laptop");
-    const accessoryChanged = hatChanged || collarChanged || gadgetChanged;
-    return { petChanged, hatChanged, collarChanged, gadgetChanged, accessoryChanged };
+    const accessoryChanged = hatChanged || faceChanged || collarChanged || gadgetChanged;
+    return { petChanged, hatChanged, faceChanged, collarChanged, gadgetChanged, accessoryChanged };
   }, [
     focusedPet,
     focusedHat,
+    focusedFace,
     focusedCollar,
     focusedGadget,
     userProfile?.selectedPet,
     userProfile?.selectedHat,
+    userProfile?.selectedFace,
     userProfile?.selectedCollar,
     userProfile?.selectedGadget,
   ]);
@@ -113,6 +139,7 @@ const Profile = () => {
     () =>
       changeFlags.petChanged ||
       changeFlags.hatChanged ||
+      changeFlags.faceChanged ||
       changeFlags.collarChanged ||
       changeFlags.gadgetChanged,
     [changeFlags]
@@ -157,6 +184,7 @@ const Profile = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   selectedHat: focusedHat,
+                  selectedFace: focusedFace,
                   selectedCollar: focusedCollar,
                   selectedGadget: focusedGadget,
                 }),
@@ -183,6 +211,7 @@ const Profile = () => {
       updateUserProfile({
         ...(petChanged && focusedPet ? { selectedPet: focusedPet } : {}),
         selectedHat: focusedHat,
+        selectedFace: focusedFace,
         selectedCollar: focusedCollar,
         selectedGadget: focusedGadget,
       });
@@ -191,6 +220,7 @@ const Profile = () => {
   }, [
     changeFlags,
     focusedCollar,
+    focusedFace,
     focusedGadget,
     focusedHat,
     focusedPet,
@@ -283,6 +313,7 @@ const Profile = () => {
                 focusInputName={petAnimationConfig.focusInputName}
                 isFocus={false}
                 selectedHat={focusedHat}
+                selectedFace={focusedFace}
                 selectedCollar={focusedCollar}
                 containerStyle={{ position: "absolute", top: -68, left: 27, right: 0, bottom: 0 }}
                 animationStyle={{ width: "60%", height: "60%" }}
@@ -306,15 +337,16 @@ const Profile = () => {
             )}
           </View>
 
-          <View
+          <Animated.View
             className="flex-1 rounded-t-3xl shadow-lg pt-6"
             style={{
               position: "absolute",
-              top: 470,
+              top: 440,
               left: 0,
               right: 0,
               bottom: -100,
               backgroundColor: CoralPalette.surface,
+              transform: [{ translateY: panelSlideAnim }],
             }}
           >
             <View className="px-2 mb-3 flex-row items-center justify-center">
@@ -397,18 +429,21 @@ const Profile = () => {
               ) : (
                 <AccessoriesTab
                   ownedHats={userProfile?.ownedHats || []}
+                  ownedFaces={userProfile?.ownedFaces || []}
                   ownedCollars={userProfile?.ownedCollars || []}
                   ownedGadgets={userProfile?.ownedGadgets || []}
                   focusedHat={focusedHat}
+                  focusedFace={focusedFace}
                   focusedCollar={focusedCollar}
                   focusedGadget={focusedGadget}
                   setFocusedHat={setFocusedHat}
+                  setFocusedFace={setFocusedFace}
                   setFocusedCollar={setFocusedCollar}
                   setFocusedGadget={setFocusedGadget}
                 />
               )}
             </View>
-          </View>
+          </Animated.View>
         </View>
       </ImageBackground>
     </View>

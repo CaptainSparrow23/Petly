@@ -105,7 +105,8 @@ export default function IndexScreen() {
         haptic: "success",
       });
     }
-  }, [loggedIn, showBanner]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn]);
   const maxSessionSeconds = appSettings.extendSessionLimit ? 3 * 60 * 60 : 2 * 60 * 60;
 
   const progress =
@@ -200,6 +201,7 @@ export default function IndexScreen() {
       intervalRef.current = setInterval(() => {
         setSecondsLeft((prev) => {
           if (prev <= 1) {
+            lastLeftRef.current = 0; // Update ref before stop so elapsed calculation is accurate
             void fullyStopAndReset("countdown-zero");
             return 0;
           }
@@ -288,6 +290,7 @@ export default function IndexScreen() {
       focusInputName={petAnimationConfig.focusInputName}
       isFocus={running}
       selectedHat={userProfile?.selectedHat}
+      selectedFace={userProfile?.selectedFace}
       selectedCollar={userProfile?.selectedCollar}
       containerStyle={{ marginTop: 20, marginLeft: 5 }}
       animationStyle={{ width: "68%", height: "68%" }}

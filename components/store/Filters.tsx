@@ -1,6 +1,6 @@
 import React from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { Cpu, Crown, PawPrint, Tag } from "lucide-react-native";
+import { Cpu, Crown, PawPrint, Tag, Glasses } from "lucide-react-native";
 import type { StoreCategory } from "@/components/store/Tiles";
 import { CoralPalette } from "@/constants/colors";
 
@@ -58,6 +58,7 @@ const categoryOptions: Array<{
 }> = [
   { value: "Pet", label: "Pets", icon: PawPrint },
   { value: "Hat", label: "Hats", icon: Crown },
+  { value: "Face", label: "Face", icon: Glasses },
   { value: "Collar", label: "Collars", icon: Tag },
   { value: "Gadget", label: "Gadgets", icon: Cpu },
 ];

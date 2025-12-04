@@ -19,6 +19,7 @@ interface UseStoreCatalogOptions {
 interface OwnedItems {
   ownedPets?: string[];
   ownedHats?: string[];
+  ownedFaces?: string[];
   ownedCollars?: string[];
   ownedGadgets?: string[];
 }
@@ -92,6 +93,7 @@ export const useStoreCatalog = (
     const allOwned = [
       ...(ownedItems?.ownedPets || []),
       ...(ownedItems?.ownedHats || []),
+      ...(ownedItems?.ownedFaces || []),
       ...(ownedItems?.ownedCollars || []),
       ...(ownedItems?.ownedGadgets || []),
     ];
