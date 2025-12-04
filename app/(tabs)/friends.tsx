@@ -5,7 +5,6 @@ import {
   ScrollView,
   Text,
   View,
-  ActivityIndicator,
   Alert,
   TouchableOpacity,
   RefreshControl,
@@ -16,6 +15,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import Svg, { Path } from "react-native-svg";
 import { ProfilePicture } from "@/components/other/ProfilePicture";
+import { FriendItemSkeleton } from "@/components/other/Skeleton";
 import { CoralPalette } from "@/constants/colors";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
@@ -470,16 +470,19 @@ const Friends = () => {
     }
   }, [fetchFriends]);
 
-  if (isLoading && tab === "friends") {
-    return (
-      <View
-        className="flex-1 items-center justify-center"
-        style={{ backgroundColor: CoralPalette.surface }}
-      >
-        <ActivityIndicator size="large" color={CoralPalette.primary} />
-      </View>
-    );
-  }
+  const LoadingState = () => (
+    <View style={{ paddingTop: 8 }}>
+      {[1, 2, 3].map((i) => (
+        <View
+          key={i}
+          className="rounded-2xl mb-3"
+          style={{ backgroundColor: CoralPalette.white }}
+        >
+          <FriendItemSkeleton />
+        </View>
+      ))}
+    </View>
+  );
 
   return (
     <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
@@ -584,7 +587,9 @@ const Friends = () => {
         </View>
 
         {/* Toggle between Friends and Requests */}
-        {tab === "friends" ? (
+        {isLoading && !isRefreshing ? (
+          <LoadingState />
+        ) : tab === "friends" ? (
           friends.length === 0 ? (
             <View
               className="rounded-3xl p-6 mt-10 items-center"

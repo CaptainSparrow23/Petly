@@ -28,10 +28,12 @@ interface UserProfile {
     coins: number;
     ownedPets: string[];
     ownedHats: string[];
+    ownedFaces: string[];
     ownedCollars: string[];
     ownedGadgets: string[];
     selectedPet: string | null;
     selectedHat: string | null;
+    selectedFace: string | null;
     selectedCollar: string | null;
     selectedGadget: string | null;
     dailyStreak: number;
@@ -159,9 +161,11 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     coins: toNumber(profile.coins),
                     ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_smurf"],
                     ownedHats: Array.isArray(profile.ownedHats) ? profile.ownedHats : [],
+                    ownedFaces: Array.isArray(profile.ownedFaces) ? profile.ownedFaces : [],
                     ownedCollars: Array.isArray(profile.ownedCollars) ? profile.ownedCollars : [],
                     ownedGadgets: Array.isArray(profile.ownedGadgets) ? profile.ownedGadgets : ["gadget_laptop"],
                     selectedHat: profile.selectedHat ?? null,
+                    selectedFace: profile.selectedFace ?? null,
                     selectedCollar: profile.selectedCollar ?? null,
                     selectedGadget: profile.selectedGadget ?? "gadget_laptop",
                     allowFriendRequests: typeof profile.allowFriendRequests === "boolean"

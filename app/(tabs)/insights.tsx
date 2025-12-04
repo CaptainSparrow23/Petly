@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 import TodayFocusCard from "@/components/insights/TodayFocusCard";
 import StreakCard from "@/components/insights/StreakCard";
 import GoalsCard from "@/components/insights/GoalsCard";
@@ -7,6 +7,12 @@ import FocusChart from "@/components/insights/FocusChart";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useInsights } from "@/hooks/useInsights";
 import { CoralPalette } from "@/constants/colors";
+import {
+  TodayFocusCardSkeleton,
+  StreakCardSkeleton,
+  GoalsCardSkeleton,
+  FocusChartSkeleton,
+} from "@/components/other/Skeleton";
 import CoinBadge from "@/components/other/CoinBadge";
 
 export default function FocusScreen() {
@@ -42,12 +48,25 @@ export default function FocusScreen() {
 
   const showBigLoader = anyLoading && !refreshing;
 
+  const LoadingState = () => (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      className="w-full px-6"
+      contentContainerStyle={{ paddingBottom: 32 }}
+    >
+      <View className="mt-6 mb-4 flex-row gap-4">
+        <TodayFocusCardSkeleton />
+        <StreakCardSkeleton />
+      </View>
+      <GoalsCardSkeleton />
+      <FocusChartSkeleton />
+    </ScrollView>
+  );
+
   return (
     <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
       {showBigLoader ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-        </View>
+        <LoadingState />
       ) : (
         
         <ScrollView

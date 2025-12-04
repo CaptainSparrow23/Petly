@@ -18,6 +18,7 @@ import { Tile, StoreItem } from "@/components/store/Tiles";
 import { useStoreCatalog } from "@/hooks/useStore";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import CoinBadge from "@/components/other/CoinBadge";
+import { StoreTileSkeleton } from "@/components/other/Skeleton";
 import { ArrowUpDown } from "lucide-react-native";
 import { CoralPalette } from "@/constants/colors";
 
@@ -25,9 +26,10 @@ const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
 
 // Maps category to userProfile field
-const categoryToField: Record<string, 'ownedPets' | 'ownedHats' | 'ownedCollars' | 'ownedGadgets'> = {
+const categoryToField: Record<string, 'ownedPets' | 'ownedHats' | 'ownedFaces' | 'ownedCollars' | 'ownedGadgets'> = {
   Pet: 'ownedPets',
   Hat: 'ownedHats',
+  Face: 'ownedFaces',
   Collar: 'ownedCollars',
   Gadget: 'ownedGadgets',
 };
@@ -54,6 +56,7 @@ const Store = () => {
   } = useStoreCatalog({
     ownedPets: userProfile?.ownedPets,
     ownedHats: userProfile?.ownedHats,
+    ownedFaces: userProfile?.ownedFaces,
     ownedCollars: userProfile?.ownedCollars,
     ownedGadgets: userProfile?.ownedGadgets,
   }, { autoFetch: false });
@@ -220,17 +223,6 @@ const Store = () => {
     setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
   }, []);
 
-  if (loading && !isRefreshing) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: CoralPalette.surface }}>
-        <ActivityIndicator size="large" color={CoralPalette.primary} />
-        <Text className="mt-3 text-base font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
-          Loading the store...
-        </Text>
-      </View>
-    );
-  }
-
   if (error) {
     return (
       <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: CoralPalette.surface }}>
@@ -254,6 +246,28 @@ const Store = () => {
       </Text>
     </View>
   );
+
+  const LoadingState = () => {
+    // Show 4 skeletons as a reasonable default during loading
+    const skeletonCount = 4;
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          paddingHorizontal: HORIZONTAL_PADDING,
+          paddingTop: 8,
+          gap: HORIZONTAL_GAP,
+        }}
+      >
+        {Array.from({ length: skeletonCount }).map((_, i) => (
+          <View key={i} style={{ marginBottom: VERTICAL_GAP }}>
+            <StoreTileSkeleton width={itemWidth} />
+          </View>
+        ))}
+      </View>
+    );
+  };
 
   return (
     <View className="flex-1 relative" style={{ backgroundColor: CoralPalette.surface }}>
@@ -304,27 +318,31 @@ const Store = () => {
           />
         </View>
 
-        {/* grid */}
-        <FlatList
-          className="mt-5"
-          data={visibleItems}
-          keyExtractor={keyExtractor}
-          renderItem={renderTile}
-          numColumns={2}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
-          ListEmptyComponent={EmptyState}
-          contentContainerStyle={{
-            paddingHorizontal: HORIZONTAL_PADDING,
-            paddingTop: 8,
-            paddingBottom: 32,
-          }}
-          columnWrapperStyle={{
-            columnGap: HORIZONTAL_GAP,
-            justifyContent: "flex-start",
-          }}
-          ItemSeparatorComponent={() => <View style={{ height: VERTICAL_GAP }} />}
-        />
+        {/* grid or loading */}
+        {loading && !isRefreshing ? (
+          <LoadingState />
+        ) : (
+          <FlatList
+            className="mt-5"
+            data={visibleItems}
+            keyExtractor={keyExtractor}
+            renderItem={renderTile}
+            numColumns={2}
+            showsVerticalScrollIndicator={false}
+            scrollEnabled={false}
+            ListEmptyComponent={EmptyState}
+            contentContainerStyle={{
+              paddingHorizontal: HORIZONTAL_PADDING,
+              paddingTop: 8,
+              paddingBottom: 32,
+            }}
+            columnWrapperStyle={{
+              columnGap: HORIZONTAL_GAP,
+              justifyContent: "flex-start",
+            }}
+            ItemSeparatorComponent={() => <View style={{ height: VERTICAL_GAP }} />}
+          />
+        )}
       </ScrollView>
     </View>
   );
