@@ -65,6 +65,11 @@ const formatSingleUnit = (totalSeconds: number, showHours: boolean) => {
   const secs = Math.max(0, Math.floor(totalSeconds));
 
   // If user prefers hours, always show in hours
+
+  if (showHours && secs === 0) {
+    return "0 hr";
+  }
+
   if (showHours) {
     const hours = truncateToSingleDecimal(secs / 3600);
     return `${hours.toFixed(1)} hr`;
@@ -78,6 +83,10 @@ const formatSingleUnit = (totalSeconds: number, showHours: boolean) => {
 
   if (secs >= 60) {
     return `${Math.floor(secs / 60)} m`;
+  }
+
+  if (secs === 0) {
+    return "0 m";
   }
 
   return `${secs} s`;

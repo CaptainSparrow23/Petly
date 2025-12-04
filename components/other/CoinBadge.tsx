@@ -23,7 +23,7 @@ export default function CoinBadge() {
         <MaterialCommunityIcons name="currency-usd" size={18} color={CoralPalette.white} />
       </View>
       <Text className="text-sm font-semibold mr-3" style={{ color: CoralPalette.dark }}>
-        {userProfile?.coins ?? 0}
+        {(userProfile?.coins ?? 0).toLocaleString()}
       </Text>
     </View>
   );

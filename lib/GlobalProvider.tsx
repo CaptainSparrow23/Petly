@@ -5,6 +5,12 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { signOutFromFirebase } from "./firebaseAuth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { toast } from "burnt";
+import {
+    scheduleDailyReminder,
+    scheduleWeeklyResetReminder,
+    cancelAllNotifications,
+    requestNotificationPermissions,
+} from "@/utils/notifications";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 console.log("[GlobalProvider] API_BASE_URL:", API_BASE_URL);
@@ -216,6 +222,31 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(true);
         await fetchUserProfile(currentUser.uid);
     }, [fetchUserProfile]);
+
+    // Schedule notifications when user profile loads or notifications setting changes
+    useEffect(() => {
+        if (!userProfile) return;
+
+        const setupNotifications = async () => {
+            if (!appSettings.notifications) {
+                await cancelAllNotifications();
+                return;
+            }
+
+            const hasPermission = await requestNotificationPermissions();
+            if (!hasPermission) return;
+
+            // Schedule weekly reset reminder (Monday 8am)
+            await scheduleWeeklyResetReminder();
+
+            // Only schedule daily 3pm reminder if user hasn't focused today
+            if (userProfile.timeActiveToday === 0) {
+                await scheduleDailyReminder(userProfile.dailyStreak);
+            }
+        };
+
+        void setupNotifications();
+    }, [userProfile?.userId, userProfile?.dailyStreak, userProfile?.timeActiveToday, appSettings.notifications]);
 
     const updateUserProfile = useCallback((patch: Partial<UserProfile>) => {
         setUserProfile((prev) =>
