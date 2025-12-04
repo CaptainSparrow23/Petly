@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react";
-import { View, Text, TouchableOpacity, Modal, Platform, ActivityIndicator } from "react-native";
-import { VictoryAxis, VictoryBar, VictoryChart } from "victory-native";
+import { View, Text, TouchableOpacity, Modal, Platform, ActivityIndicator, Pressable } from "react-native";
+import { VictoryAxis, VictoryBar, VictoryChart, VictoryLabel } from "victory-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import { Picker } from "@react-native-picker/picker";
@@ -42,6 +42,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chartWidth, setChartWidth] = useState(0);
+  const [selectedBar, setSelectedBar] = useState<{ x: string; y: number; raw: number } | null>(null);
 
   // Fetch Data
   const fetchData = useCallback(async () => {
@@ -81,6 +82,9 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   }, [userId, view]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Clear selected bar when view changes
+  useEffect(() => { setSelectedBar(null); }, [view]);
 
   // Chart Data Prep
   const victoryData = useMemo(() => chartPoints.map((d, i) => ({
@@ -163,7 +167,41 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
               data={victoryData}
               barWidth={barWidth}
               cornerRadius={{ top: 4, bottom: 0 }}
-              style={{ data: { fill: ({ datum }: any) => datum.raw > 0 ? CoralPalette.primary : CoralPalette.border } }}
+              style={{ data: { fill: ({ datum }: any) => datum.raw > 0 ? (selectedBar?.x === datum.x ? CoralPalette.primaryMuted : CoralPalette.primary) : CoralPalette.border } }}
+              labels={({ datum }: any) => selectedBar?.x === datum.x && datum.raw > 0 ? (showHours ? `${(datum.raw / 60).toFixed(1)}h` : `${datum.raw}m`) : ""}
+              labelComponent={
+                <VictoryLabel
+                  dy={-8}
+                  style={{
+                    fill: CoralPalette.dark,
+                    fontSize: 11,
+                    fontFamily: "Nunito",
+                    fontWeight: "700",
+                  }}
+                />
+              }
+              events={[{
+                target: "data",
+                eventHandlers: {
+                  onPressIn: () => [{
+                    target: "data",
+                    mutation: (props: any) => {
+                      const datum = props.datum;
+                      if (datum.raw > 0) {
+                        setSelectedBar(datum);
+                      }
+                      return null;
+                    }
+                  }],
+                  onPressOut: () => [{
+                    target: "data",
+                    mutation: () => {
+                      setSelectedBar(null);
+                      return null;
+                    }
+                  }]
+                }
+              }]}
             />
           </VictoryChart>
         )}
