@@ -11,6 +11,8 @@ const HAT_INPUT_MAP: Record<string, number> = {
   hat_bucket_hat: 5,
   hat_blue_bucket_hat: 6,
   hat_green_bucket_hat: 7,
+  hat_red_top_hat: 8,
+  hat_silk_top_hat: 9,
 };
 
 const FACE_INPUT_MAP: Record<string, number> = {

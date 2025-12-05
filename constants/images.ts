@@ -15,6 +15,8 @@ import hat_snow_beanie from "@/assets/images/hat_snow_beanie.png";
 import hat_bucket_hat from "@/assets/images/hat_bucket_hat.png";
 import hat_blue_bucket_hat from "@/assets/images/hat_blue_bucket_hat.png";
 import hat_green_bucket_hat from "@/assets/images/hat_green_bucket_hat.png";
+import hat_red_top_hat from "@/assets/images/hat_red_top_hat.png";
+import hat_silk_top_hat from "@/assets/images/hat_silk_top_hat.png";
 import collar_minty_scarf from "@/assets/images/collar_minty_scarf.png";
 import collar_sunset_scarf from "@/assets/images/collar_sunset_scarf.png";
 import collar_lilac_scarf from "@/assets/images/collar_lilac_scarf.png";
@@ -43,6 +45,8 @@ export default {
   hat_bucket_hat,
   hat_blue_bucket_hat,
   hat_green_bucket_hat,
+  hat_red_top_hat,
+  hat_silk_top_hat,
   collar_minty_scarf,
   collar_sunset_scarf,
   collar_lilac_scarf,
