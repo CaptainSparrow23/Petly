@@ -27,6 +27,8 @@ const COLLAR_INPUT_MAP: Record<string, number> = {
   collar_champion_collar: 5,
   collar_leather_collar: 6,
   collar_ocean_collar: 7,
+  collar_red_bow_tie: 8,
+  collar_silk_bow_tie: 9,
 };
 
 type Props = {

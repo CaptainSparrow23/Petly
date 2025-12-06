@@ -23,6 +23,10 @@ import { useSessionUploader, SessionActivity } from "@/hooks/useFocus";
 import SessionEndModal from "@/components/focus/SessionEndModal";
 import { getPetAnimationConfig } from "@/constants/animations";
 import { CoralPalette } from "@/constants/colors";
+import { 
+  scheduleSessionCompleteNotification, 
+  cancelSessionCompleteNotification 
+} from "@/utils/notifications";
 
 /**
  * Focus & Rest dashboard. Handles timer/countdown modes, session tracking, and
@@ -156,6 +160,8 @@ export default function IndexScreen() {
 
     clearTicker();
     setRunning(false);
+    // Cancel the session complete notification (in case stopped manually)
+    void cancelSessionCompleteNotification();
     if (mode === "countdown") setSecondsLeft(lastCountdownTargetSec);
     else setSecondsElapsed(0);
     sessionStartMsRef.current = null;
@@ -182,6 +188,11 @@ export default function IndexScreen() {
     }
     setRunning(true);
     if (!sessionStartMsRef.current) sessionStartMsRef.current = Date.now();
+    
+    // Schedule notification for when session completes (countdown mode only)
+    if (mode === "countdown" && secondsLeft > 0) {
+      void scheduleSessionCompleteNotification(secondsLeft, activity);
+    }
   };
 
   /**
@@ -239,16 +250,46 @@ export default function IndexScreen() {
     }
   }, [lastCountdownTargetSec, maxSessionSeconds, mode]);
 
-  // If the app backgrounds during a run, we automatically close and upload the session
+  // Sync timer when app returns to foreground (timer continues in real time while backgrounded)
   useEffect(() => {
-    const onState = (s: AppStateStatus) => {
-      if (running && (s === "background" || s === "inactive")) {
-        void fullyStopAndReset("app-closed");
+    const appStateRef = { current: AppState.currentState };
+    
+    const onState = (nextState: AppStateStatus) => {
+      // Only act when coming BACK to active from background/inactive
+      if (
+        running &&
+        sessionStartMsRef.current &&
+        appStateRef.current.match(/inactive|background/) &&
+        nextState === "active"
+      ) {
+        const now = Date.now();
+        const realElapsedSec = Math.floor((now - sessionStartMsRef.current) / 1000);
+
+        if (mode === "countdown") {
+          const newSecondsLeft = Math.max(0, lastCountdownTargetSec - realElapsedSec);
+          if (newSecondsLeft <= 0) {
+            // Countdown would have finished while backgrounded
+            lastLeftRef.current = 0;
+            void fullyStopAndReset("countdown-zero");
+          } else {
+            setSecondsLeft(newSecondsLeft);
+          }
+        } else {
+          // Timer mode
+          if (realElapsedSec >= maxSessionSeconds) {
+            // Timer hit max while backgrounded
+            void fullyStopAndReset("timer-max");
+          } else {
+            setSecondsElapsed(realElapsedSec);
+          }
+        }
       }
+      appStateRef.current = nextState;
     };
+
     const sub = AppState.addEventListener("change", onState);
     return () => sub.remove();
-  }, [running, fullyStopAndReset]);
+  }, [running, mode, lastCountdownTargetSec, maxSessionSeconds]);
 
   // Countdown scrubber helpers
   const handleTrackerChange = (p: number) => {

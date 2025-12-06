@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
  View, 
  Text, 
@@ -114,6 +114,15 @@ const SearchFriends = () => {
  const [isSearching, setIsSearching] = useState(false);
  const [addingUserId, setAddingUserId] = useState<string | null>(null);
  const [searchPerformed, setSearchPerformed] = useState(false);
+ const searchInputRef = useRef<TextInput>(null);
+
+ // Auto-focus search input on mount
+ useEffect(() => {
+  const timer = setTimeout(() => {
+   searchInputRef.current?.focus();
+  }, 500);
+  return () => clearTimeout(timer);
+ }, []);
 
  const searchUsers = async (query: string) => {
   if (!userProfile?.userId || query.trim().length < 2) {
@@ -246,6 +255,7 @@ const SearchFriends = () => {
      <View className="flex-row items-center rounded-xl px-4 py-3" style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}>
       <Search size={20} color={CoralPalette.primary} />
       <TextInput
+       ref={searchInputRef}
        className="flex-1 ml-3 text-gray-900"
        placeholder="Search by username..."  
        value={searchQuery}

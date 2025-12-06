@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 // Notification IDs for cancellation
 const DAILY_REMINDER_ID = "daily-focus-reminder";
 const WEEKLY_RESET_ID = "weekly-goal-reset";
+const SESSION_COMPLETE_ID = "session-complete";
 
 // Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
@@ -118,6 +119,49 @@ export async function scheduleWeeklyResetReminder(): Promise<void> {
  */
 export async function cancelWeeklyResetReminder(): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(WEEKLY_RESET_ID);
+}
+
+/**
+ * Schedule a notification for when focus/rest session completes
+ * @param secondsFromNow - seconds until the session ends
+ * @param activity - "Focus" or "Rest"
+ */
+export async function scheduleSessionCompleteNotification(
+  secondsFromNow: number,
+  activity: "Focus" | "Rest"
+): Promise<void> {
+  // Cancel any existing session notification first
+  await cancelSessionCompleteNotification();
+
+  if (secondsFromNow <= 0) return;
+
+  const title = activity === "Focus" ? "🎉 Focus Session Complete!" : "☕ Rest Session Complete!";
+  const body = activity === "Focus" 
+    ? "Great work! You've earned coins for your focus time."
+    : "Break's over! Ready to focus again?";
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: SESSION_COMPLETE_ID,
+    content: {
+      title,
+      body,
+      sound: true,
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: secondsFromNow,
+    },
+  });
+
+  console.log(`📅 Session complete notification scheduled in ${secondsFromNow}s`);
+}
+
+/**
+ * Cancel session complete notification (call when session is stopped manually)
+ */
+export async function cancelSessionCompleteNotification(): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync(SESSION_COMPLETE_ID);
 }
 
 /**
