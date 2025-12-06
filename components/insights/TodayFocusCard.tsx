@@ -66,7 +66,7 @@ const formatSingleUnit = (totalSeconds: number, showHours: boolean) => {
 
   // If user prefers hours, always show in hours
 
-  if (showHours && secs === 0) {
+  if (showHours && secs <= 60) {
     return "0 hr";
   }
 

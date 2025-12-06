@@ -24,6 +24,8 @@ import collar_snow_scarf from "@/assets/images/collar_snow_scarf.png";
 import collar_champion_collar from "@/assets/images/collar_champion_collar.png";
 import collar_leather_collar from "@/assets/images/collar_leather_collar.png";
 import collar_ocean_collar from "@/assets/images/collar_ocean_collar.png";
+import collar_red_bow_tie from "@/assets/images/collar_red_bow_tie.png";
+import collar_silk_bow_tie from "@/assets/images/collar_silk_bow_tie.png";
 import face_sun_glasses from "@/assets/images/face_sun_glasses.png";
 import gadget_laptop from "@/assets/images/gadget_laptop.png";
 
@@ -54,6 +56,8 @@ export default {
   collar_champion_collar,
   collar_leather_collar,
   collar_ocean_collar,
+  collar_red_bow_tie,
+  collar_silk_bow_tie,
   face_sun_glasses,
   gadget_laptop,
 };
