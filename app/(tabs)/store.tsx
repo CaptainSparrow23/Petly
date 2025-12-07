@@ -214,8 +214,8 @@ const Store = () => {
 
     return [...filtered].sort((a, b) =>
       sortOrder === "asc"
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name)
+        ? a.id.localeCompare(b.id)
+        : b.id.localeCompare(a.id)
     );
   }, [availablePets, selectedCategory, sortOrder]);
 

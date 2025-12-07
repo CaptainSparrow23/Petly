@@ -13,6 +13,7 @@ import {
   PurchaseSuccessCard,
 } from "./Sheets";
 import type { StoreItem } from "./Tiles";
+import { useGlobalContext } from "@/lib/GlobalProvider";
 
 type PreviewPayload = {
   pet: StoreItem | null;
@@ -26,6 +27,7 @@ const PreviewSheet = ({
   payload,
 }: SheetProps<"store-preview">) => {
   const sheetRef = useSheetRef(sheetId);
+  const { userProfile } = useGlobalContext();
   const handlePurchase = useMemo(() => {
     if (!payload?.pet) {
       return undefined;
@@ -45,6 +47,7 @@ const PreviewSheet = ({
       <View style={{ width: "100%", paddingHorizontal: 20 }}>
         <PetPreviewCard
           pet={payload?.pet ?? null}
+          selectedPet={userProfile?.selectedPet}
           onPurchase={handlePurchase ?? (() => undefined)}
           isPurchasing={false}
           purchaseError={null}
