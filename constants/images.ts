@@ -8,25 +8,33 @@ import pet_smurf from "@/assets/images/pet_smurf.png";
 import pet_chedrick from "@/assets/images/pet_chedrick.png";
 import pet_pebbles from "@/assets/images/pet_pebbles.png";
 import pet_gooner from "@/assets/images/pet_gooner.png";
-import hat_minty_beanie from "@/assets/images/hat_minty_beanie.png";
-import hat_sunset_beanie from "@/assets/images/hat_sunset_beanie.png";
-import hat_lilac_beanie from "@/assets/images/hat_lilac_beanie.png";
-import hat_snow_beanie from "@/assets/images/hat_snow_beanie.png";
+// Hats - beanies
+import hat_beanie_minty from "@/assets/images/hat_beanie_minty.png";
+import hat_beanie_sunset from "@/assets/images/hat_beanie_sunset.png";
+import hat_beanie_lilac from "@/assets/images/hat_beanie_lilac.png";
+import hat_beanie_snow from "@/assets/images/hat_beanie_snow.png";
+// Hats - bucket hats
 import hat_bucket_hat from "@/assets/images/hat_bucket_hat.png";
-import hat_blue_bucket_hat from "@/assets/images/hat_blue_bucket_hat.png";
-import hat_green_bucket_hat from "@/assets/images/hat_green_bucket_hat.png";
-import hat_red_top_hat from "@/assets/images/hat_red_top_hat.png";
-import hat_silk_top_hat from "@/assets/images/hat_silk_top_hat.png";
-import collar_minty_scarf from "@/assets/images/collar_minty_scarf.png";
-import collar_sunset_scarf from "@/assets/images/collar_sunset_scarf.png";
-import collar_lilac_scarf from "@/assets/images/collar_lilac_scarf.png";
-import collar_snow_scarf from "@/assets/images/collar_snow_scarf.png";
-import collar_champion_collar from "@/assets/images/collar_champion_collar.png";
-import collar_leather_collar from "@/assets/images/collar_leather_collar.png";
-import collar_ocean_collar from "@/assets/images/collar_ocean_collar.png";
-import collar_red_bow_tie from "@/assets/images/collar_red_bow_tie.png";
-import collar_silk_bow_tie from "@/assets/images/collar_silk_bow_tie.png";
+import hat_bucket_hat_blue from "@/assets/images/hat_bucket_hat_blue.png";
+import hat_bucket_hat_green from "@/assets/images/hat_bucket_hat_green.png";
+// Hats - top hats
+import hat_top_hat_red from "@/assets/images/hat_top_hat_red.png";
+import hat_top_hat_silk from "@/assets/images/hat_top_hat_silk.png";
+// Collars - scarfs
+import collar_scarf_minty from "@/assets/images/collar_scarf_minty.png";
+import collar_scarf_sunset from "@/assets/images/collar_scarf_sunset.png";
+import collar_scarf_lilac from "@/assets/images/collar_scarf_lilac.png";
+import collar_scarf_snow from "@/assets/images/collar_scarf_snow.png";
+// Collars - standard
+import collar_standard_champion from "@/assets/images/collar_standard_champion.png";
+import collar_standard_leather from "@/assets/images/collar_standard_leather.png";
+import collar_standard_ocean from "@/assets/images/collar_standard_ocean.png";
+// Collars - bow ties
+import collar_bow_tie_red from "@/assets/images/collar_bow_tie_red.png";
+import collar_bow_tie_silk from "@/assets/images/collar_bow_tie_silk.png";
+// Faces
 import face_sun_glasses from "@/assets/images/face_sun_glasses.png";
+// Gadgets
 import gadget_laptop from "@/assets/images/gadget_laptop.png";
 
 export default { 
@@ -40,24 +48,24 @@ export default {
   pet_chedrick, 
   pet_pebbles, 
   pet_gooner,
-  hat_minty_beanie,
-  hat_sunset_beanie,
-  hat_lilac_beanie,
-  hat_snow_beanie,
+  hat_beanie_minty,
+  hat_beanie_sunset,
+  hat_beanie_lilac,
+  hat_beanie_snow,
   hat_bucket_hat,
-  hat_blue_bucket_hat,
-  hat_green_bucket_hat,
-  hat_red_top_hat,
-  hat_silk_top_hat,
-  collar_minty_scarf,
-  collar_sunset_scarf,
-  collar_lilac_scarf,
-  collar_snow_scarf,
-  collar_champion_collar,
-  collar_leather_collar,
-  collar_ocean_collar,
-  collar_red_bow_tie,
-  collar_silk_bow_tie,
+  hat_bucket_hat_blue,
+  hat_bucket_hat_green,
+  hat_top_hat_red,
+  hat_top_hat_silk,
+  collar_scarf_minty,
+  collar_scarf_sunset,
+  collar_scarf_lilac,
+  collar_scarf_snow,
+  collar_standard_champion,
+  collar_standard_leather,
+  collar_standard_ocean,
+  collar_bow_tie_red,
+  collar_bow_tie_silk,
   face_sun_glasses,
   gadget_laptop,
 };

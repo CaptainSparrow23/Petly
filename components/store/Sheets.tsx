@@ -9,6 +9,7 @@ import { getPetAnimationConfig } from "@/constants/animations";
 
 type PetPreviewCardProps = {
  pet: StoreItem | null;
+ selectedPet?: string | null; // User's current selected pet for accessory previews
  onPurchase: () => void;
  isPurchasing: boolean;
  purchaseError?: string | null;
@@ -16,10 +17,32 @@ type PetPreviewCardProps = {
 
 export const PetPreviewCard = ({
  pet,
+ selectedPet,
  onPurchase,
  isPurchasing,
  purchaseError,
-}: PetPreviewCardProps) => (
+}: PetPreviewCardProps) => {
+ // Determine which accessory to show based on item category
+ const getAccessoryProps = () => {
+   if (!pet) return { selectedHat: null, selectedFace: null, selectedCollar: null };
+   
+   switch (pet.category) {
+     case 'Hat':
+       return { selectedHat: pet.id, selectedFace: null, selectedCollar: null };
+     case 'Face':
+       return { selectedHat: null, selectedFace: pet.id, selectedCollar: null };
+     case 'Collar':
+       return { selectedHat: null, selectedFace: null, selectedCollar: pet.id };
+     default:
+       return { selectedHat: null, selectedFace: null, selectedCollar: null };
+   }
+ };
+
+  const accessoryProps = getAccessoryProps();
+ const isAccessory = pet?.category === 'Hat' || pet?.category === 'Face' || pet?.category === 'Collar';
+ const petAnimConfig = isAccessory ? getPetAnimationConfig(selectedPet) : getPetAnimationConfig(pet?.id);
+
+ return (
  <View
   style={{
    width: "100%",
@@ -57,6 +80,24 @@ export const PetPreviewCard = ({
           />
         );
       })()}
+     </ImageBackground>
+    ) : isAccessory && petAnimConfig ? (
+     <ImageBackground
+      source={images.roomBackGround}
+      resizeMode="cover"
+      style={{ width: "100%", height: 400, borderRadius: 20, marginTop: 10, overflow: "hidden" }}
+     >
+      <PetAnimation
+        source={petAnimConfig.source}
+        stateMachineName={petAnimConfig.stateMachineName}
+        focusInputName={petAnimConfig.focusInputName}
+        isFocus={false}
+        selectedHat={accessoryProps.selectedHat}
+        selectedFace={accessoryProps.selectedFace}
+        selectedCollar={accessoryProps.selectedCollar}
+        containerStyle={{ flex: 1, position: "absolute", top: 50, left: 0, right: 0, bottom: 0 }}
+        animationStyle={{ width: "50%", height: "50%" }}
+      />
      </ImageBackground>
     ) : (
      <View style={{ width: "100%", height: 400, borderRadius: 20, marginTop: 10, overflow: "hidden", backgroundColor: CoralPalette.white, alignItems: "center", justifyContent: "center" }}>
@@ -115,7 +156,8 @@ export const PetPreviewCard = ({
     )}
   </View>
  </View>
-);
+ );
+};
 
 type InsufficientCoinsCardProps = {
   petName?: string | null;

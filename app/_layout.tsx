@@ -46,8 +46,8 @@ export default function RootLayout() {
   }
 
   return (
-    <SheetProvider>
-      <GlobalProvider>
+    <GlobalProvider>
+      <SheetProvider>
         <Stack
           screenOptions={{
             headerShown: false,
@@ -89,7 +89,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
-      </GlobalProvider>
-    </SheetProvider>
+      </SheetProvider>
+    </GlobalProvider>
   );
 }

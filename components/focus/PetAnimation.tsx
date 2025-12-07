@@ -4,15 +4,15 @@ import Rive, { Fit } from "rive-react-native";
 
 // Mapping of accessory IDs to Rive input numbers
 const HAT_INPUT_MAP: Record<string, number> = {
-  hat_minty_beanie: 1,
-  hat_sunset_beanie: 2,
-  hat_lilac_beanie: 3,
-  hat_snow_beanie: 4,
+  hat_beanie_minty: 1,
+  hat_beanie_sunset: 2,
+  hat_beanie_lilac: 3,
+  hat_beanie_snow: 4,
   hat_bucket_hat: 5,
-  hat_blue_bucket_hat: 6,
-  hat_green_bucket_hat: 7,
-  hat_red_top_hat: 8,
-  hat_silk_top_hat: 9,
+  hat_bucket_hat_blue: 6,
+  hat_bucket_hat_green: 7,
+  hat_top_hat_red: 8,
+  hat_top_hat_silk: 9,
 };
 
 const FACE_INPUT_MAP: Record<string, number> = {
@@ -20,15 +20,15 @@ const FACE_INPUT_MAP: Record<string, number> = {
 };
 
 const COLLAR_INPUT_MAP: Record<string, number> = {
-  collar_minty_scarf: 1,
-  collar_sunset_scarf: 2,
-  collar_lilac_scarf: 3,
-  collar_snow_scarf: 4,
-  collar_champion_collar: 5,
-  collar_leather_collar: 6,
-  collar_ocean_collar: 7,
-  collar_red_bow_tie: 8,
-  collar_silk_bow_tie: 9,
+  collar_scarf_minty: 1,
+  collar_scarf_sunset: 2,
+  collar_scarf_lilac: 3,
+  collar_scarf_snow: 4,
+  collar_standard_champion: 5,
+  collar_standard_leather: 6,
+  collar_standard_ocean: 7,
+  collar_bow_tie_red: 8,
+  collar_bow_tie_silk: 9,
 };
 
 type Props = {
