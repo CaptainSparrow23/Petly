@@ -324,12 +324,21 @@ export default function IndexScreen() {
     [userProfile?.selectedPet]
   );
 
+  // Calculate focus value: 0 = not running, 1 = laptop, 2 = pot_and_stove
+  const focusValue = useMemo(() => {
+    if (!running) return 0;
+    const gadget = userProfile?.selectedGadget;
+    if (gadget === "gadget_laptop") return 1;
+    if (gadget === "gadget_pot_and_stove") return 2;
+    return 1; // Default to laptop animation if no gadget selected
+  }, [running, userProfile?.selectedGadget]);
+
   const petAnimationView = petAnimationConfig ? (
     <PetAnimation
       source={petAnimationConfig.source}
       stateMachineName={petAnimationConfig.stateMachineName}
       focusInputName={petAnimationConfig.focusInputName}
-      isFocus={running}
+      focusValue={focusValue}
       selectedHat={userProfile?.selectedHat}
       selectedFace={userProfile?.selectedFace}
       selectedCollar={userProfile?.selectedCollar}
@@ -384,7 +393,7 @@ export default function IndexScreen() {
         <TouchableOpacity
           onPress={() => setMode("countdown")}
           disabled={running}
-          className="w-16 items-center py-3"
+          className="w-14 items-center py-3"
           style={{ backgroundColor: mode === "countdown" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
         >
           <Hourglass size={20} color={mode === "countdown" ? "#ffffff" : CoralPalette.primary} />
@@ -392,21 +401,19 @@ export default function IndexScreen() {
         <TouchableOpacity
           onPress={() => setMode("timer")}
           disabled={running}
-          className="w-16 items-center py-3"
+          className="w-14 items-center py-3"
           style={{ backgroundColor: mode === "timer" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
         >
           <Timer size={20} color={mode === "timer" ? "#ffffff" : CoralPalette.primary} />
         </TouchableOpacity>
       </View>
 
-      <View className="flex-1 items-center justify-end pb-8">
-        <View className="mb-[15%]">
-          <Text className="text-lg" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>
-            {infoText}
-          </Text>
-        </View>
+      <View className="flex-1 mt-20 items-center justify-evenly">
+        <Text className="text-lg" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>
+          {infoText}
+        </Text>
 
-        <View style={{ width: 360, height: 360 }} className="items-center justify-center">
+        <View className="w-[75%] mt-10 aspect-square items-center justify-center">
           <TimeTracker
             progress={progress}
             onChange={handleTrackerChange}
@@ -422,7 +429,7 @@ export default function IndexScreen() {
           />
         </View>
 
-        <View className="items-center mt-10 -mb-6">
+        <View className="items-center mt-4 justify-center">
           <TouchableOpacity
             className={`flex-row items-center px-4 py-2 rounded-full ${running ? "opacity-60" : ""}`}
             onPress={handleOpenPicker}
@@ -448,7 +455,7 @@ export default function IndexScreen() {
           </TouchableOpacity>
         </View>
 
-        <View className="w-full items-center justify-center mt-10 relative">
+        <View className="w-full items-center justify-center relative">
           <Text
             className="text-8xl tracking-widest opacity-0 color-secondary-500"
             style={{
@@ -480,7 +487,7 @@ export default function IndexScreen() {
 
         <TouchableOpacity
           onPress={handleStartStop}
-          className="w-40 items-center py-3 mb-10 mt-2 rounded-full shadow-sm opacity-100"
+          className="w-40 items-center py-3 mb-5 rounded-full shadow-sm opacity-100"
           style={{
             backgroundColor: CoralPalette.primary,
             opacity: running ? 0.9 : 1,

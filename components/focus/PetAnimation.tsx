@@ -37,7 +37,7 @@ type Props = {
   animationStyle?: ViewStyle;
   stateMachineName?: string;
   focusInputName?: string;
-  isFocus?: boolean;
+  focusValue?: number;
   selectedHat?: string | null;
   selectedFace?: string | null;
   selectedCollar?: string | null;
@@ -49,7 +49,7 @@ const PetAnimation: React.FC<Props> = ({
   animationStyle,
   stateMachineName,
   focusInputName,
-  isFocus = false,
+  focusValue = 0,
   selectedHat = null,
   selectedFace = null,
   selectedCollar = null,
@@ -65,16 +65,24 @@ const PetAnimation: React.FC<Props> = ({
   }
 
   // Keep latest props in refs so we always apply current values
-  const propsRef = useRef({ stateMachineName, focusInputName, isFocus, selectedHat, selectedFace, selectedCollar });
-  propsRef.current = { stateMachineName, focusInputName, isFocus, selectedHat, selectedFace, selectedCollar };
+  const propsRef = useRef({ stateMachineName, focusInputName, focusValue, selectedHat, selectedFace, selectedCollar });
+  propsRef.current = { stateMachineName, focusInputName, focusValue, selectedHat, selectedFace, selectedCollar };
 
   const applyInputs = () => {
-    const { stateMachineName, focusInputName, isFocus, selectedHat, selectedFace, selectedCollar } = propsRef.current;
+    const { stateMachineName, focusInputName, focusValue, selectedHat, selectedFace, selectedCollar } = propsRef.current;
     if (!riveRef.current || !stateMachineName) return;
 
     try {
+      // Set focus input - supports both boolean (legacy) and number (new) types
       if (focusInputName) {
-        riveRef.current.setInputState(stateMachineName, focusInputName, isFocus);
+        try {
+          // Try setting as number first (new format: 0=idle, 1=laptop, 2=pot_and_stove)
+          riveRef.current.setInputState(stateMachineName, focusInputName, focusValue);
+        } catch {
+          // Fall back to boolean for legacy .riv files
+          console.log("⚠️ Focus input may still be boolean type in .riv file");
+          riveRef.current.setInputState(stateMachineName, focusInputName, focusValue > 0);
+        }
       }
       const hatValue = selectedHat ? HAT_INPUT_MAP[selectedHat] ?? 0 : 0;
       console.log(`🎩 Hat: ${selectedHat} -> Rive input: ${hatValue}`);
@@ -85,8 +93,8 @@ const PetAnimation: React.FC<Props> = ({
 
       const collarValue = selectedCollar ? COLLAR_INPUT_MAP[selectedCollar] ?? 0 : 0;
       riveRef.current.setInputState(stateMachineName, "collar", collarValue);
-    } catch {
-      // ignore
+    } catch (e) {
+      console.error("❌ Error applying Rive inputs:", e);
     }
   };
 
@@ -95,7 +103,7 @@ const PetAnimation: React.FC<Props> = ({
     if (isReady.current) {
       applyInputs();
     }
-  }, [stateMachineName, focusInputName, isFocus, selectedHat, selectedFace, selectedCollar]);
+  }, [stateMachineName, focusInputName, focusValue, selectedHat, selectedFace, selectedCollar]);
 
   const handlePlay = () => {
     if (isReady.current) return;
