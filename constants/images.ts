@@ -36,6 +36,7 @@ import collar_bow_tie_silk from "@/assets/images/collar_bow_tie_silk.png";
 import face_sun_glasses from "@/assets/images/face_sun_glasses.png";
 // Gadgets
 import gadget_laptop from "@/assets/images/gadget_laptop.png";
+import gadget_pot_and_stove from "@/assets/images/gadget_pot_and_stove.png";
 
 export default { 
   catFamily, 
@@ -68,4 +69,5 @@ export default {
   collar_bow_tie_silk,
   face_sun_glasses,
   gadget_laptop,
+  gadget_pot_and_stove,
 };

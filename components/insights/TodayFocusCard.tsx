@@ -32,20 +32,20 @@ const PET_ANIMATION_STYLE: Record<string, PetAnimationStyle> = {
   },
   pet_chedrick: {
     width: 330,
-    height: 240,
-    translateX: -89,
-    translateY: -17,
+    height: 230,
+    translateX: -91,
+    translateY: -20,
   },
   pet_pebbles: {
     width: 280,
-    height: 250,
-    translateX: -67,
+    height: 230,
+    translateX: -72,
     translateY: -21,
   },
   pet_gooner: {
     width: 325,
     height: 240,
-    translateX: -88,
+    translateX: -95,
     translateY: -5,
   },
 };
@@ -217,7 +217,7 @@ export default function TodayFocusCard() {
         <Text className="" style={[{ fontSize: 40, fontWeight: "800", color: CoralPalette.dark, textAlign: "right" }, FONT]}>
           {durationLabel}
         </Text>
-        <Text className="text-right" style={[{ fontSize: 13, color: CoralPalette.primary, fontWeight: "700" }, FONT]}>
+        <Text className="text-right" style={[{ fontSize: 12, color: CoralPalette.primary, fontWeight: "700" }, FONT]}>
           {statusMessage}
         </Text>
       </View>

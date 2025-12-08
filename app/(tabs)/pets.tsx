@@ -338,10 +338,10 @@ const Profile = () => {
           </View>
 
           <Animated.View
-            className="flex-1 rounded-t-3xl shadow-lg pt-6"
+            className="rounded-t-3xl shadow-lg pt-6"
             style={{
               position: "absolute",
-              top: 440,
+              top: "56%",
               left: 0,
               right: 0,
               bottom: -100,
