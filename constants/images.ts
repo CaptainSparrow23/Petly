@@ -20,6 +20,8 @@ import hat_bucket_hat_green from "@/assets/images/hat_bucket_hat_green.png";
 // Hats - top hats
 import hat_top_hat_red from "@/assets/images/hat_top_hat_red.png";
 import hat_top_hat_silk from "@/assets/images/hat_top_hat_silk.png";
+// Hats - special
+import hat_special_toque_blanche from "@/assets/images/hat_special_toque_blanche.png";
 // Collars - scarfs
 import collar_scarf_minty from "@/assets/images/collar_scarf_minty.png";
 import collar_scarf_sunset from "@/assets/images/collar_scarf_sunset.png";
@@ -32,6 +34,8 @@ import collar_standard_ocean from "@/assets/images/collar_standard_ocean.png";
 // Collars - bow ties
 import collar_bow_tie_red from "@/assets/images/collar_bow_tie_red.png";
 import collar_bow_tie_silk from "@/assets/images/collar_bow_tie_silk.png";
+// Collars - special
+import collar_special_chefs_coat from "@/assets/images/collar_special_chefs_coat.png";
 // Faces
 import face_sun_glasses from "@/assets/images/face_sun_glasses.png";
 // Gadgets
@@ -58,6 +62,7 @@ export default {
   hat_bucket_hat_green,
   hat_top_hat_red,
   hat_top_hat_silk,
+  hat_special_toque_blanche,
   collar_scarf_minty,
   collar_scarf_sunset,
   collar_scarf_lilac,
@@ -67,6 +72,7 @@ export default {
   collar_standard_ocean,
   collar_bow_tie_red,
   collar_bow_tie_silk,
+  collar_special_chefs_coat,
   face_sun_glasses,
   gadget_laptop,
   gadget_pot_and_stove,
