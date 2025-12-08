@@ -33,7 +33,7 @@ const PET_ANIMATION_STYLE: Record<string, PetAnimationStyle> = {
   pet_chedrick: {
     width: 330,
     height: 230,
-    translateX: -91,
+    translateX: -94,
     translateY: -20,
   },
   pet_pebbles: {
