@@ -8,12 +8,14 @@ import smurfAlt from "@/assets/animations/smurfAlt.riv";
 import chedrickAlt from "@/assets/animations/chedrickAlt.riv";
 import pebblesAlt from "@/assets/animations/pebblesAlt.riv";
 import goonerAlt from "@/assets/animations/goonerAlt.riv";
+import kittyAlt from "@/assets/animations/kittyAlt.riv";
 
 const altAnimations: Record<string, number> = {
   pet_smurf: smurfAlt,
   pet_chedrick: chedrickAlt,
   pet_pebbles: pebblesAlt,
   pet_gooner: goonerAlt,
+  pet_kitty: kittyAlt,
 };
 
 const FONT = { fontFamily: "Nunito" };
@@ -110,9 +112,9 @@ export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
     <View className="flex-row items-center mt-3 ml-2">
      <View
       className="h-7 w-7 items-center justify-center rounded-full"
-      style={{ backgroundColor: CoralPalette.primary }}
+      style={{ backgroundColor: CoralPalette.coinBg }}
      >
-      <MaterialCommunityIcons name="currency-usd" size={13} color={CoralPalette.white} />
+      <MaterialCommunityIcons name="heart" size={10} color={CoralPalette.coinIcon} />
      </View>
      <Text className="ml-2 text-lg font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
       {priceCoins.toLocaleString()}

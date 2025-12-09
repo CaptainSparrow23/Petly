@@ -7,6 +7,7 @@ import smurfAlt from "@/assets/animations/smurfAlt.riv";
 import chedrickAlt from "@/assets/animations/chedrickAlt.riv";
 import pebblesAlt from "@/assets/animations/pebblesAlt.riv";
 import goonerAlt from "@/assets/animations/goonerAlt.riv";
+import kittyAlt from "@/assets/animations/kittyAlt.riv";
 
 const FONT = { fontFamily: "Nunito" };
 
@@ -47,6 +48,12 @@ const PET_ANIMATION_STYLE: Record<string, PetAnimationStyle> = {
     height: 240,
     translateX: -95,
     translateY: -5,
+  },
+  pet_kitty: {
+    width: 325,
+    height: 250,
+    translateX: -89,
+    translateY: -20,
   },
 };
 
@@ -134,6 +141,7 @@ export default function TodayFocusCard() {
     pet_chedrick: { source: chedrickAlt, stateMachineName: "State Machine 1", moodInputName: "mood" },
     pet_pebbles: { source: pebblesAlt, stateMachineName: "State Machine 1", moodInputName: "mood" },
     pet_gooner: { source: goonerAlt, stateMachineName: "State Machine 1", moodInputName: "mood" },
+    pet_kitty: { source: kittyAlt, stateMachineName: "State Machine 1", moodInputName: "mood" },
     // add additional pets here, keyed by pet id
   };
 
@@ -182,7 +190,7 @@ export default function TodayFocusCard() {
             left: 0,
             top: 0,
             width: 150,
-            height: 123.5,
+            height: 122.5,
             opacity: 0.9,
             overflow: "hidden",
             zIndex: 1,

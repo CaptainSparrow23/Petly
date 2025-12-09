@@ -27,6 +27,7 @@ import {
   scheduleSessionCompleteNotification, 
   cancelSessionCompleteNotification 
 } from "@/utils/notifications";
+import * as Haptics from 'expo-haptics';
 
 /**
  * Focus & Rest dashboard. Handles timer/countdown modes, session tracking, and
@@ -173,6 +174,7 @@ export default function IndexScreen() {
         durationSec: elapsedSec,
         activity,
       });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else if (reason === "app-closed") {
       showBanner("Session saved on app close.", "info");
     }

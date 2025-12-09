@@ -181,14 +181,14 @@ export default function GoalsCard({
               <View
                 className="h-5 w-5 items-center justify-center rounded-full"
                 style={{ 
-                  backgroundColor: isReached ? CoralPalette.primary : CoralPalette.border,
+                  backgroundColor: isReached ? CoralPalette.coinBg : CoralPalette.border,
                   opacity: isReached ? 1 : 0.5,
                 }}
               >
                 <MaterialCommunityIcons 
-                  name="currency-usd" 
-                  size={12} 
-                  color={isReached ? CoralPalette.white : CoralPalette.mutedDark} 
+                  name="heart" 
+                  size={10} 
+                  color={isReached ? CoralPalette.coinIcon : CoralPalette.mutedDark} 
                 />
               </View>
               <Text 

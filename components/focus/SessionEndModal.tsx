@@ -40,9 +40,9 @@ export default function SessionEndModal({
               <View className="flex-row w-60 h-24 items-center justify-center">
                 <View
                   className="mr-3 h-12 w-12 items-center justify-center rounded-full"
-                  style={{ backgroundColor: CoralPalette.primary }}
+                  style={{ backgroundColor: CoralPalette.coinBg }}
                 >
-                  <MaterialCommunityIcons name="currency-usd" size={22} color={CoralPalette.white} />
+                  <MaterialCommunityIcons name="heart" size={18} color={CoralPalette.coinIcon} />
                 </View>
                 <View className="py-2">
                   <Text className="text-xl" style={{ color: CoralPalette.dark }}>
