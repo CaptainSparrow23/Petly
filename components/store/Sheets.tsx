@@ -135,11 +135,11 @@ export const PetPreviewCard = ({
         paddingVertical: 10,
       }}
     >
-      <View className="h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: CoralPalette.surface }}>
+      <View className="h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: CoralPalette.coinBg }}>
         <MaterialCommunityIcons
-          name="currency-usd"
-          size={18}
-          color={CoralPalette.primary}
+          name="heart"
+          size={14}
+          color={CoralPalette.coinIcon}
         />
       </View>
 

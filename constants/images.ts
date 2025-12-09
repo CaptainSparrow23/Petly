@@ -8,6 +8,7 @@ import pet_smurf from "@/assets/images/pet_smurf.png";
 import pet_chedrick from "@/assets/images/pet_chedrick.png";
 import pet_pebbles from "@/assets/images/pet_pebbles.png";
 import pet_gooner from "@/assets/images/pet_gooner.png";
+import pet_kitty from "@/assets/images/pet_kitty.png";
 // Hats - beanies
 import hat_beanie_minty from "@/assets/images/hat_beanie_minty.png";
 import hat_beanie_sunset from "@/assets/images/hat_beanie_sunset.png";
@@ -53,6 +54,7 @@ export default {
   pet_chedrick, 
   pet_pebbles, 
   pet_gooner,
+  pet_kitty,
   hat_beanie_minty,
   hat_beanie_sunset,
   hat_beanie_lilac,

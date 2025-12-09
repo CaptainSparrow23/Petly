@@ -18,9 +18,9 @@ export default function CoinBadge() {
     >
       <View
         className="mr-2 h-10 w-10 items-center justify-center rounded-full"
-        style={{ backgroundColor: CoralPalette.primary }}
+        style={{ backgroundColor: CoralPalette.coinBg }}
       >
-        <MaterialCommunityIcons name="currency-usd" size={18} color={CoralPalette.white} />
+        <MaterialCommunityIcons name="heart" size={14} color={CoralPalette.coinIcon} />
       </View>
       <Text className="text-sm font-semibold mr-3" style={{ color: CoralPalette.dark }}>
         {(userProfile?.coins ?? 0).toLocaleString()}

@@ -22,9 +22,11 @@ const PetsTab = ({ pets, focusedPet, setFocusedPet }: PetsTabProps) => {
       scrollEnabled={true}
       contentContainerStyle={{
         paddingHorizontal: 22,
-        paddingTop: 8,
+        paddingTop: 3,
+        paddingBottom: 96,
+        flexGrow: 1,
       }}
-      columnWrapperStyle={{ columnGap: 14, marginBottom: 14 }}
+      columnWrapperStyle={{ columnGap: 16, marginBottom: 14 }}
       ListEmptyComponent={
         <View className="w-full items-center py-8">
           <Text

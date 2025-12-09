@@ -8,6 +8,9 @@ export const CoralPalette = {
   dark: "#191d31",
   mutedDark: "#666878",
   white: "#FFFFFF",
+  // Coin colors
+  coinBg: "#F59E0B",
+  coinIcon: "#78350F",
 };
 
 export const ThemeGradients = {

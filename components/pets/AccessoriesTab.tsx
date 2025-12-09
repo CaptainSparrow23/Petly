@@ -64,7 +64,7 @@ const AccessoriesTab = ({
           keyExtractor={(item) => item}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12 }}
+          contentContainerStyle={{ gap: 12, paddingLeft: 30 }}
           ListHeaderComponent={
             <TouchableOpacity
               activeOpacity={0.8}
@@ -86,7 +86,6 @@ const AccessoriesTab = ({
                   alignItems: "center",
                   justifyContent: "center",
                   marginRight: 12,
-                  marginLeft: 30,
                 },
               ]}
             >
@@ -156,7 +155,7 @@ const AccessoriesTab = ({
           keyExtractor={(item) => item}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12 }}
+          contentContainerStyle={{ gap: 12, paddingLeft: 30 }}
           ListHeaderComponent={
             <TouchableOpacity
               activeOpacity={0.8}
@@ -178,7 +177,6 @@ const AccessoriesTab = ({
                   alignItems: "center",
                   justifyContent: "center",
                   marginRight: 12,
-                  marginLeft: 30,
                 },
               ]}
             >
@@ -248,7 +246,7 @@ const AccessoriesTab = ({
           keyExtractor={(item) => item}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12 }}
+          contentContainerStyle={{ gap: 12, paddingLeft: 30 }}
           ListHeaderComponent={
             <TouchableOpacity
               activeOpacity={0.8}
@@ -270,7 +268,6 @@ const AccessoriesTab = ({
                   alignItems: "center",
                   justifyContent: "center",
                   marginRight: 12,
-                  marginLeft: 30,
                 },
               ]}
             >
@@ -336,32 +333,52 @@ const AccessoriesTab = ({
       </Text>
       <View style={{ minHeight: 80 }}>
         <FlatList
-          data={sortedGadgets}
+          data={sortedGadgets.filter((g) => g !== "gadget_laptop")}
           keyExtractor={(item) => item}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12 }}
+          contentContainerStyle={{ gap: 12, paddingLeft: 30 }}
           ListHeaderComponent={
-            <View
-              style={{
-                marginLeft: 20,
-              }}
-            ></View>
-          }
-          ListEmptyComponent={
-            <Text
-              className="text-sm"
-              style={[{ color: CoralPalette.mutedDark }, FONT]}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setFocusedGadget("gadget_laptop")}
+              style={[
+                {
+                  width: 90,
+                  height: 90,
+                  borderRadius: 16,
+                  borderWidth: 2,
+                  borderColor:
+                    focusedGadget === "gadget_laptop"
+                      ? CoralPalette.primary
+                      : 'transparent',
+                  backgroundColor:
+                    focusedGadget === "gadget_laptop"
+                      ? `${CoralPalette.primary}25`
+                      : "transparent",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 12,
+                },
+              ]}
             >
-              No gadgets owned yet
-            </Text>
+              <Image
+                source={images.gadget_laptop}
+                style={{
+                  width: 70,
+                  height: 70,
+                  borderRadius: 14,
+                }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
           }
           renderItem={({ item }) => {
             const isFocused = item === focusedGadget;
             return (
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setFocusedGadget(isFocused ? null : item)}
+                onPress={() => setFocusedGadget(item)}
                 style={[
                   {
                     height: 90,
