@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import Constants from "expo-constants";
+import { useFocusEffect } from "expo-router";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
@@ -57,6 +59,28 @@ export default function GoalsCard({
   const dailyClaimable = dailyGoalReached && !dailyClaimed;
   const weeklyClaimable = weeklyGoalReached && !weeklyClaimed;
   const canClaim = dailyClaimable || weeklyClaimable;
+
+  // Animated progress (Reanimated)
+  const dailyAnim = useSharedValue(0);
+  const weeklyAnim = useSharedValue(0);
+
+  const animateBars = useCallback(() => {
+    dailyAnim.value = 0;
+    weeklyAnim.value = 0;
+    dailyAnim.value = withTiming(dailyProgress, { duration: 500, easing: Easing.out(Easing.cubic) });
+    weeklyAnim.value = withTiming(weeklyProgress, { duration: 500, easing: Easing.out(Easing.cubic) });
+  }, [dailyAnim, weeklyAnim, dailyProgress, weeklyProgress]);
+
+  useEffect(() => {
+    animateBars();
+  }, [animateBars]);
+
+  useFocusEffect(
+    useCallback(() => {
+      animateBars();
+      return () => {};
+    }, [animateBars])
+  );
 
   const claimGoalReward = async (goalType: 'daily' | 'weekly'): Promise<{ success: boolean; coins?: number }> => {
     if (!userProfile?.userId || !API_BASE_URL) {
@@ -140,6 +164,16 @@ export default function GoalsCard({
     return `${hours.toFixed(1)} hrs`;
   };
 
+  const AnimatedProgressFill = ({ progressAnim, color }: { progressAnim: typeof dailyAnim; color: string }) => {
+    const animStyle = useAnimatedStyle(() => ({
+      width: `${Math.max(0, Math.min(100, progressAnim.value))}%`,
+      height: "100%",
+      backgroundColor: color,
+      borderRadius: 999,
+    }));
+    return <Animated.View style={animStyle} />;
+  };
+
   const renderProgress = (
     label: string,
     targetLabel: string,
@@ -147,7 +181,8 @@ export default function GoalsCard({
     accent: string,
     rewardCoins: number,
     isReached: boolean,
-    isClaimed: boolean
+    isClaimed: boolean,
+    progressAnim?: typeof dailyAnim
   ) => (
     <View className="mt-4">
       <View className="flex-row justify-between items-center">
@@ -158,10 +193,14 @@ export default function GoalsCard({
         className="mt-2 h-2.5 w-full overflow-hidden rounded-full"
         style={{ backgroundColor: `${CoralPalette.border}55` }}
       >
-        <View
-          className="h-full rounded-full"
-          style={{ width: `${progressPercent}%`, backgroundColor: accent }}
-        />
+        {progressAnim ? (
+          <AnimatedProgressFill progressAnim={progressAnim} color={accent} />
+        ) : (
+          <View
+            className="h-full rounded-full"
+            style={{ width: `${progressPercent}%`, backgroundColor: accent }}
+          />
+        )}
       </View>
       <View className="mt-2 flex-row items-center justify-between">
         <Text className="text-xs" style={[{ color: CoralPalette.mutedDark }, FONT]}>
@@ -244,7 +283,8 @@ export default function GoalsCard({
           CoralPalette.primary, 
           dailyReward,
           dailyGoalReached,
-          dailyClaimed
+          dailyClaimed,
+          dailyAnim
         )}
         {renderProgress(
           "Weekly focus goal", 
@@ -253,7 +293,8 @@ export default function GoalsCard({
           CoralPalette.primaryMuted, 
           weeklyReward,
           weeklyGoalReached,
-          weeklyClaimed
+          weeklyClaimed,
+          weeklyAnim
         )}
       </View>
     </>

@@ -311,7 +311,6 @@ const Profile = () => {
                 source={petAnimationConfig.source}
                 stateMachineName={petAnimationConfig.stateMachineName}
                 focusInputName={petAnimationConfig.focusInputName}
-                isFocus={false}
                 selectedHat={focusedHat}
                 selectedFace={focusedFace}
                 selectedCollar={focusedCollar}

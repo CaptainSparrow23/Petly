@@ -13,6 +13,8 @@ interface ProfilePictureProps {
 const PROFILE_IMAGES = {
   1: images.profile1,
   2: images.profile2,
+  3: images.profile3,
+  4: images.profile4,
 };
 
 export const ProfilePicture: React.FC<ProfilePictureProps> = ({ 
