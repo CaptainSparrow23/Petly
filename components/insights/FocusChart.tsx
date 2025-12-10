@@ -4,6 +4,7 @@ import { VictoryAxis, VictoryBar, VictoryChart, VictoryLabel } from "victory-nat
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import { Picker } from "@react-native-picker/picker";
+import { useFocusEffect } from "expo-router";
 
 // --- Types ---
 export type ChartDatum = { key: string; label: string; totalMinutes: number };
@@ -43,6 +44,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   const [error, setError] = useState<string | null>(null);
   const [chartWidth, setChartWidth] = useState(0);
   const [selectedBar, setSelectedBar] = useState<{ x: string; y: number; raw: number } | null>(null);
+  const [chartAnimKey, setChartAnimKey] = useState(0);
 
   // Fetch Data
   const fetchData = useCallback(async () => {
@@ -86,6 +88,13 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   // Clear selected bar when view changes
   useEffect(() => { setSelectedBar(null); }, [view]);
 
+  // Bump animation key when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      setChartAnimKey((k) => k + 1);
+    }, [])
+  );
+
   // Chart Data Prep
   const victoryData = useMemo(() => chartPoints.map((d, i) => ({
     x: d.label ?? d.key ?? String(i + 1),
@@ -99,6 +108,14 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
 
   const xTickValues = useMemo(() => victoryData.map(d => d.x), [victoryData]);
   const maxY = useMemo(() => Math.max(1, ...victoryData.map(d => d.y)), [victoryData]);
+  const barKey = useMemo(() => {
+    const total = chartPoints.reduce((acc, curr) => acc + (curr.totalMinutes || 0), 0);
+    return `${view.mode}-${view.year}-${view.month}-${view.day}-${chartPoints.length}-${total}`;
+  }, [view.mode, view.year, view.month, view.day, chartPoints]);
+  const chartKey = useMemo(
+    () => `${chartAnimKey}-${view.mode}-${view.year}-${view.month}-${chartPoints.length}`,
+    [chartAnimKey, view.mode, view.year, view.month, chartPoints.length]
+  );
   
   const barWidth = useMemo(() => {
     if (!chartWidth || !victoryData.length) return 10;
@@ -138,7 +155,6 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
 
       {/* Chart Area */}
       <View className="relative mt-2" onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}>
-        {loading && <View className="absolute inset-0 z-10 items-center justify-center"><ActivityIndicator color={CoralPalette.primary} /></View>}
         {!loading && !hasData && (
           <View className="absolute inset-0 z-10 items-center justify-center">
             <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>No data to display</Text>
@@ -146,7 +162,14 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
         )}
         
         {chartWidth > 0 && (
-          <VictoryChart width={chartWidth} height={250} domain={{ y: [0, Math.ceil(maxY * 1.1)] }} domainPadding={{ x: 30, y: [0, 8] }} padding={{ top: 8, bottom: 30, left: 30, right: 0 }}>
+          <VictoryChart
+            key={chartKey}
+            width={chartWidth}
+            height={250}
+            domain={{ y: [0, Math.ceil(maxY * 1.1)] }}
+            domainPadding={{ x: 30, y: [0, 8] }}
+            padding={{ top: 8, bottom: 30, left: 30, right: 0 }}
+          >
             <VictoryAxis
               tickValues={xTickValues}
               tickFormat={(t) => {
@@ -164,7 +187,9 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
             />
             <VictoryAxis dependentAxis style={{ axis: { stroke: "transparent" }, ticks: { stroke: "transparent" }, tickLabels: { fill: "#a0a0a0", fontSize: 12, fontFamily: "Nunito", fontWeight: "400", padding: 6 }, grid: { stroke: "#e5e7eb", strokeDasharray: "4,4" } }} />
             <VictoryBar
+              key={`${barKey}-${chartAnimKey}`}
               data={victoryData}
+              animate={{ duration: 300, onLoad: { duration: 300} }}
               barWidth={barWidth}
               cornerRadius={{ top: 4, bottom: 0 }}
               style={{ data: { fill: ({ datum }: any) => datum.raw > 0 ? (selectedBar?.x === datum.x ? CoralPalette.primaryMuted : CoralPalette.primary) : CoralPalette.border } }}

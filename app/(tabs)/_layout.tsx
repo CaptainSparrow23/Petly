@@ -50,13 +50,13 @@ const CustomDrawerContent = (props: any) => {
             className="shadow-lg border border-white"
           />
           <Text
-            className="text-2xl mt-5 font-bold text-white"
+            className="text-xl mt-5 font-bold text-white"
             style={{ fontFamily: "Nunito" }}
           >
             {displayName}
           </Text>
           <Text
-            className="text-m mt-1 text-white mb-5"
+            className="text-sm mt-1 text-white mb-5"
             style={{ fontFamily: "Nunito" }}
           >
             {username ? `@${username}` : 'No username set'}

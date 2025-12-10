@@ -1,5 +1,7 @@
-import React, { useMemo, useRef, useEffect } from "react";
+import React, { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { View, Text, InteractionManager } from "react-native";
+import { useFocusEffect } from "expo-router";
+import { Easing, runOnJS, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import Rive, { Fit, RiveRef } from "rive-react-native";
@@ -104,6 +106,8 @@ export default function TodayFocusCard() {
   const riveRef = useRef<RiveRef | null>(null);
   const selectedPet = userProfile?.selectedPet ?? null;
   const showHours = appSettings.displayFocusInHours;
+  const anim = useSharedValue(0);
+  const [displaySeconds, setDisplaySeconds] = useState(0);
 
   // Support both correct and misspelled field names; accept number (secs) or a "Xm Ys" string.
   const raw = userProfile?.timeActiveToday ?? 0;
@@ -114,15 +118,34 @@ export default function TodayFocusCard() {
     return 0;
   }, [raw]);
 
-  const durationLabel = useMemo(() => formatSingleUnit(totalSeconds, showHours), [totalSeconds, showHours]);
+  // Animate from previous value to the latest totalSeconds on mount and every time screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      anim.value = 0;
+      anim.value = withTiming(totalSeconds, {
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+      });
+      return () => {};
+    }, [anim, totalSeconds])
+  );
+
+  useDerivedValue(() => {
+    runOnJS(setDisplaySeconds)(anim.value);
+  }, [anim]);
+
+  const durationLabel = useMemo(
+    () => formatSingleUnit(displaySeconds, showHours),
+    [displaySeconds, showHours]
+  );
   const statusMessage = useMemo(() => {
-    if (totalSeconds < 1800) return "Get back to work!";
-    if (totalSeconds < 3600) return "Keep working hard!";
-    if (totalSeconds < 7200) return "You're doing great!";
-    if (totalSeconds < 10800) return "Amazing work today!";
-    if (totalSeconds < 14400) return "You workaholic!";
+    if (displaySeconds < 1800) return "Get back to work!";
+    if (displaySeconds < 3600) return "Keep working hard!";
+    if (displaySeconds < 7200) return "You're doing great!";
+    if (displaySeconds < 10800) return "Amazing work today!";
+    if (displaySeconds < 14400) return "You workaholic!";
     return "Maybe a break now?";
-  }, [totalSeconds]);
+  }, [displaySeconds]);
 
   const moodValue = useMemo(() => {
     if (totalSeconds < 1800) return 1;

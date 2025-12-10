@@ -8,6 +8,7 @@ import {
  Alert,
  ActivityIndicator,
  Modal,
+ FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useGlobalContext } from "@/lib/GlobalProvider";
@@ -24,6 +25,8 @@ const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const PROFILE_OPTIONS = [
  { id: 1, name: "Profile 1" },
  { id: 2, name: "Profile 2" },
+ { id: 3, name: "Profile 3" },
+ { id: 4, name: "Profile 4" },
 ];
 
 const EditProfile = () => {
@@ -71,10 +74,7 @@ const EditProfile = () => {
   const usernameChanged = username.trim() !== originalUsername;
   const profileIdChanged = selectedProfileId !== originalProfileId;
 
-  if (!usernameChanged && !profileIdChanged) {
-   router.back();
-   return;
-  }
+  
 
   if (username.trim().length < 2) {
    showBanner({
@@ -127,7 +127,6 @@ const EditProfile = () => {
    preset: "done",
    haptic: "success",
   });
-  router.back();
   } catch (error) {
    console.error("❌ Error updating profile:", error);
    const errorMessage =
@@ -148,9 +147,32 @@ const hasChanges =
 
 const FONT = { fontFamily: "Nunito" };
 
- return (
-  <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
-   <View className="relative flex-row mb-1 items-center justify-between px-4 py-4">
+const renderProfileOption = ({ item }: { item: { id: number; name: string } }) => {
+  const isSelected = selectedProfileId === item.id;
+  return (
+    <TouchableOpacity
+      onPress={() => setSelectedProfileId(item.id)}
+      activeOpacity={0.8}
+      className="items-center mx-5"
+    >
+      <View
+        className="rounded-full border-4"
+        style={{
+          width: 98,
+          height: 98,
+          borderColor: isSelected ? CoralPalette.primary : CoralPalette.surface,
+          backgroundColor: CoralPalette.surface,
+        }}
+      >
+        <ProfilePicture profileId={item.id} size={90} />
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+  return (
+    <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
+      <View className="relative flex-row mb-1 items-center justify-between px-4 py-4">
     <TouchableOpacity onPress={() => router.back()}>
      <ChevronLeft size={24} color={CoralPalette.dark} />
     </TouchableOpacity>
@@ -211,7 +233,7 @@ const FONT = { fontFamily: "Nunito" };
      <View className="px-2 py-1 -mt-3">
       <View className="flex-row items-center justify-center">
        <View className="mr-3">
-        <Text className="mt-2 ml-8 text-lg" style={[{ color: CoralPalette.mutedDark }, FONT]}>
+        <Text className="mt-2 ml-8 text-md" style={[{ color: CoralPalette.mutedDark }, FONT]}>
          @ {username || "Not set"}
         </Text>
        </View>
@@ -250,58 +272,45 @@ const FONT = { fontFamily: "Nunito" };
    </ScrollView>
 
    {/* Profile Picture Picker Modal */}
-   <Modal
+  <Modal
     visible={showProfilePicker}
     transparent
     animationType="fade"
     onRequestClose={() => setShowProfilePicker(false)}
-   >
+  >
     <TouchableOpacity
-     className="flex-1 bg-black/50 justify-center items-center"
-     activeOpacity={1}
-     onPress={() => setShowProfilePicker(false)}
-    >
-     <TouchableOpacity
+      className="flex-1 bg-black/50 justify-center items-center"
       activeOpacity={1}
-      className="bg-white rounded-3xl p-6 mx-6 w-11/12 max-w-md"
-      onPress={(e) => e.stopPropagation()}
-     >
-      <Text className="text-2xl font-bold text-gray-900 mb-4 text-center" style={FONT}>
-       Choose Profile Picture
-      </Text>
-
-      <View className="flex-row justify-around mb-6">
-       {PROFILE_OPTIONS.map((option) => (
-        <TouchableOpacity
-         key={option.id}
-         onPress={() => setSelectedProfileId(option.id)}
-         className="items-center"
-        >
-         <View className="relative">
-          <ProfilePicture profileId={option.id} size={100} />
-          {selectedProfileId === option.id && (
-           <View className="absolute -top-2 -right-2 rounded-full p-1" style={{ backgroundColor: CoralPalette.primary }}>
-            <Check size={20} color="#fff" />
-           </View>
-          )}
-        </View>
-        <Text className="text-base mt-2" style={[{ color: CoralPalette.mutedDark }, FONT]}>
-         {option.name}
-        </Text>
-        </TouchableOpacity>
-       ))}
-      </View>
-
+      onPress={() => setShowProfilePicker(false)}
+    >
       <TouchableOpacity
-       onPress={() => setShowProfilePicker(false)}
-       className="rounded-xl py-3 px-6"
-       style={{ backgroundColor: CoralPalette.primary }}
+        activeOpacity={1}
+        className="bg-white rounded-3xl p-6 mx-6 w-11/12 max-w-md"
+        onPress={(e) => e.stopPropagation()}
       >
-        <Text className="text-lg font-medium text-white text-center" style={FONT}>
-        Done
-       </Text>
+        <Text className="text-xl font-bold text-gray-900 mb-4 text-center" style={FONT}>
+          Choose Profile Picture
+        </Text>
+
+        <FlatList
+          data={PROFILE_OPTIONS}
+          horizontal
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderProfileOption}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingVertical: 12, paddingHorizontal: 6 }}
+        />
+
+        <TouchableOpacity
+          onPress={() => setShowProfilePicker(false)}
+          className="rounded-full py-3 px-6 mt-2"
+          style={{ backgroundColor: CoralPalette.primary }}
+        >
+          <Text className="text-lg font-medium text-white text-center" style={FONT}>
+            Save
+          </Text>
+        </TouchableOpacity>
       </TouchableOpacity>
-     </TouchableOpacity>
     </TouchableOpacity>
    </Modal>
 

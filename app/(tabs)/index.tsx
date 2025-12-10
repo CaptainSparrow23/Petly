@@ -49,6 +49,7 @@ export default function IndexScreen() {
   const [stopModalOpen, setStopModalOpen] = useState(false);
   const [lastCountdownTargetSec, setLastCountdownTargetSec] = useState(INITIAL_COUNTDOWN_SECONDS);
   const [previewSeconds, setPreviewSeconds] = useState<number | null>(null);
+  const lastPreviewSnap = useRef<number | null>(null);
 
   const { loggedIn } = useLocalSearchParams();
   const { showBanner, userProfile, refetchUserProfile, appSettings } = useGlobalContext();
@@ -120,6 +121,7 @@ export default function IndexScreen() {
   const trackColor = CoralPalette.primary;
   const trackBgColor = "rgba(255,255,255,0.5)";
   const centerFillColor = CoralPalette.surface;
+  const countdownInvalid = mode === "countdown" && secondsLeft <= 0;
 
   const clearTicker = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -204,6 +206,25 @@ export default function IndexScreen() {
     if (running) setStopModalOpen(true);
     else handleStart();
   };
+
+  // Immediate haptic when tapping mode pills (only if it will change).
+  const handleModePressIn = useCallback(
+    (targetMode: "timer" | "countdown") => {
+      if (running) return;
+      if (mode === targetMode) return;
+      if (!appSettings.vibrations) return;
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    },
+    [running, mode, appSettings.vibrations]
+  );
+
+  // Trigger haptic immediately when tapping Start (only if it will start).
+  const handleStartPressIn = useCallback(() => {
+    if (running) return;
+    if (mode === "countdown" && secondsLeft <= 0) return;
+    if (!appSettings.vibrations) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+  }, [running, mode, secondsLeft, appSettings.vibrations]);
 
   // Main timer ticker: updates either the countdown or stopwatch every second
   useEffect(() => {
@@ -298,19 +319,28 @@ export default function IndexScreen() {
     if (!running && mode === "countdown") {
       const SNAP_S = 300;
       const raw = p * maxSessionSeconds;
-      const next = Math.round(raw / SNAP_S) * SNAP_S;
+      const next = raw < SNAP_S ? 0 : Math.round(raw / SNAP_S) * SNAP_S;
       setSecondsLeft(next);
       setLastCountdownTargetSec(next);
     }
   };
   const handlePreviewProgress = (progress: number | null) => {
     if (progress == null) {
+      if (lastPreviewSnap.current != null) {
+        setSecondsLeft(lastPreviewSnap.current);
+        setLastCountdownTargetSec(lastPreviewSnap.current);
+      }
       setPreviewSeconds(null);
+      lastPreviewSnap.current = null;
       return;
     }
     const SNAP_S = 300;
     const raw = progress * maxSessionSeconds;
-    const next = Math.round(raw / SNAP_S) * SNAP_S;
+    const next = raw < SNAP_S ? 0 : Math.round(raw / SNAP_S) * SNAP_S;
+    if (appSettings.vibrations && next !== lastPreviewSnap.current) {
+      void Haptics.selectionAsync().catch(() => {});
+    }
+    lastPreviewSnap.current = next;
     setPreviewSeconds(next);
   };
   const secondsToShow = mode === "countdown" ? secondsLeft : secondsElapsed;
@@ -394,6 +424,7 @@ export default function IndexScreen() {
       >
         <TouchableOpacity
           onPress={() => setMode("countdown")}
+          onPressIn={() => handleModePressIn("countdown")}
           disabled={running}
           className="w-14 items-center py-3"
           style={{ backgroundColor: mode === "countdown" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
@@ -402,6 +433,7 @@ export default function IndexScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setMode("timer")}
+          onPressIn={() => handleModePressIn("timer")}
           disabled={running}
           className="w-14 items-center py-3"
           style={{ backgroundColor: mode === "timer" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
@@ -489,10 +521,12 @@ export default function IndexScreen() {
 
         <TouchableOpacity
           onPress={handleStartStop}
+          onPressIn={handleStartPressIn}
+          disabled={!running && countdownInvalid}
           className="w-40 items-center py-3 mb-5 rounded-full shadow-sm opacity-100"
           style={{
             backgroundColor: CoralPalette.primary,
-            opacity: running ? 0.9 : 1,
+            opacity: running ? 0.9 : countdownInvalid ? 0.6 : 1,
           }}
         >
           <Text
