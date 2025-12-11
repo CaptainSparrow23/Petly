@@ -9,7 +9,7 @@ export const CoralPalette = {
   mutedDark: "#666878",
   white: "#FFFFFF",
   // Coin colors
-  coinBg: "#F59E0B",
+  coinBg: "#fac400ff",
   coinIcon: "#78350F",
 };
 

@@ -41,11 +41,14 @@ export default function IndexScreen() {
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const INITIAL_COUNTDOWN_SECONDS = 20 * 60;
+  const GRACE_SECONDS = 10;
 
   const [running, setRunning] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(INITIAL_COUNTDOWN_SECONDS);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const graceRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [graceLeft, setGraceLeft] = useState(0);
   const [stopModalOpen, setStopModalOpen] = useState(false);
   const [lastCountdownTargetSec, setLastCountdownTargetSec] = useState(INITIAL_COUNTDOWN_SECONDS);
   const [previewSeconds, setPreviewSeconds] = useState<number | null>(null);
@@ -128,6 +131,11 @@ export default function IndexScreen() {
     intervalRef.current = null;
   };
 
+  const clearGraceTimer = () => {
+    if (graceRef.current) clearInterval(graceRef.current);
+    graceRef.current = null;
+  };
+
   /**
    * Stops a session, posts it to the backend, and resets the UI.
    * Handles all exit reasons (timer done, manual stop, background, etc.).
@@ -162,6 +170,9 @@ export default function IndexScreen() {
     }
 
     clearTicker();
+    clearGraceTimer();
+    setGraceLeft(0);
+    setStopModalOpen(false);
     setRunning(false);
     // Cancel the session complete notification (in case stopped manually)
     void cancelSessionCompleteNotification();
@@ -197,14 +208,41 @@ export default function IndexScreen() {
     if (mode === "countdown" && secondsLeft > 0) {
       void scheduleSessionCompleteNotification(secondsLeft, activity);
     }
+
+    // start 10s grace window
+    setGraceLeft(GRACE_SECONDS);
+    clearGraceTimer();
+    graceRef.current = setInterval(() => {
+      setGraceLeft((prev) => {
+        if (prev <= 1) {
+          clearGraceTimer();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const cancelDuringGrace = () => {
+    clearTicker();
+    clearGraceTimer();
+    setGraceLeft(0);
+    setRunning(false);
+    setStopModalOpen(false);
+    void cancelSessionCompleteNotification();
+    if (mode === "countdown") setSecondsLeft(lastCountdownTargetSec);
+    else setSecondsElapsed(0);
+    sessionStartMsRef.current = null;
   };
 
   /**
    * Central start/stop handler, wired to both Start button and confirmation modals.
    */
   const handleStartStop = () => {
-    if (running) setStopModalOpen(true);
-    else handleStart();
+    if (running) {
+      if (graceLeft > 0) cancelDuringGrace();
+      else setStopModalOpen(true);
+    } else handleStart();
   };
 
   // Immediate haptic when tapping mode pills (only if it will change).
@@ -530,10 +568,14 @@ export default function IndexScreen() {
           }}
         >
           <Text
-            className="text-xl text-white font-semibold shadow-lg"
+            className="text-lg text-white font-semibold shadow-lg"
             style={{ fontFamily: "Nunito" }}
           >
-            {!running ? "Start" : "Give up"}
+            {!running
+              ? "Start"
+              : graceLeft > 0
+              ? `Cancel (${graceLeft})`
+              : "Give up"}
           </Text>
         </TouchableOpacity>
       </View>

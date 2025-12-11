@@ -21,6 +21,40 @@ const toNumber = (value: unknown, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const computeLevelMeta = (totalXPRaw: unknown) => {
+    const totalXP = Math.max(0, toNumber(totalXPRaw, 0));
+    const maxLevel = 10;
+    const xpNeededForNext = (currentLevel: number) =>
+        50 * Math.pow(currentLevel, 1.5); // XP to go from L to L+1
+
+    let level = 1;
+    let remainingXP = totalXP;
+    let xpForCurrentLevel = 0;
+
+    while (level < maxLevel) {
+        const needed = xpNeededForNext(level);
+        if (remainingXP < needed) break;
+        remainingXP -= needed;
+        xpForCurrentLevel += needed;
+        level += 1;
+    }
+
+    const atMax = level === maxLevel;
+    const xpNeededNext = atMax ? 0 : xpNeededForNext(level);
+    const xpIntoLevel = atMax ? 0 : remainingXP;
+    const xpToNextLevel = atMax ? 0 : Math.max(0, xpNeededNext - remainingXP);
+    const xpForNextLevel = atMax ? xpForCurrentLevel : xpForCurrentLevel + xpNeededNext;
+
+    return {
+        totalXP,
+        level,
+        xpForCurrentLevel,
+        xpForNextLevel,
+        xpIntoLevel,
+        xpToNextLevel,
+    };
+};
+
 interface UserProfile {
     userId: string;
     username: string | null;
@@ -32,6 +66,12 @@ interface UserProfile {
     timeActiveTodayMinutes: number;
     minutesByHour: number[]; // 24-element array for hourly chart
     coins: number;
+    totalXP: number;
+    level: number;
+    xpForCurrentLevel: number;
+    xpForNextLevel: number;
+    xpIntoLevel: number;
+    xpToNextLevel: number;
     ownedPets: string[];
     ownedHats: string[];
     ownedFaces: string[];
@@ -165,6 +205,7 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     timeActiveTodayMinutes,
                     minutesByHour: Array.isArray(profile.minutesByHour) ? profile.minutesByHour : Array(24).fill(0),
                     coins: toNumber(profile.coins),
+                    ...computeLevelMeta(profile.totalXP),
                     ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_smurf"],
                     ownedHats: Array.isArray(profile.ownedHats) ? profile.ownedHats : [],
                     ownedFaces: Array.isArray(profile.ownedFaces) ? profile.ownedFaces : [],
@@ -249,9 +290,12 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
     }, [userProfile?.userId, userProfile?.dailyStreak, userProfile?.timeActiveToday, appSettings.notifications]);
 
     const updateUserProfile = useCallback((patch: Partial<UserProfile>) => {
-        setUserProfile((prev) =>
-            prev ? { ...prev, ...patch } : prev
-        );
+        setUserProfile((prev) => {
+            if (!prev) return prev;
+            const merged = { ...prev, ...patch };
+            const levelMeta = patch.totalXP !== undefined ? computeLevelMeta(patch.totalXP) : null;
+            return levelMeta ? { ...merged, ...levelMeta } : merged;
+        });
     }, []);
 
     const logout = useCallback(async () => {

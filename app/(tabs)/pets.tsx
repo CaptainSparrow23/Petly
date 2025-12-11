@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
-import { useFocusEffect } from "expo-router";
 import {
   Text,
   View,
   ImageBackground,
+  Image,
   TouchableOpacity,
   ActivityIndicator,
   Animated,
@@ -31,22 +31,8 @@ const Profile = () => {
   const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
   const [activeTab, setActiveTab] = useState<TabType>("pets");
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const panelSlideAnim = useRef(new Animated.Value(400)).current; // Start off-screen (below)
-
-  // Slide up animation every time page is focused
-  useFocusEffect(
-    useCallback(() => {
-      // Reset to off-screen position
-      panelSlideAnim.setValue(400);
-      // Animate slide up
-      Animated.spring(panelSlideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 12,
-      }).start();
-    }, [])
-  );
+  const modeAnim = useRef(new Animated.Value(0)).current; // 0 = overview, 1 = edit
+  const [editing, setEditing] = useState(false);
 
   // Focused accessory states (local selection before saving)
   const [focusedHat, setFocusedHat] = useState<string | null>(
@@ -238,6 +224,61 @@ const Profile = () => {
   );
   const showPetAnimation = !!petAnimationConfig;
 
+  const animateMode = useCallback(
+    (toValue: number, onComplete?: () => void) => {
+      Animated.spring(modeAnim, {
+        toValue,
+        useNativeDriver: true,
+        tension: 60,
+        friction: 12,
+      }).start(onComplete);
+    },
+    [modeAnim]
+  );
+
+  const startEditing = () => {
+    setEditing(true);
+    animateMode(1);
+  };
+
+  const cancelEditing = () => {
+    // revert to saved selections
+    setFocusedPet(userProfile?.selectedPet ?? null);
+    setFocusedHat(userProfile?.selectedHat ?? null);
+    setFocusedFace(userProfile?.selectedFace ?? null);
+    setFocusedCollar(userProfile?.selectedCollar ?? null);
+    setFocusedGadget(userProfile?.selectedGadget ?? "gadget_laptop");
+    setActiveTab("pets");
+    setEditing(false);
+    animateMode(0);
+  };
+
+  const confirmEditing = async () => {
+    await handleSaveSelection();
+    setEditing(false);
+    animateMode(0);
+  };
+
+  const sheetTranslateY = modeAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [400, 400, 0],
+  });
+
+  const overviewTranslateY = modeAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [-45, 80, 80],
+  });
+
+  const overviewOpacity = modeAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 0, 0],
+  });
+
+  const sheetOpacity = modeAnim.interpolate({
+    inputRange: [0, 0.1, 1],
+    outputRange: [0, 0, 1],
+  });
+
   if (petsLoading) {
     return (
       <View
@@ -283,30 +324,93 @@ const Profile = () => {
         source={images.roomBackGround}
         style={{ flex: 1 }}
         resizeMode="cover"
-        imageStyle={{ transform: [{ translateY: -150 }] }}
+        
+        imageStyle={{ transform: [{ translateY: 0 }] }}
       >
-        <View className="mt-16 mr-2 flex-row items-end justify-end">
-          {hasUnsavedChange && (
-            <TouchableOpacity
-              onPress={handleSaveSelection}
-              activeOpacity={0.85}
-              className="p-2 rounded-full"
+        {editing && (
+          <TouchableOpacity
+            onPress={cancelEditing}
+            activeOpacity={0.85}
+            className="rounded-full"
+            style={{
+              position: "absolute",
+              top: 14,
+              left: 16,
+              zIndex: 20,
+              backgroundColor: CoralPalette.surfaceAlt,
+              borderColor: CoralPalette.border,
+              borderWidth: 1,
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}>✕</Text>
+          </TouchableOpacity>
+        )}
+        {!editing && (
+          <TouchableOpacity
+            onPress={startEditing}
+            activeOpacity={0.85}
+            className="rounded-full"
+            style={{
+              position: "absolute",
+              top: 14,
+              right: 16,
+              zIndex: 20,
+              backgroundColor: CoralPalette.primary,
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Image
+              source={images.clothes_hanger}
+              style={{ paddingBottom: 3, width: 23, height: 20, resizeMode: "cover", tintColor: CoralPalette.white }}
+            />
+          </TouchableOpacity>
+        )}
+        {editing && hasUnsavedChange && (
+          <TouchableOpacity
+            onPress={confirmEditing}
+            activeOpacity={0.85}
+            className="rounded-full"
+            style={{
+              position: "absolute",
+              top: 14,
+              right: 16,
+              zIndex: 20,
+              backgroundColor:
+                isSaving || isSavingAccessories
+                  ? CoralPalette.primaryLight
+                  : CoralPalette.primary,
+              opacity: isSaving || isSavingAccessories ? 0.7 : 1,
+              width: 44,
+              height: 44,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Check size={20} color={CoralPalette.white} />
+          </TouchableOpacity>
+        )}
+
+        <View className="flex-1">
+          {showPetAnimation && petAnimationConfig ? (
+            <View
+              pointerEvents="none"
               style={{
-                backgroundColor:
-                  isSaving || isSavingAccessories
-                    ? CoralPalette.primaryLight
-                    : CoralPalette.primary,
-                opacity: isSaving || isSavingAccessories ? 0.7 : 1,
                 position: "absolute",
+                top: -160,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                alignItems: "center", 
+                justifyContent: "center",
               }}
             >
-              <Check size={35} color={CoralPalette.white} />
-            </TouchableOpacity>
-          )}
-        </View>
-        <View className="flex-1">
-          <View className="flex-1 items-center justify-center px-6 pt-10">
-            {showPetAnimation && petAnimationConfig ? (
               <PetAnimation
                 source={petAnimationConfig.source}
                 stateMachineName={petAnimationConfig.stateMachineName}
@@ -314,39 +418,68 @@ const Profile = () => {
                 selectedHat={focusedHat}
                 selectedFace={focusedFace}
                 selectedCollar={focusedCollar}
-                containerStyle={{ position: "absolute", top: -68, left: 27, right: 0, bottom: 0 }}
-                animationStyle={{ width: "60%", height: "60%" }}
+                containerStyle={{ width: "100%", height: "100%" }}
+                animationStyle={{ width: "65%", height: "65%" }}
               />
-            ) : (
+            </View>
+          ) : null}
+
+          <Animated.View
+          className="flex-1"
+          style={{
+            opacity: overviewOpacity,
+            transform: [{ translateY: overviewTranslateY }],
+          }}
+            pointerEvents={editing ? "none" : "auto"}
+          >
+            <View className="flex-1" />
+            {/* Placeholder widgets area */}
+            <View className="px-4 pb-6">
               <View
-                className="mt-4 px-4 py-2 rounded-full"
                 style={{
+                  height: 80,
+                  borderRadius: 18,
                   backgroundColor: CoralPalette.surfaceAlt,
-                  borderColor: CoralPalette.border,
                   borderWidth: 1,
+                  borderColor: CoralPalette.border,
+                  marginBottom: 12,
                 }}
-              >
-                <Text
-                  className="text-sm font-semibold"
-                  style={[{ color: CoralPalette.mutedDark }, FONT]}
-                >
-                  Active pet companion
-                </Text>
-              </View>
-            )}
-          </View>
+              />
+              <View
+                style={{
+                  height: 80,
+                  borderRadius: 18,
+                  backgroundColor: CoralPalette.surfaceAlt,
+                  borderWidth: 1,
+                  borderColor: CoralPalette.border,
+                  marginBottom: 12,
+                }}
+              />
+              <View
+                style={{
+                  height: 80,
+                  borderRadius: 18,
+                  backgroundColor: CoralPalette.surfaceAlt,
+                  borderWidth: 1,
+                  borderColor: CoralPalette.border,
+                }}
+              />
+            </View>
+          </Animated.View>
 
           <Animated.View
             className="rounded-t-3xl shadow-lg pt-6"
             style={{
               position: "absolute",
-              top: "56%",
+              top: "57%",
               left: 0,
               right: 0,
               bottom: -100,
-              backgroundColor: CoralPalette.surface,
-              transform: [{ translateY: panelSlideAnim }],
-            }}
+          backgroundColor: CoralPalette.surface,
+          transform: [{ translateY: sheetTranslateY }],
+          opacity: sheetOpacity,
+        }}
+            pointerEvents={editing ? "auto" : "none"}
           >
             <View className="px-2 mb-3 flex-row items-center justify-center">
               <View

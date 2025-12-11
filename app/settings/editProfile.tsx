@@ -123,7 +123,7 @@ const EditProfile = () => {
    });
 
   showBanner({
-   title: "Profile updated successfully!",
+   title: "Profile updated",
    preset: "done",
    haptic: "success",
   });
