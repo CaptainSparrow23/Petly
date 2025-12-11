@@ -72,6 +72,17 @@ interface UserProfile {
     xpForNextLevel: number;
     xpIntoLevel: number;
     xpToNextLevel: number;
+    petFriendships?: Record<
+        string,
+        {
+            totalXP: number;
+            level: number;
+            xpForCurrentLevel: number;
+            xpForNextLevel: number;
+            xpIntoLevel: number;
+            xpToNextLevel: number;
+        }
+    >;
     ownedPets: string[];
     ownedHats: string[];
     ownedFaces: string[];
@@ -199,6 +210,15 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                 const timeActiveTodayValue = toNumber(profile.timeActiveToday);
                 const timeActiveTodayMinutes = Math.floor(timeActiveTodayValue / 60);
 
+                const petFriendships: Record<string, any> = {};
+                if (profile.petFriendships) {
+                    Object.entries(profile.petFriendships as Record<string, any>).forEach(([petId, val]) => {
+                        petFriendships[petId] = {
+                            ...computeLevelMeta((val as any)?.totalXP),
+                        };
+                    });
+                }
+
                 const updatedProfile = {
                     ...profile,
                     timeActiveToday: timeActiveTodayValue,
@@ -206,6 +226,8 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     minutesByHour: Array.isArray(profile.minutesByHour) ? profile.minutesByHour : Array(24).fill(0),
                     coins: toNumber(profile.coins),
                     ...computeLevelMeta(profile.totalXP),
+                    petFriendships,
+                    petFriendships,
                     ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_smurf"],
                     ownedHats: Array.isArray(profile.ownedHats) ? profile.ownedHats : [],
                     ownedFaces: Array.isArray(profile.ownedFaces) ? profile.ownedFaces : [],
@@ -294,7 +316,19 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
             if (!prev) return prev;
             const merged = { ...prev, ...patch };
             const levelMeta = patch.totalXP !== undefined ? computeLevelMeta(patch.totalXP) : null;
-            return levelMeta ? { ...merged, ...levelMeta } : merged;
+
+            let petFriendships = merged.petFriendships;
+            if (patch.petFriendships) {
+                petFriendships = { ...merged.petFriendships };
+                Object.entries(patch.petFriendships).forEach(([petId, val]) => {
+                    petFriendships![petId] = {
+                        ...computeLevelMeta((val as any)?.totalXP),
+                    };
+                });
+            }
+
+            const base = levelMeta ? { ...merged, ...levelMeta } : merged;
+            return { ...base, petFriendships };
         });
     }, []);
 
