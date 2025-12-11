@@ -49,8 +49,8 @@ export default function TimeTracker({
   useEffect(() => {
     if (hideRing) {
       bgScale.value = withSequence(
-        withTiming(1.01, { duration: 180 }),
-        withTiming(0.85, { duration: 180 })
+        withTiming(1.02, { duration: 180 }),
+        withTiming(0.85, { duration: 150 })
       );
     } else {
       bgScale.value = withTiming(1, { duration: 220 });

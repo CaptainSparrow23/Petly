@@ -56,11 +56,9 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
       >
         <View className="flex-1 items-center justify-center px-2 pb-4">
           <Animated.View
-            className="flex-col items-center rounded-2xl p-5 w-[70%] max-w-md"
+            className="flex-col items-center rounded-3xl p-5 w-[70%] max-w-md"
             style={{
               backgroundColor: CoralPalette.surfaceAlt,
-              borderColor: CoralPalette.border,
-              borderWidth: 1,
               transform: [{ translateY }],
             }}
           >
@@ -74,7 +72,7 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
               <TouchableOpacity
                 onPress={onCancel}
                 className="py-3 rounded-full flex-1"
-                style={{ borderColor: CoralPalette.border, borderWidth: 1, backgroundColor: CoralPalette.surface }}
+                style={{  backgroundColor: CoralPalette.surface }}
               >
                 <Text className="text-base text-center" style={{ color: CoralPalette.mutedDark }}>
                   Cancel

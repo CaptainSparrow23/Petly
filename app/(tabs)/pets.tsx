@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
 import {
   Text,
   View,
@@ -92,22 +98,40 @@ const Profile = () => {
 
   // Sync focused accessories when userProfile loads or changes
   useEffect(() => {
-    if (userProfile && (!focusedPet || focusedPet === userProfile.selectedPet)) {
+    if (
+      userProfile &&
+      (!focusedPet || focusedPet === userProfile.selectedPet)
+    ) {
       setFocusedHat(userProfile.selectedHat ?? null);
       setFocusedFace(userProfile.selectedFace ?? null);
       setFocusedCollar(userProfile.selectedCollar ?? null);
       setFocusedGadget(userProfile.selectedGadget ?? "gadget_laptop");
     }
-  }, [userProfile?.selectedHat, userProfile?.selectedFace, userProfile?.selectedCollar, userProfile?.selectedGadget]);
+  }, [
+    userProfile?.selectedHat,
+    userProfile?.selectedFace,
+    userProfile?.selectedCollar,
+    userProfile?.selectedGadget,
+  ]);
 
   const changeFlags = useMemo(() => {
     const petChanged = !!focusedPet && focusedPet !== userProfile?.selectedPet;
     const hatChanged = focusedHat !== (userProfile?.selectedHat ?? null);
     const faceChanged = focusedFace !== (userProfile?.selectedFace ?? null);
-    const collarChanged = focusedCollar !== (userProfile?.selectedCollar ?? null);
-    const gadgetChanged = focusedGadget !== (userProfile?.selectedGadget ?? "gadget_laptop");
-    const accessoryChanged = hatChanged || faceChanged || collarChanged || gadgetChanged;
-    return { petChanged, hatChanged, faceChanged, collarChanged, gadgetChanged, accessoryChanged };
+    const collarChanged =
+      focusedCollar !== (userProfile?.selectedCollar ?? null);
+    const gadgetChanged =
+      focusedGadget !== (userProfile?.selectedGadget ?? "gadget_laptop");
+    const accessoryChanged =
+      hatChanged || faceChanged || collarChanged || gadgetChanged;
+    return {
+      petChanged,
+      hatChanged,
+      faceChanged,
+      collarChanged,
+      gadgetChanged,
+      accessoryChanged,
+    };
   }, [
     focusedPet,
     focusedHat,
@@ -255,6 +279,7 @@ const Profile = () => {
 
   const confirmEditing = async () => {
     await handleSaveSelection();
+    setActiveTab("pets");
     setEditing(false);
     animateMode(0);
   };
@@ -266,7 +291,7 @@ const Profile = () => {
 
   const overviewTranslateY = modeAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: [-45, 80, 80],
+    outputRange: [75, 280, 280],
   });
 
   const overviewOpacity = modeAnim.interpolate({
@@ -318,13 +343,30 @@ const Profile = () => {
     );
   }
 
+  // XP progress helpers (safe defaults)
+  const xpInto = userProfile?.xpIntoLevel ?? 0;
+  const xpTotal = xpInto + (userProfile?.xpToNextLevel ?? 0);
+  const xpPercent =
+    xpTotal === 0 ? 100 : Math.min(100, Math.round((xpInto / xpTotal) * 100));
+
+  const currentPetId = focusedPet || userProfile?.selectedPet || "";
+  const friendshipMeta = currentPetId
+    ? userProfile?.petFriendships?.[currentPetId]
+    : undefined;
+  const friendXpInto = friendshipMeta?.xpIntoLevel ?? 0;
+  const friendXpToNext = friendshipMeta?.xpToNextLevel ?? 50;
+  const friendXpTotal = friendXpInto + friendXpToNext;
+  const friendPercent =
+    friendXpTotal === 0
+      ? 0
+      : Math.min(100, Math.round((friendXpInto / friendXpTotal) * 100));
+
   return (
     <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
       <ImageBackground
         source={images.roomBackGround}
         style={{ flex: 1 }}
         resizeMode="cover"
-        
         imageStyle={{ transform: [{ translateY: 0 }] }}
       >
         {editing && (
@@ -344,9 +386,21 @@ const Profile = () => {
               height: 44,
               alignItems: "center",
               justifyContent: "center",
+              shadowColor: "#000",
+              shadowOpacity: 0.1,
+              shadowOffset: { width: 0, height: 2 },
+              shadowRadius: 6,
+              elevation: 4,
             }}
           >
-            <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}>✕</Text>
+            <Text
+              style={[
+                { color: CoralPalette.dark, fontSize: 16, fontWeight: "700" },
+                FONT,
+              ]}
+            >
+              ✕
+            </Text>
           </TouchableOpacity>
         )}
         {!editing && (
@@ -364,11 +418,22 @@ const Profile = () => {
               height: 44,
               alignItems: "center",
               justifyContent: "center",
+              shadowColor: "#000",
+              shadowOpacity: 0.1,
+              shadowOffset: { width: 0, height: 2 },
+              shadowRadius: 6,
+              elevation: 4,
             }}
           >
             <Image
               source={images.clothes_hanger}
-              style={{ paddingBottom: 3, width: 23, height: 20, resizeMode: "cover", tintColor: CoralPalette.white }}
+              style={{
+                paddingBottom: 3,
+                width: 23,
+                height: 20,
+                resizeMode: "cover",
+                tintColor: CoralPalette.white,
+              }}
             />
           </TouchableOpacity>
         )}
@@ -407,7 +472,7 @@ const Profile = () => {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                alignItems: "center", 
+                alignItems: "center",
                 justifyContent: "center",
               }}
             >
@@ -423,62 +488,256 @@ const Profile = () => {
               />
             </View>
           ) : null}
-
           <Animated.View
-          className="flex-1"
-          style={{
-            opacity: overviewOpacity,
-            transform: [{ translateY: overviewTranslateY }],
-          }}
+            className="flex-1"
+            style={{
+              opacity: overviewOpacity,
+              transform: [{ translateY: overviewTranslateY }],
+            }}
             pointerEvents={editing ? "none" : "auto"}
           >
-            <View className="flex-1" />
-            {/* Placeholder widgets area */}
-            <View className="px-4 pb-6">
+            <View
+              style={{
+                flex: 1,
+                justifyContent: "flex-end",
+                paddingHorizontal: 16,
+                paddingBottom: 130,
+                gap: 14,
+              }}
+            >
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <View
+                  style={{
+                    flex: 1,
+                    borderRadius: 22,
+                    backgroundColor: CoralPalette.surfaceAlt,
+                    padding: 16,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.16,
+                    shadowRadius: 14,
+                    elevation: 8,
+                    borderWidth: 1,
+                    borderColor: "rgba(0,0,0,0.04)",
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
+                    <View
+                      style={{
+                        width: 45,
+                        height: 45,
+                        borderRadius: 999,
+                        backgroundColor: CoralPalette.green,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text style={[{ color: CoralPalette.white, fontWeight: "800", fontSize: 16 }, FONT]}>
+                        {userProfile?.level ?? 1}
+                      </Text>
+                    </View>
+                    <View style={{ marginLeft: 10 }}>
+                      <Text
+                        style={[
+                          { fontSize: 17, fontWeight: "800", color: CoralPalette.green },
+                          FONT,
+                        ]}
+                      >
+                        Focus Rank
+                      </Text>
+                      <Text
+                        style={[
+                          { fontSize: 10, color: CoralPalette.mutedDark },
+                          FONT
+                        ]}
+                      >
+                        Earn XP to level up
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ marginTop: 12 }}>
+                    <View
+                      style={{
+                        height: 12,
+                        borderRadius: 999,
+                        backgroundColor: CoralPalette.greenLighter,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: `${xpPercent}%`,
+                          height: "100%",
+                          borderRadius: 999,
+                          backgroundColor: CoralPalette.green,
+                        }}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        { marginTop: 6, fontSize: 13, color: CoralPalette.mutedDark },
+                        FONT,
+                      ]}
+                    >
+                      {userProfile?.xpToNextLevel === 0 ? "Max level" : `XP ${xpInto}/${xpTotal}`}
+                    </Text>
+                  </View>
+                </View>
+
+                <View
+                  style={{
+                    flex: 1,
+                    borderRadius: 22,
+                    backgroundColor: CoralPalette.surfaceAlt,
+                    padding: 16,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: 0.12,
+                    shadowRadius: 12,
+                    elevation: 7,
+                    borderWidth: 1,
+                    borderColor: "rgba(122, 76, 140, 0.12)",
+                  }}
+                >
+                  <View className="flex-row items-center ml-1 justify-between">
+
+  
+                    <View className="items-start mt-4">
+                      <Text
+                        style={[
+                          { textAlign: "right", fontSize: 18, fontWeight: "800", color: CoralPalette.purple},
+                          FONT,
+                        ]}
+                      >
+                        Friendship
+                      </Text>
+                      <Text style={[{ fontSize: 15, color: CoralPalette.mutedDark }, FONT]}>
+
+                      {pets.find(p => p.id === currentPetId)?.name ?? ""}
+                      </Text>
+                      </View>
+                      </View>
+                      <View className="items-end" style={{ marginTop: -55 }}>
+
+                    <Text
+                    style={[
+                      {  fontSize: 45, fontWeight: "900", color: CoralPalette.purple },
+                      FONT,
+                    ]}
+                    >
+                    {friendshipMeta?.level ?? 1}
+                    </Text>
+                   
+                  </View>
+                  <View style={{ }}>
+                    <View
+                      style={{ marginBottom: 5,
+                        height: 12,
+                        borderRadius: 999,
+                        backgroundColor: CoralPalette.purpleLighter,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: `${friendPercent}%`,
+                          height: "100%",
+                          borderRadius: 999,
+                          backgroundColor: CoralPalette.purple,
+                        }}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        { marginTop: 6, fontSize: 13, color: CoralPalette.mutedDark },
+                        FONT,
+                      ]}
+                    >
+                      {friendXpToNext === 0
+                        ? "Max bond"
+                        : `${friendPercent}% to next level`}
+                    </Text>
+                  </View>
+
+                </View>
+              </View>
+
               <View
                 style={{
-                  height: 80,
-                  borderRadius: 18,
+                  borderRadius: 22,
                   backgroundColor: CoralPalette.surfaceAlt,
+                  padding: 16,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: 0.12,
+                  shadowRadius: 12,
+                  elevation: 7,
                   borderWidth: 1,
-                  borderColor: CoralPalette.border,
-                  marginBottom: 12,
+                  borderColor: "rgba(62, 129, 204, 0.12)",
                 }}
-              />
-              <View
-                style={{
-                  height: 80,
-                  borderRadius: 18,
-                  backgroundColor: CoralPalette.surfaceAlt,
-                  borderWidth: 1,
-                  borderColor: CoralPalette.border,
-                  marginBottom: 12,
-                }}
-              />
-              <View
-                style={{
-                  height: 80,
-                  borderRadius: 18,
-                  backgroundColor: CoralPalette.surfaceAlt,
-                  borderWidth: 1,
-                  borderColor: CoralPalette.border,
-                }}
-              />
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
+                  <View
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 999,
+                      backgroundColor: CoralPalette.blue,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={[{ color: CoralPalette.white, fontWeight: "800", fontSize: 16 }, FONT]}>
+                      !
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      { fontSize: 13, fontWeight: "800", color: CoralPalette.blue },
+                      FONT,
+                    ]}
+                  >
+                    Challenges
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    { marginTop: 10, fontSize: 18, fontWeight: "800", color: CoralPalette.dark },
+                    FONT,
+                  ]}
+                >
+                  Daily goals
+                </Text>
+                <Text
+                  style={[
+                    { marginTop: 8, fontSize: 13, color: CoralPalette.mutedDark },
+                    FONT,
+                  ]}
+                >
+                  Finish 2 sessions to earn bonuses
+                </Text>
+              </View>
             </View>
           </Animated.View>
 
+
+
+
+
+
+          {/* Wardrobe area */}
           <Animated.View
             className="rounded-t-3xl shadow-lg pt-6"
             style={{
               position: "absolute",
-              top: "57%",
+              top: "56%",
               left: 0,
               right: 0,
               bottom: -100,
-          backgroundColor: CoralPalette.surface,
-          transform: [{ translateY: sheetTranslateY }],
-          opacity: sheetOpacity,
-        }}
+              backgroundColor: CoralPalette.surface,
+              transform: [{ translateY: sheetTranslateY }],
+              opacity: sheetOpacity,
+            }}
             pointerEvents={editing ? "auto" : "none"}
           >
             <View className="px-2 mb-3 flex-row items-center justify-center">

@@ -91,11 +91,9 @@ export default function SessionEndModal({
       >
         <View className="flex-1 items-center justify-center px-2 pb-4">
           <Animated.View
-            className="flex-col items-center rounded-2xl w-2/3 h-3/10 p-5"
+            className="flex-col items-center rounded-3xl w-2/3 h-3/10 p-5"
             style={{
               backgroundColor: CoralPalette.surfaceAlt,
-              borderColor: CoralPalette.border,
-              borderWidth: 1,
               transform: [{ translateY }],
             }}
           >
