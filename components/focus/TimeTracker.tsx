@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, GestureResponderEvent, PanResponder } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import Animated, { useAnimatedProps, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { CoralPalette } from "@/constants/colors";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface TimeTrackerProps {
   progress: number;
@@ -34,6 +37,7 @@ export default function TimeTracker({
 }: TimeTrackerProps) {
   const [angle, setAngle] = useState(progress * 360);
   const prevAngleRef = useRef(angle);
+  const bgScale = useSharedValue(hideRing ? 0.95 : 1);
 
   // keep visual angle in sync with external progress
   useEffect(() => {
@@ -42,8 +46,19 @@ export default function TimeTracker({
     prevAngleRef.current = a;
   }, [progress]);
 
+  useEffect(() => {
+    if (hideRing) {
+      bgScale.value = withSequence(
+        withTiming(1.01, { duration: 180 }),
+        withTiming(0.85, { duration: 180 })
+      );
+    } else {
+      bgScale.value = withTiming(1, { duration: 220 });
+    }
+  }, [hideRing, bgScale]);
+
   // geometry (kept minimal; literals where sensible)
-  const CANVAS_SIZE = 350;
+  const CANVAS_SIZE = 330;
   const TRACK_STROKE = 22;
   const center = CANVAS_SIZE / 2;
   const radius = (CANVAS_SIZE - 25) / 2;
@@ -153,16 +168,26 @@ export default function TimeTracker({
   const handleX = center + radius * Math.cos(handleRad);
   const handleY = center + radius * Math.sin(handleRad);
   const HANDLE_RADIUS = 20;
+  const bgProps = useAnimatedProps(() => ({
+    r: radius * bgScale.value * 1.065,
+  }));
 
   return (
     <View style={{ width: CANVAS_SIZE, height: CANVAS_SIZE }} {...panResponder.panHandlers}>
       <Svg width={CANVAS_SIZE} height={CANVAS_SIZE} viewBox={`${-PAD} ${-PAD} ${CANVAS_SIZE + PAD * 2} ${CANVAS_SIZE + PAD * 2}`}>
+        {/* background ring */}
+        <AnimatedCircle
+          animatedProps={bgProps}
+          cx={center}
+          cy={center}
+          strokeWidth={TRACK_STROKE}
+          fill={trackBgColor}
+          opacity={1}
+        />
         {/* center fill */}
         {centerFillColor ? (
           <Circle cx={center} cy={center} r={radius - 11} fill={centerFillColor} />
         ) : null}
-        {/* background ring */}
-        <Circle cx={center} cy={center} r={radius} stroke={trackBgColor} strokeWidth={TRACK_STROKE} fill="none" opacity={hideRing ? 0 : 1} />
         {/* progress arc */}
         <Circle
           cx={center}

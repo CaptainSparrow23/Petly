@@ -248,7 +248,7 @@ export default function TodayFocusCard() {
         <Text className="" style={[{ fontSize: 40, fontWeight: "800", color: CoralPalette.dark, textAlign: "right" }, FONT]}>
           {durationLabel}
         </Text>
-        <Text className="text-right" style={[{ fontSize: 12, color: CoralPalette.primary, fontWeight: "700" }, FONT]}>
+        <Text className="text-right" style={[{ fontSize: 11, color: CoralPalette.primary, fontWeight: "700" }, FONT]}>
           {statusMessage}
         </Text>
       </View>

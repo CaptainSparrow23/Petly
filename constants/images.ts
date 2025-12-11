@@ -44,6 +44,8 @@ import face_sun_glasses from "@/assets/images/face_sun_glasses.png";
 // Gadgets
 import gadget_laptop from "@/assets/images/gadget_laptop.png";
 import gadget_pot_and_stove from "@/assets/images/gadget_pot_and_stove.png";
+// UI
+import clothes_hanger from "@/assets/images/clothes_hanger.png";
 
 export default { 
   catFamily, 
@@ -82,4 +84,5 @@ export default {
   face_sun_glasses,
   gadget_laptop,
   gadget_pot_and_stove,
+  clothes_hanger,
 };

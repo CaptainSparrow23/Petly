@@ -9,7 +9,7 @@ export default function CoinBadge() {
 
   return (
     <View
-      className="absolute top-0 right-0 z-20 mr-2 flex-row items-center rounded-full"
+      className="absolute top-1 right-0 z-20 mr-2 flex-row items-center rounded-full"
       style={{
         backgroundColor: CoralPalette.surfaceAlt,
         borderColor: CoralPalette.border,
@@ -17,10 +17,10 @@ export default function CoinBadge() {
       }}
     >
       <View
-        className="mr-2 h-10 w-10 items-center justify-center rounded-full"
+        className="mr-2 h-9 w-9 items-center justify-center rounded-full"
         style={{ backgroundColor: CoralPalette.coinBg }}
       >
-        <MaterialCommunityIcons name="heart" size={14} color={CoralPalette.coinIcon} />
+        <MaterialCommunityIcons name="heart" size={12} color={CoralPalette.coinIcon} />
       </View>
       <Text className="text-sm font-semibold mr-3" style={{ color: CoralPalette.dark }}>
         {(userProfile?.coins ?? 0).toLocaleString()}
