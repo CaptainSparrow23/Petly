@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Animated,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import images from "@/constants/images";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { Check } from "lucide-react-native";
@@ -31,13 +32,14 @@ const FONT = { fontFamily: "Nunito" };
 
 type TabType = "pets" | "accessories";
 
-const TAB_WIDTH = 190;
+  const TAB_WIDTH = 190;
 
-const Profile = () => {
-  const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
-  const [activeTab, setActiveTab] = useState<TabType>("pets");
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const modeAnim = useRef(new Animated.Value(0)).current; // 0 = overview, 1 = edit
+  const Profile = () => {
+    const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
+    const [activeTab, setActiveTab] = useState<TabType>("pets");
+    const slideAnim = useRef(new Animated.Value(0)).current;
+    const modeAnim = useRef(new Animated.Value(0)).current; // 0 = overview, 1 = edit
+    const friendAnim = useRef(new Animated.Value(0)).current; // 0 = visible, 1 = hidden (for focus pop)
   const [editing, setEditing] = useState(false);
 
   // Focused accessory states (local selection before saving)
@@ -265,6 +267,11 @@ const Profile = () => {
     animateMode(1);
   };
 
+  const resetToPetsTab = useCallback(() => {
+    setActiveTab("pets");
+    slideAnim.setValue(0);
+  }, [slideAnim]);
+
   const cancelEditing = () => {
     // revert to saved selections
     setFocusedPet(userProfile?.selectedPet ?? null);
@@ -272,14 +279,33 @@ const Profile = () => {
     setFocusedFace(userProfile?.selectedFace ?? null);
     setFocusedCollar(userProfile?.selectedCollar ?? null);
     setFocusedGadget(userProfile?.selectedGadget ?? "gadget_laptop");
-    setActiveTab("pets");
+    resetToPetsTab();
     setEditing(false);
     animateMode(0);
   };
 
+  // Ensure the overview sheet pops into view whenever the tab is focused.
+  useFocusEffect(
+    useCallback(() => {
+      // Exit edit instantly (no downward animation)
+      setEditing(false);
+      modeAnim.setValue(0);
+      resetToPetsTab();
+
+      // Play a quick pop for the overview sheet only
+      friendAnim.setValue(1);
+      Animated.spring(friendAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 70,
+        friction: 9,
+      }).start();
+    }, [modeAnim, friendAnim, resetToPetsTab])
+  );
+
   const confirmEditing = async () => {
     await handleSaveSelection();
-    setActiveTab("pets");
+    resetToPetsTab();
     setEditing(false);
     animateMode(0);
   };
@@ -289,15 +315,29 @@ const Profile = () => {
     outputRange: [400, 400, 0],
   });
 
-  const overviewTranslateY = modeAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [75, 280, 280],
+  // Friendship panel animation (independent of edit sheet)
+  const friendTranslateY = friendAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 400],
   });
 
-  const overviewOpacity = modeAnim.interpolate({
+  const friendOpacity = friendAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
+
+  const overviewModeTranslateY = modeAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 280, 280],
+  });
+
+  const overviewModeOpacity = modeAnim.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [1, 0, 0],
   });
+
+  const overviewTranslateY = Animated.add(friendTranslateY, overviewModeTranslateY);
+  const overviewOpacity = Animated.multiply(friendOpacity, overviewModeOpacity);
 
   const sheetOpacity = modeAnim.interpolate({
     inputRange: [0, 0.1, 1],
@@ -342,12 +382,6 @@ const Profile = () => {
       </View>
     );
   }
-
-  // XP progress helpers (safe defaults)
-  const xpInto = userProfile?.xpIntoLevel ?? 0;
-  const xpTotal = xpInto + (userProfile?.xpToNextLevel ?? 0);
-  const xpPercent =
-    xpTotal === 0 ? 100 : Math.min(100, Math.round((xpInto / xpTotal) * 100));
 
   const currentPetId = focusedPet || userProfile?.selectedPet || "";
   const friendshipMeta = currentPetId
@@ -488,240 +522,91 @@ const Profile = () => {
               />
             </View>
           ) : null}
-          <Animated.View
-            className="flex-1"
-            style={{
-              opacity: overviewOpacity,
-              transform: [{ translateY: overviewTranslateY }],
-            }}
-            pointerEvents={editing ? "none" : "auto"}
-          >
-            <View
-              style={{
-                flex: 1,
-                justifyContent: "flex-end",
-                paddingHorizontal: 16,
-                paddingBottom: 130,
-                gap: 14,
-              }}
-            >
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                <View
-                  style={{
-                    flex: 1,
-                    borderRadius: 22,
-                    backgroundColor: CoralPalette.surfaceAlt,
-                    padding: 16,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 8 },
-                    shadowOpacity: 0.16,
-                    shadowRadius: 14,
-                    elevation: 8,
-                    borderWidth: 1,
-                    borderColor: "rgba(0,0,0,0.04)",
-                  }}
+
+        <Animated.View
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            paddingBottom: 180,
+            backgroundColor: CoralPalette.surfaceAlt,
+            transform: [{ translateY: overviewTranslateY }],
+            opacity: overviewOpacity,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowOffset: { width: 0, height: -2 },
+            shadowRadius: 6,
+            elevation: 4,
+          }}
+          pointerEvents={editing ? "none" : "auto"}
+        >
+<View style={{ padding: 20 }}>
+            <View className="flex-row items-center justify-between" style={{ marginTop: 4 }}>
+              <View className="ml-4">
+                <Text
+                  style={[
+                    { fontSize: 30, fontWeight: "800", color: CoralPalette.purple },
+                    FONT,
+                  ]}
                 >
-                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
-                    <View
-                      style={{
-                        width: 45,
-                        height: 45,
-                        borderRadius: 999,
-                        backgroundColor: CoralPalette.green,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Text style={[{ color: CoralPalette.white, fontWeight: "800", fontSize: 16 }, FONT]}>
-                        {userProfile?.level ?? 1}
-                      </Text>
-                    </View>
-                    <View style={{ marginLeft: 10 }}>
-                      <Text
-                        style={[
-                          { fontSize: 17, fontWeight: "800", color: CoralPalette.green },
-                          FONT,
-                        ]}
-                      >
-                        Focus Rank
-                      </Text>
-                      <Text
-                        style={[
-                          { fontSize: 10, color: CoralPalette.mutedDark },
-                          FONT
-                        ]}
-                      >
-                        Earn XP to level up
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={{ marginTop: 12 }}>
-                    <View
-                      style={{
-                        height: 12,
-                        borderRadius: 999,
-                        backgroundColor: CoralPalette.greenLighter,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: `${xpPercent}%`,
-                          height: "100%",
-                          borderRadius: 999,
-                          backgroundColor: CoralPalette.green,
-                        }}
-                      />
-                    </View>
-                    <Text
-                      style={[
-                        { marginTop: 6, fontSize: 13, color: CoralPalette.mutedDark },
-                        FONT,
-                      ]}
-                    >
-                      {userProfile?.xpToNextLevel === 0 ? "Max level" : `XP ${xpInto}/${xpTotal}`}
-                    </Text>
-                  </View>
-                </View>
-
-                <View
-                  style={{
-                    flex: 1,
-                    borderRadius: 22,
-                    backgroundColor: CoralPalette.surfaceAlt,
-                    padding: 16,
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.12,
-                    shadowRadius: 12,
-                    elevation: 7,
-                    borderWidth: 1,
-                    borderColor: "rgba(122, 76, 140, 0.12)",
-                  }}
-                >
-                  <View className="flex-row items-center ml-1 justify-between">
-
-  
-                    <View className="items-start mt-4">
-                      <Text
-                        style={[
-                          { textAlign: "right", fontSize: 18, fontWeight: "800", color: CoralPalette.purple},
-                          FONT,
-                        ]}
-                      >
-                        Friendship
-                      </Text>
-                      <Text style={[{ fontSize: 15, color: CoralPalette.mutedDark }, FONT]}>
-
-                      {pets.find(p => p.id === currentPetId)?.name ?? ""}
-                      </Text>
-                      </View>
-                      </View>
-                      <View className="items-end" style={{ marginTop: -55 }}>
-
-                    <Text
-                    style={[
-                      {  fontSize: 45, fontWeight: "900", color: CoralPalette.purple },
-                      FONT,
-                    ]}
-                    >
-                    {friendshipMeta?.level ?? 1}
-                    </Text>
-                   
-                  </View>
-                  <View style={{ }}>
-                    <View
-                      style={{ marginBottom: 5,
-                        height: 12,
-                        borderRadius: 999,
-                        backgroundColor: CoralPalette.purpleLighter,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: `${friendPercent}%`,
-                          height: "100%",
-                          borderRadius: 999,
-                          backgroundColor: CoralPalette.purple,
-                        }}
-                      />
-                    </View>
-                    <Text
-                      style={[
-                        { marginTop: 6, fontSize: 13, color: CoralPalette.mutedDark },
-                        FONT,
-                      ]}
-                    >
-                      {friendXpToNext === 0
-                        ? "Max bond"
-                        : `${friendPercent}% to next level`}
-                    </Text>
-                  </View>
-
-                </View>
+                  {pets.find((p) => p.id === currentPetId)?.name.toUpperCase() ?? ""}
+                </Text>
+                <Text style={[{ fontSize: 14, color: CoralPalette.mutedDark }, FONT]}>
+                  Friendship Level
+                </Text>
               </View>
-
+              <Text
+                style={[
+                  { paddingRight: 12, fontSize: 40, fontWeight: "900", color: CoralPalette.purple },
+                  FONT,
+                ]}
+              >
+                {friendshipMeta?.level ?? 1}
+              </Text>
+            </View>
+            <View style={{ marginTop: 12, paddingHorizontal: 4 }}>
               <View
                 style={{
-                  borderRadius: 22,
-                  backgroundColor: CoralPalette.surfaceAlt,
-                  padding: 16,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 6 },
-                  shadowOpacity: 0.12,
-                  shadowRadius: 12,
-                  elevation: 7,
-                  borderWidth: 1,
-                  borderColor: "rgba(62, 129, 204, 0.12)",
+                  height: 14,
+                  borderRadius: 999,
+                  backgroundColor: CoralPalette.purpleLighter,
+                  overflow: "hidden",
                 }}
               >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
-                  <View
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 999,
-                      backgroundColor: CoralPalette.blue,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text style={[{ color: CoralPalette.white, fontWeight: "800", fontSize: 16 }, FONT]}>
-                      !
-                    </Text>
-                  </View>
-                  <Text
-                    style={[
-                      { fontSize: 13, fontWeight: "800", color: CoralPalette.blue },
-                      FONT,
-                    ]}
-                  >
-                    Challenges
+                <View
+                  style={{
+                    width: `${friendPercent}%`,
+                    height: "100%",
+                    borderRadius: 999,
+                    backgroundColor: CoralPalette.purple,
+                  }}
+                />
+              </View>
+              <View className="flex-row justify-between">
+                <Text
+                style={[
+                  { textAlign: "left", marginTop: 8, marginLeft: 10, fontSize: 13, color: CoralPalette.mutedDark },
+                  FONT,
+                ]}>
+                  Level up unlock app customizations 
                   </Text>
-                </View>
-                <Text
-                  style={[
-                    { marginTop: 10, fontSize: 18, fontWeight: "800", color: CoralPalette.dark },
-                    FONT,
-                  ]}
-                >
-                  Daily goals
-                </Text>
-                <Text
-                  style={[
-                    { marginTop: 8, fontSize: 13, color: CoralPalette.mutedDark },
-                    FONT,
-                  ]}
-                >
-                  Finish 2 sessions to earn bonuses
-                </Text>
+
+              <Text
+                style={[
+                  { textAlign: "right", marginTop: 8, marginRight: 6,fontSize: 13, color: CoralPalette.mutedDark },
+                  FONT,
+                ]}
+              >
+                {friendXpToNext === 0 ? "Max level reached" : `${friendPercent}%`}
+              </Text>
               </View>
             </View>
-          </Animated.View>
-
-
-
+            </View>
+  
+        </Animated.View>
 
 
 

@@ -15,6 +15,13 @@ type FocusChartProps = { title?: string };
 const FONT = { fontFamily: "Nunito" };
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://petly-gsxb.onrender.com";
+const CARD_SHADOW = {
+  shadowColor: "#0F172A",
+  shadowOpacity: 0.06,
+  shadowOffset: { width: 0, height: 6 },
+  shadowRadius: 12,
+  elevation: 8,
+};
 
 // --- Helper Functions ---
 const getLabel = (v: ViewState) => {
@@ -123,7 +130,13 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   }, [chartWidth, victoryData.length]);
 
   return (
-    <View className="relative my-4 rounded-3xl p-5" style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}>
+    <View
+      className="relative my-4 rounded-3xl p-5"
+      style={[
+        { backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+        CARD_SHADOW,
+      ]}
+    >
       {/* Header */}
       <View className="mb-4 flex-row justify-between items-center">
         <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}>{title}</Text>

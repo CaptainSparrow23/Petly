@@ -1,14 +1,22 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Image } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import Constants from "expo-constants";
 import { useFocusEffect } from "expo-router";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import images from "@/constants/images";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
+const CARD_SHADOW = {
+  shadowColor: "#0F172A",
+  shadowOpacity: 0.06,
+  shadowOffset: { width: 0, height: 6 },
+  shadowRadius: 12,
+  elevation: 8,
+};
 
 interface GoalsCardProps {
   todayTotalMinutes?: number;
@@ -218,16 +226,12 @@ export default function GoalsCard({
             // Coin bubble - grayed out if not reached, colored if reached
             <View className="absolute right-0 flex-row items-center">
               <View
-                className="h-5 w-5 items-center justify-center rounded-full"
-                style={{ 
-                  backgroundColor: isReached ? CoralPalette.coinBg : CoralPalette.border,
-                  opacity: isReached ? 1 : 0.5,
-                }}
+                className="h-5 w-5 items-center justify-center"
               >
-                <MaterialCommunityIcons 
-                  name="heart" 
-                  size={10} 
-                  color={isReached ? CoralPalette.coinIcon : CoralPalette.mutedDark} 
+                <Image
+                  source={images.token}
+                  style={{ width: 14, height: 14, opacity: isReached ? 1 : 0.5 }}
+                  resizeMode="contain"
                 />
               </View>
               <Text 
@@ -254,7 +258,10 @@ export default function GoalsCard({
     <>
       <View
         className="rounded-3xl p-5 mt-2"
-        style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+        style={[
+          { backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+          CARD_SHADOW,
+        ]}
       >
         <View className="flex-row justify-between items-center">
           <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}>Goals</Text>

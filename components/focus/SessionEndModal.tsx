@@ -1,9 +1,9 @@
-import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
 import React, { useEffect, useRef, useState } from "react";
-import { Modal, View, Text, TouchableOpacity, Animated, useWindowDimensions } from "react-native";
+import { Modal, View, Text, TouchableOpacity, Animated, useWindowDimensions, Image } from "react-native";
 import { Easing, runOnJS, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
 import { SessionActivity } from "@/hooks/useFocus";
 import { CoralPalette } from "@/constants/colors";
+import images from "@/constants/images";
 
 type Props = {
   visible: boolean;
@@ -103,11 +103,8 @@ export default function SessionEndModal({
             <View className="items-center">
               {coinsAwarded > 0 ? (
                 <View className="flex-row w-60 h-24 items-center justify-center">
-                  <View
-                    className="mr-3 h-12 w-12 items-center justify-center rounded-full"
-                    style={{ backgroundColor: CoralPalette.coinBg }}
-                  >
-                    <MaterialCommunityIcons name="heart" size={18} color={CoralPalette.coinIcon} />
+                  <View className="mr-3 h-12 w-12 items-center justify-center">
+                    <Image source={images.token} style={{ width: 26, height: 26 }} resizeMode="contain" />
                   </View>
                   <View className="py-2">
                     <Text className="text-xl" style={{ color: CoralPalette.dark }}>

@@ -1,6 +1,5 @@
 import React from "react";
 import { Text, TouchableOpacity, View, Image, ImageBackground } from "react-native";
-import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
 import { StoreItem } from "./Tiles";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
@@ -129,19 +128,15 @@ export const PetPreviewCard = ({
       onPress={onPurchase}
       disabled={!pet || isPurchasing}
       className="mx-6 mt-6 rounded-full flex-row items-center justify-center"
-      style={{
-        opacity: pet && !isPurchasing ? 1 : 0.5,
-        backgroundColor: CoralPalette.primary,
-        paddingVertical: 10,
-      }}
-    >
-      <View className="h-8 w-8 items-center justify-center rounded-full" style={{ backgroundColor: CoralPalette.coinBg }}>
-        <MaterialCommunityIcons
-          name="heart"
-          size={14}
-          color={CoralPalette.coinIcon}
-        />
-      </View>
+    style={{
+      opacity: pet && !isPurchasing ? 1 : 0.5,
+      backgroundColor: CoralPalette.primary,
+      paddingVertical: 10,
+    }}
+  >
+    <View className="h-8 w-8 items-center justify-center">
+      <Image source={images.token} style={{ width: 25, height: 25 }} resizeMode="contain" />
+    </View>
 
       <Text className="py-3 ml-2 text-2xl" style={{ color: CoralPalette.white, fontFamily: "Nunito", fontWeight: "800" }}>
         {isPurchasing

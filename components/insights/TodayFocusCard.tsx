@@ -12,6 +12,13 @@ import goonerAlt from "@/assets/animations/goonerAlt.riv";
 import kittyAlt from "@/assets/animations/kittyAlt.riv";
 
 const FONT = { fontFamily: "Nunito" };
+const CARD_SHADOW = {
+  shadowColor: "#0F172A",
+  shadowOpacity: 0.06,
+  shadowOffset: { width: 0, height: 6 },
+  shadowRadius: 12,
+  elevation: 8,
+};
 
 type PetAnimationStyle = {
   width: number;
@@ -239,7 +246,10 @@ export default function TodayFocusCard() {
 
       <View
         className="rounded-3xl p-4"
-        style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+        style={[
+          { backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+          CARD_SHADOW,
+        ]}
       >
         <View className="items-end">
           <Text style={[{ color: CoralPalette.mutedDark, fontSize: 16 }, FONT]}>Today's Focus</Text>
