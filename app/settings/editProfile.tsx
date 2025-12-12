@@ -329,7 +329,7 @@ const renderProfileOption = ({ item }: { item: { id: number; name: string } }) =
      <TouchableOpacity
       activeOpacity={1}
       className="rounded-3xl p-5 mx-6 w-2/3"
-      style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+      style={{ backgroundColor: CoralPalette.surfaceAlt}}
       onPress={(e) => e.stopPropagation()}
      >
       <Text className="text-xl font-bold mb-4 text-center" style={[{ color: CoralPalette.dark }, FONT]}>

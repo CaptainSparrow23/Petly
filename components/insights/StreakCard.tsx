@@ -5,6 +5,13 @@ import { useFocusEffect } from "expo-router";
 import { Easing, runOnJS, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
 
 const FONT = { fontFamily: "Nunito" };
+const CARD_SHADOW = {
+  shadowColor: "#0F172A",
+  shadowOpacity: 0.06,
+  shadowOffset: { width: 0, height: 6 },
+  shadowRadius: 12,
+  elevation: 8,
+};
 
 export default function StreakCard({ streak = 0 }: { streak?: number }) {
   const anim = useSharedValue(0);
@@ -37,7 +44,10 @@ export default function StreakCard({ streak = 0 }: { streak?: number }) {
   return (
     <View
       className="rounded-3xl p-4 justify-between items-end"
-      style={{ width: "31%", backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+      style={[
+        { width: "31%", backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+        CARD_SHADOW,
+      ]}
     >
       <Text style={[{ color: CoralPalette.mutedDark, fontSize: 14 }, FONT]}>Focus streak</Text>
       <View className="items-end justify-between">

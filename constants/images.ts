@@ -46,6 +46,7 @@ import gadget_laptop from "@/assets/images/gadget_laptop.png";
 import gadget_pot_and_stove from "@/assets/images/gadget_pot_and_stove.png";
 // UI
 import clothes_hanger from "@/assets/images/clothes_hanger.png";
+import token from "@/assets/images/token.png";
 
 export default { 
   catFamily, 
@@ -85,4 +86,5 @@ export default {
   gadget_laptop,
   gadget_pot_and_stove,
   clothes_hanger,
+  token,
 };

@@ -1,6 +1,5 @@
 import React from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import images from "@/constants/images";
 import { CoralPalette } from "@/constants/colors";
 import Rive, { Fit } from "rive-react-native";
@@ -111,10 +110,9 @@ export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
 
     <View className="flex-row items-center mt-3 ml-2">
      <View
-      className="h-7 w-7 items-center justify-center rounded-full"
-      style={{ backgroundColor: CoralPalette.coinBg }}
+      className="h-7 w-7 items-center justify-center"
      >
-      <MaterialCommunityIcons name="heart" size={10} color={CoralPalette.coinIcon} />
+      <Image source={images.token} style={{ width: 20, height: 20 }} resizeMode="contain" />
      </View>
      <Text className="ml-2 text-lg font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
       {priceCoins.toLocaleString()}
