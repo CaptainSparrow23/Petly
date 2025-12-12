@@ -41,7 +41,7 @@ const CustomDrawerContent = (props: any) => {
         <TouchableOpacity
           className=" items-center"
           style={{ backgroundColor: CoralPalette.primaryMuted }}
-          onPress={() => router.push('/settings/editProfile')}
+          onPress={() => router.push('/account/profile')}
           activeOpacity={0.7}
         >
           <ProfilePicture

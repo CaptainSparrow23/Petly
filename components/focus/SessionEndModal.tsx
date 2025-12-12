@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Modal, View, Text, TouchableOpacity, Animated, useWindowDimensions, Image } from "react-native";
 import { Easing, runOnJS, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
+import { HeartHandshake } from "lucide-react-native";
 import { SessionActivity } from "@/hooks/useFocus";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
@@ -8,6 +9,8 @@ import images from "@/constants/images";
 type Props = {
   visible: boolean;
   coinsAwarded: number;
+  xpAwarded: number;
+  friendshipXpAwarded: number;
   durationMinutes: number;
   activity: SessionActivity;
   onClose: () => void;
@@ -16,6 +19,8 @@ type Props = {
 export default function SessionEndModal({
   visible,
   coinsAwarded,
+  xpAwarded,
+  friendshipXpAwarded,
   durationMinutes,
   activity,
   onClose,
@@ -26,6 +31,7 @@ export default function SessionEndModal({
   const visibleRef = useRef(visible);
   const coinsAnim = useSharedValue(0);
   const [displayCoins, setDisplayCoins] = useState(0);
+  const returnButtonScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     visibleRef.current = visible;
@@ -76,12 +82,30 @@ export default function SessionEndModal({
     outputRange: [height, 0],
   });
 
+  // Button press animation handlers
+  const handleReturnPressIn = () => {
+    Animated.spring(returnButtonScale, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handleReturnPressOut = () => {
+    Animated.spring(returnButtonScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
   if (!mounted) return null;
 
-  const rewardText =
-    coinsAwarded > 0
-      ? `+${Math.round(displayCoins)} coins`
-      : "No rewards earned.";
+  const rewardText = `x  ${Math.round(displayCoins)}`;
+  const xpText = xpAwarded > 0 ? `+  ${Math.round(xpAwarded)}` : "";
+  const friendshipXpText = friendshipXpAwarded > 0 ? `+  ${Math.round(friendshipXpAwarded)}` : "";
 
   return (
     <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose}>
@@ -89,7 +113,7 @@ export default function SessionEndModal({
         className="flex-1"
         style={{ backgroundColor: "rgba(0,0,0,0.5)", opacity: backdropOpacity }}
       >
-        <View className="flex-1 items-center justify-center px-2 pb-4">
+        <View className="flex-1 items-center justify-center px-2">
           <Animated.View
             className="flex-col items-center rounded-3xl w-2/3 h-3/10 p-5"
             style={{
@@ -97,34 +121,92 @@ export default function SessionEndModal({
               transform: [{ translateY }],
             }}
           >
-            <Text className="text-xl font-semibold mb-2" style={{ color: CoralPalette.dark }}>
-              Session Complete!
+            <Text className="text-xl font-semibold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>
+              Session Complete
             </Text>
-            <View className="items-center">
-              {coinsAwarded > 0 ? (
-                <View className="flex-row w-60 h-24 items-center justify-center">
-                  <View className="mr-3 h-12 w-12 items-center justify-center">
-                    <Image source={images.token} style={{ width: 26, height: 26 }} resizeMode="contain" />
+            
+            {coinsAwarded > 0 ? (
+              // View with rewards
+              <View className="items-center -mt-4 w-full">
+                <View className="items-center mr-2">
+                  <View className="flex-row w-60 h-24 items-center justify-center">
+                    <View className="h-12 w-12 mr-2 items-center justify-center">
+                      <Image source={images.token} style={{ width: 26, height: 26 }} resizeMode="contain" />
+                    </View>
+                    <View className="py-1">
+                      <Text className="text-2xl" style={{ color: CoralPalette.dark, fontFamily: "Nunito", fontWeight: "700" }}>
+                        {rewardText}
+                      </Text>
+                    </View>
                   </View>
-                  <View className="py-2">
-                    <Text className="text-xl" style={{ color: CoralPalette.dark }}>
-                      {rewardText}
-                    </Text>
-                  </View>
+                  {xpAwarded > 0 && (
+                    <View className="flex-row w-60 h-20 items-center justify-center -mt-7 mb-2">
+                      <View className="h-12 w-12 mr-2 items-center justify-center">
+                        <Image source={images.xp} style={{ width: 26, height: 26 }} resizeMode="contain" />
+                      </View>
+                      <View className="py-1">
+                        <Text className="text-2xl" style={{ color: CoralPalette.dark, fontFamily: "Nunito", fontWeight: "700" }}>
+                          {xpText}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  {friendshipXpAwarded > 0 && (
+                    <View className="flex-row w-60 items-center justify-center -mt-4 mb-2">
+                      <View className="h-12 w-12 mr-2 items-center justify-center">
+                        <HeartHandshake size={29} color={CoralPalette.purple} fill={CoralPalette.purpleLight} strokeWidth={2.5} />
+                      </View>
+                      <View className="py-1">
+                        <Text className="text-2xl" style={{ color: CoralPalette.dark, fontFamily: "Nunito", fontWeight: "700" }}>
+                          {friendshipXpText}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
-              ) : (
-                <View className="px-4 py-4 -mt-3 items-center">
-                  <Text style={{ color: CoralPalette.mutedDark }}>{rewardText}</Text>
+                <Animated.View
+                  style={{
+                    transform: [{ scale: returnButtonScale }],
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={onClose}
+                    onPressIn={handleReturnPressIn}
+                    onPressOut={handleReturnPressOut}
+                    className="py-4 w-60 items-center justify-center rounded-full mt-4"
+                    style={{ backgroundColor: CoralPalette.primary }}
+                    activeOpacity={1}
+                  >
+                    <Text className="text-white text-base font-semibold" style={{ fontFamily: "Nunito" }}>Return</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+            ) : (
+              // View without rewards
+              <View className="items-center w-full">
+                <View className="px-4 py-2 items-center">
+                  <Text style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito", fontSize: 16 }}>
+                    No rewards earned.
+                  </Text>
                 </View>
-              )}
-              <TouchableOpacity
-                onPress={onClose}
-                className="py-4 w-60 items-center justify-center rounded-full mt-2"
-                style={{ backgroundColor: CoralPalette.primary }}
-              >
-                <Text className="text-white text-base font-semibold">Return</Text>
-              </TouchableOpacity>
-            </View>
+                <Animated.View
+                  style={{
+                    transform: [{ scale: returnButtonScale }],
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={onClose}
+                    onPressIn={handleReturnPressIn}
+                    onPressOut={handleReturnPressOut}
+                    className="py-3 w-60 items-center justify-center rounded-full mt-6"
+                    style={{ backgroundColor: CoralPalette.primary }}
+                    activeOpacity={1}
+                  >
+                    <Text className="text-white text-lg font-semibold" style={{ fontFamily: "Nunito" }}>Return</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+            )}
           </Animated.View>
         </View>
       </Animated.View>

@@ -5,6 +5,7 @@ import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
 import PetAnimation from "@/components/focus/PetAnimation";
 import { getPetAnimationConfig } from "@/constants/animations";
+import { getPetUnlockLevel } from "@/utils/petUnlocks";
 
 type PetPreviewCardProps = {
  pet: StoreItem | null;
@@ -12,6 +13,7 @@ type PetPreviewCardProps = {
  onPurchase: () => void;
  isPurchasing: boolean;
  purchaseError?: string | null;
+ userLevel?: number;
 };
 
 export const PetPreviewCard = ({
@@ -20,7 +22,11 @@ export const PetPreviewCard = ({
  onPurchase,
  isPurchasing,
  purchaseError,
+ userLevel = 1,
 }: PetPreviewCardProps) => {
+  const isPet = pet?.category === "Pet";
+  const unlockLevel = isPet && pet ? getPetUnlockLevel(pet.id) : null;
+  const isLocked = isPet && unlockLevel !== null && userLevel < unlockLevel && !pet?.owned;
  // Determine which accessory to show based on item category
  const getAccessoryProps = () => {
    if (!pet) return { selectedHat: null, selectedFace: null, selectedCollar: null };
@@ -65,7 +71,7 @@ export const PetPreviewCard = ({
               source={animConfig.source}
               stateMachineName={animConfig.stateMachineName}
               focusInputName={animConfig.focusInputName}
-              isFocus={false}
+              focusValue={0}
               containerStyle={{ flex: 1, position: "absolute", top: 50, left: 0, right: 0, bottom: 0 }}
               animationStyle={{ width: "50%", height: "50%" }}
             />
@@ -90,7 +96,7 @@ export const PetPreviewCard = ({
         source={petAnimConfig.source}
         stateMachineName={petAnimConfig.stateMachineName}
         focusInputName={petAnimConfig.focusInputName}
-        isFocus={false}
+        focusValue={0}
         selectedHat={accessoryProps.selectedHat}
         selectedFace={accessoryProps.selectedFace}
         selectedCollar={accessoryProps.selectedCollar}
@@ -123,29 +129,42 @@ export const PetPreviewCard = ({
         {pet.description}
       </Text>
     )}
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={onPurchase}
-      disabled={!pet || isPurchasing}
-      className="mx-6 mt-6 rounded-full flex-row items-center justify-center"
-    style={{
-      opacity: pet && !isPurchasing ? 1 : 0.5,
-      backgroundColor: CoralPalette.primary,
-      paddingVertical: 10,
-    }}
-  >
-    <View className="h-8 w-8 items-center justify-center">
-      <Image source={images.token} style={{ width: 25, height: 25 }} resizeMode="contain" />
-    </View>
+    {isPet && unlockLevel !== null ? (
+      <View className="mx-6 mt-6 rounded-full flex-row items-center justify-center"
+        style={{
+          backgroundColor: isLocked ? CoralPalette.surfaceAlt : CoralPalette.primaryLight,
+          paddingVertical: 10,
+        }}
+      >
+        <Text className="py-3 text-lg" style={{ color: isLocked ? CoralPalette.mutedDark : CoralPalette.primary, fontFamily: "Nunito", fontWeight: "800" }}>
+          {isLocked ? `Unlocks at Level ${unlockLevel}` : "Unlocked"}
+        </Text>
+      </View>
+    ) : (
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={onPurchase}
+        disabled={!pet || isPurchasing}
+        className="mx-6 mt-6 rounded-full flex-row items-center justify-center"
+        style={{
+          opacity: pet && !isPurchasing ? 1 : 0.5,
+          backgroundColor: CoralPalette.primary,
+          paddingVertical: 10,
+        }}
+      >
+        <View className="h-8 w-8 items-center justify-center">
+          <Image source={images.token} style={{ width: 25, height: 25 }} resizeMode="contain" />
+        </View>
 
-      <Text className="py-3 ml-2 text-2xl" style={{ color: CoralPalette.white, fontFamily: "Nunito", fontWeight: "800" }}>
-        {isPurchasing
-          ? "Purchasing..."
-          : pet
-          ? pet.priceCoins.toLocaleString()
-          : ""}
-      </Text>
-    </TouchableOpacity>
+        <Text className="py-3 ml-2 text-2xl" style={{ color: CoralPalette.white, fontFamily: "Nunito", fontWeight: "800" }}>
+          {isPurchasing
+            ? "Purchasing..."
+            : pet
+            ? pet.priceCoins.toLocaleString()
+            : ""}
+        </Text>
+      </TouchableOpacity>
+    )}
     {!!purchaseError && (
       <Text className="px-6 mt-3 text-xs" style={{ color: CoralPalette.primary, fontFamily: "Nunito" }}>{purchaseError}</Text>
     )}

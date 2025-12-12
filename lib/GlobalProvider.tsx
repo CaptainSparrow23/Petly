@@ -13,7 +13,6 @@ import {
 } from "@/utils/notifications";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
-console.log("[GlobalProvider] API_BASE_URL:", API_BASE_URL);
 
 const toNumber = (value: unknown, fallback = 0) => {
     if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -76,6 +75,7 @@ interface UserProfile {
         string,
         {
             totalXP: number;
+            totalFocusSeconds?: number;
             level: number;
             xpForCurrentLevel: number;
             xpForNextLevel: number;
@@ -215,6 +215,7 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     Object.entries(profile.petFriendships as Record<string, any>).forEach(([petId, val]) => {
                         petFriendships[petId] = {
                             ...computeLevelMeta((val as any)?.totalXP),
+                            totalFocusSeconds: toNumber((val as any)?.totalFocusSeconds, 0),
                         };
                     });
                 }
@@ -226,7 +227,6 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     minutesByHour: Array.isArray(profile.minutesByHour) ? profile.minutesByHour : Array(24).fill(0),
                     coins: toNumber(profile.coins),
                     ...computeLevelMeta(profile.totalXP),
-                    petFriendships,
                     petFriendships,
                     ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_smurf"],
                     ownedHats: Array.isArray(profile.ownedHats) ? profile.ownedHats : [],

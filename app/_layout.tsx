@@ -80,6 +80,15 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="account"
+            options={{
+              animation: "slide_from_right",
+              gestureEnabled: false,
+              gestureDirection: "horizontal",
+              fullScreenGestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
             name="friends"
             options={{
               animation: "slide_from_right",

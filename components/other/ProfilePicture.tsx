@@ -1,13 +1,14 @@
 //this is a reusable component for displaying profile pictures based on profileId
 
 import React from 'react';
-import { View, Image } from 'react-native';
+import { View, Image, ViewStyle } from 'react-native';
 import images from '@/constants/images';
 
 interface ProfilePictureProps {
   profileId: number | null;
   size?: number;
   className?: string;
+  style?: ViewStyle;
 }
 
 const PROFILE_IMAGES = {
@@ -20,7 +21,8 @@ const PROFILE_IMAGES = {
 export const ProfilePicture: React.FC<ProfilePictureProps> = ({ 
   profileId, 
   size = 40,
-  className = ""
+  className = "",
+  style
 }) => {
   const imageSource = profileId && PROFILE_IMAGES[profileId as keyof typeof PROFILE_IMAGES] 
     ? PROFILE_IMAGES[profileId as keyof typeof PROFILE_IMAGES]
@@ -29,7 +31,7 @@ export const ProfilePicture: React.FC<ProfilePictureProps> = ({
   return (
     <View 
       className={`rounded-full overflow-hidden ${className}`}
-      style={{ width: size, height: size }} // gray-200 background
+      style={[{ width: size, height: size }, style]} // gray-200 background
     >
       <Image
         source={imageSource}

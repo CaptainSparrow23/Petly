@@ -156,12 +156,15 @@ const renderProfileOption = ({ item }: { item: { id: number; name: string } }) =
       className="items-center mx-5"
     >
       <View
-        className="rounded-full border-4"
+        className="rounded-full"
         style={{
           width: 98,
           height: 98,
+          borderWidth: 4,
           borderColor: isSelected ? CoralPalette.primary : CoralPalette.surface,
           backgroundColor: CoralPalette.surface,
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         <ProfilePicture profileId={item.id} size={90} />
@@ -214,10 +217,17 @@ const renderProfileOption = ({ item }: { item: { id: number; name: string } }) =
      >
       <View className="-mt-24">
        <View
-        className="relative rounded-full overflow-hidden border-4 border-white"
-        style={{ width: 120, height: 120 }}
+        className="relative rounded-full overflow-hidden"
+        style={{ 
+          width: 120, 
+          height: 120,
+          borderWidth: 4,
+          borderColor: CoralPalette.white,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
        >
-        <ProfilePicture profileId={selectedProfileId} size={120} />
+        <ProfilePicture profileId={selectedProfileId} size={112} />
         <View className="absolute bottom-0 left-0 right-0 bg-black/70 items-center justify-center" style={{ height: 25 }}>
          <Text className="text-xs font-semibold tracking-wider text-white" style={FONT}>
           Edit
