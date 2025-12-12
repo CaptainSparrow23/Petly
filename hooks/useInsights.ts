@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
+import { getApiBaseUrl } from "@/utils/api";
 
 type StreakResponse = {
   success: boolean;
@@ -23,8 +24,6 @@ type WeekResponse = {
   error?: string;
 };
 
-const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://petly-gsxb.onrender.com";
 const LONDON_TZ = "Europe/London";
 
 export function useInsights(
@@ -42,6 +41,7 @@ export function useInsights(
     setStreakLoading(true);
     setStreakError(null);
     try {
+      const API_BASE = getApiBaseUrl();
       const res = await fetch(`${API_BASE}/api/get_streak/${encodeURIComponent(userId)}`);
       const json: StreakResponse = await res.json();
       if (!res.ok || !json.success || !json.data) throw new Error(json.error || `HTTP ${res.status}`);
@@ -85,6 +85,7 @@ export function useInsights(
         ? `&todayMinutes=${encodeURIComponent(minutesToUse)}` 
         : '';
       
+      const API_BASE = getApiBaseUrl();
       const url = `${API_BASE}/api/get_week_focus/${encodeURIComponent(userId)}?tz=${encodeURIComponent(LONDON_TZ)}${todayParam}`;
       const res = await fetch(url);
       const json: WeekResponse = await res.json();

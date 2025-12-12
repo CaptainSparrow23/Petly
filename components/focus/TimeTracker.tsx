@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, GestureResponderEvent, PanResponder } from "react-native";
 import Svg, { Circle } from "react-native-svg";
-import Animated, { useAnimatedProps, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedProps, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { CoralPalette } from "@/constants/colors";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -48,12 +48,18 @@ export default function TimeTracker({
 
   useEffect(() => {
     if (hideRing) {
-      bgScale.value = withSequence(
-        withTiming(1.02, { duration: 180 }),
-        withTiming(0.85, { duration: 150 })
-      );
+      bgScale.value = withSpring(0.85, {
+        damping: 12,
+        stiffness: 150,
+        mass: 0.8,
+        overshootClamping: false,
+      });
     } else {
-      bgScale.value = withTiming(1, { duration: 220 });
+      bgScale.value = withSpring(1, {
+        damping: 15,
+        stiffness: 200,
+        mass: 0.6,
+      });
     }
   }, [hideRing, bgScale]);
 

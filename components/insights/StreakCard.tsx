@@ -6,11 +6,11 @@ import { Easing, runOnJS, useDerivedValue, useSharedValue, withTiming } from "re
 
 const FONT = { fontFamily: "Nunito" };
 const CARD_SHADOW = {
-  shadowColor: "#0F172A",
-  shadowOpacity: 0.06,
-  shadowOffset: { width: 0, height: 6 },
-  shadowRadius: 12,
-  elevation: 8,
+  shadowColor: "#191d31",
+  shadowOpacity: 0.25,
+  shadowOffset: { width: 3, height: 5},
+  shadowRadius: 2,
+  elevation: 10,
 };
 
 export default function StreakCard({ streak = 0 }: { streak?: number }) {
@@ -45,7 +45,7 @@ export default function StreakCard({ streak = 0 }: { streak?: number }) {
     <View
       className="rounded-3xl p-4 justify-between items-end"
       style={[
-        { width: "31%", backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+        { width: "31%", backgroundColor: CoralPalette.white , borderColor: CoralPalette.white, borderWidth: 1 },
         CARD_SHADOW,
       ]}
     >

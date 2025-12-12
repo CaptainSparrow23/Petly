@@ -47,6 +47,9 @@ import gadget_pot_and_stove from "@/assets/images/gadget_pot_and_stove.png";
 // UI
 import clothes_hanger from "@/assets/images/clothes_hanger.png";
 import token from "@/assets/images/token.png";
+import xp from "@/assets/images/xp.png";
+import trophy from "@/assets/images/trophy.png";
+import fire from "@/assets/images/fire.png";
 
 export default { 
   catFamily, 
@@ -87,4 +90,7 @@ export default {
   gadget_pot_and_stove,
   clothes_hanger,
   token,
+  xp,
+  trophy,
+  fire,
 };

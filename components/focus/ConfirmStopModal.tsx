@@ -13,6 +13,8 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
   const [mounted, setMounted] = useState(visible);
   const anim = useRef(new Animated.Value(visible ? 1 : 0)).current;
   const visibleRef = useRef(visible);
+  const cancelButtonScale = useRef(new Animated.Value(1)).current;
+  const confirmButtonScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     visibleRef.current = visible;
@@ -46,6 +48,43 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
     outputRange: [height, 0],
   });
 
+  // Button press animation handlers
+  const handleCancelPressIn = () => {
+    Animated.spring(cancelButtonScale, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handleCancelPressOut = () => {
+    Animated.spring(cancelButtonScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handleConfirmPressIn = () => {
+    Animated.spring(confirmButtonScale, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
+  const handleConfirmPressOut = () => {
+    Animated.spring(confirmButtonScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  };
+
   if (!mounted) return null;
 
   return (
@@ -62,29 +101,53 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
               transform: [{ translateY }],
             }}
           >
-            <Text className="text-xl font-semibold mb-2" style={{ color: CoralPalette.dark }}>
+            <Text className="text-xl font-semibold mb-2" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>
               End session?
             </Text>
-            <Text className="mb-3 py-2 text-center" style={{ color: CoralPalette.mutedDark }}>
+            <Text className="mb-3 py-2 text-center" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
               This will reset the timer
             </Text>
             <View className="flex-row justify-center gap-3">
-              <TouchableOpacity
-                onPress={onCancel}
-                className="py-3 rounded-full flex-1"
-                style={{  backgroundColor: CoralPalette.surface }}
+              <Animated.View
+                style={{
+                  transform: [{ scale: cancelButtonScale }],
+                  flex: 1,
+                }}
               >
-                <Text className="text-base text-center" style={{ color: CoralPalette.mutedDark }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={onConfirm}
-                className="py-3 rounded-full flex-1"
-                style={{ backgroundColor: CoralPalette.primary }}
+                <TouchableOpacity
+                  onPress={onCancel}
+                  onPressIn={handleCancelPressIn}
+                  onPressOut={handleCancelPressOut}
+                  className="py-3 rounded-full"
+                  style={{ 
+                    backgroundColor: CoralPalette.white,
+                    borderWidth: 1,
+                    borderColor: CoralPalette.border,
+                  }}
+                  activeOpacity={1}
+                >
+                  <Text className="text-base text-center font-semibold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+              <Animated.View
+                style={{
+                  transform: [{ scale: confirmButtonScale }],
+                  flex: 1,
+                }}
               >
-                <Text className="text-white text-base font-semibold text-center">End session</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={onConfirm}
+                  onPressIn={handleConfirmPressIn}
+                  onPressOut={handleConfirmPressOut}
+                  className="py-3 rounded-full"
+                  style={{ backgroundColor: CoralPalette.primary }}
+                  activeOpacity={1}
+                >
+                  <Text className="text-white text-base font-semibold text-center" style={{ fontFamily: "Nunito" }}>End session</Text>
+                </TouchableOpacity>
+              </Animated.View>
             </View>
           </Animated.View>
         </View>

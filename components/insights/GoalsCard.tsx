@@ -11,11 +11,11 @@ import images from "@/constants/images";
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
 const CARD_SHADOW = {
-  shadowColor: "#0F172A",
-  shadowOpacity: 0.06,
-  shadowOffset: { width: 0, height: 6 },
-  shadowRadius: 12,
-  elevation: 8,
+  shadowColor: "#191d31",
+  shadowOpacity: 0.25,
+  shadowOffset: { width: 3, height: 5},
+  shadowRadius: 2,
+  elevation: 10,
 };
 
 interface GoalsCardProps {
@@ -67,6 +67,10 @@ export default function GoalsCard({
   const dailyClaimable = dailyGoalReached && !dailyClaimed;
   const weeklyClaimable = weeklyGoalReached && !weeklyClaimed;
   const canClaim = dailyClaimable || weeklyClaimable;
+
+  // Calculate progress values (needed before animateBars)
+  const dailyProgress = Math.min(100, Math.round((todayTotalMinutes / dailyGoal) * 100));
+  const weeklyProgress = Math.min(100, Math.round((currentWeekTotal / weeklyGoal) * 100));
 
   // Animated progress (Reanimated)
   const dailyAnim = useSharedValue(0);
@@ -162,9 +166,6 @@ export default function GoalsCard({
     }
   };
 
-  const dailyProgress = Math.min(100, Math.round((todayTotalMinutes / dailyGoal) * 100));
-  const weeklyProgress = Math.min(100, Math.round((currentWeekTotal / weeklyGoal) * 100));
-
   const formatMinutesLabel = (minutes: number) => {
     if (!showHours) return `${minutes} mins`;
     const hours = minutes / 60;
@@ -259,7 +260,7 @@ export default function GoalsCard({
       <View
         className="rounded-3xl p-5 mt-2"
         style={[
-          { backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+          { backgroundColor: CoralPalette.white, borderColor: CoralPalette.white, borderWidth: 1 },
           CARD_SHADOW,
         ]}
       >

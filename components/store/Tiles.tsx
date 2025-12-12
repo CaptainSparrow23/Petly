@@ -8,6 +8,7 @@ import chedrickAlt from "@/assets/animations/chedrickAlt.riv";
 import pebblesAlt from "@/assets/animations/pebblesAlt.riv";
 import goonerAlt from "@/assets/animations/goonerAlt.riv";
 import kittyAlt from "@/assets/animations/kittyAlt.riv";
+import { getPetUnlockLevel } from "@/utils/petUnlocks";
 
 const altAnimations: Record<string, number> = {
   pet_smurf: smurfAlt,
@@ -35,10 +36,14 @@ export interface StoreItem {
 interface TileProps {
  item: StoreItem;
  onPress?: () => void;
+ userLevel?: number;
 }
 
-export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
- const { name, priceCoins, owned } = item;
+export const Tile: React.FC<TileProps> = ({ item, onPress, userLevel = 1 }) => {
+ const { name, priceCoins, owned, category } = item;
+ const isPet = category === "Pet";
+ const unlockLevel = isPet ? getPetUnlockLevel(item.id) : null;
+ const isLocked = isPet && unlockLevel !== null && (userLevel < unlockLevel || !owned);
 
  return (
  <TouchableOpacity
@@ -109,14 +114,22 @@ export const Tile: React.FC<TileProps> = ({ item, onPress }) => {
     </Text>
 
     <View className="flex-row items-center mt-3 ml-2">
-     <View
-      className="h-7 w-7 items-center justify-center"
-     >
-      <Image source={images.token} style={{ width: 20, height: 20 }} resizeMode="contain" />
-     </View>
-     <Text className="ml-2 text-lg font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
-      {priceCoins.toLocaleString()}
-     </Text>
+     {isPet && unlockLevel !== null ? (
+       <>
+         <Text className="text-sm font-semibold" style={[{ color: isLocked ? CoralPalette.mutedDark : CoralPalette.primary }, FONT]}>
+           {isLocked ? `Unlocks at Level ${unlockLevel}` : "Unlocked"}
+         </Text>
+       </>
+     ) : (
+       <>
+         <View className="h-7 w-7 items-center justify-center">
+           <Image source={images.token} style={{ width: 20, height: 20 }} resizeMode="contain" />
+         </View>
+         <Text className="ml-2 text-lg font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
+           {priceCoins.toLocaleString()}
+         </Text>
+       </>
+     )}
     </View>
    </View>
   </TouchableOpacity>

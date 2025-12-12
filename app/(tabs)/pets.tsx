@@ -17,7 +17,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import images from "@/constants/images";
 import { useGlobalContext } from "@/lib/GlobalProvider";
-import { Check } from "lucide-react-native";
+import { Check, HeartHandshake, Clock, CalendarFold} from "lucide-react-native";
 import { usePets } from "@/hooks/usePets";
 import PetAnimation from "@/components/focus/PetAnimation";
 import { getPetAnimationConfig } from "@/constants/animations";
@@ -287,6 +287,8 @@ type TabType = "pets" | "accessories";
   // Ensure the overview sheet pops into view whenever the tab is focused.
   useFocusEffect(
     useCallback(() => {
+      if (petsLoading || error) return;
+
       // Exit edit instantly (no downward animation)
       setEditing(false);
       modeAnim.setValue(0);
@@ -300,7 +302,7 @@ type TabType = "pets" | "accessories";
         tension: 70,
         friction: 9,
       }).start();
-    }, [modeAnim, friendAnim, resetToPetsTab])
+    }, [modeAnim, friendAnim, resetToPetsTab, petsLoading, error])
   );
 
   const confirmEditing = async () => {
@@ -529,7 +531,7 @@ type TabType = "pets" | "accessories";
             left: 0,
             right: 0,
             bottom: 0,
-            paddingBottom: 180,
+            paddingBottom: 70,
             backgroundColor: CoralPalette.surfaceAlt,
             transform: [{ translateY: overviewTranslateY }],
             opacity: overviewOpacity,
@@ -543,34 +545,32 @@ type TabType = "pets" | "accessories";
           }}
           pointerEvents={editing ? "none" : "auto"}
         >
-<View style={{ padding: 20 }}>
-            <View className="flex-row items-center justify-between" style={{ marginTop: 4 }}>
-              <View className="ml-4">
+          <View style={{ padding: 20 }}>
+            <View className="flex-row items-center" style={{ marginTop: 4 }}>
+              <View className="ml-4 flex-1">
                 <Text
                   style={[
-                    { fontSize: 30, fontWeight: "800", color: CoralPalette.purple },
+                    { fontSize: 30, fontWeight: "800", color: CoralPalette.purpleDark },
                     FONT,
                   ]}
                 >
-                  {pets.find((p) => p.id === currentPetId)?.name.toUpperCase() ?? ""}
+                  {pets.find((p) => p.id === currentPetId)?.name ?? ""}
                 </Text>
                 <Text style={[{ fontSize: 14, color: CoralPalette.mutedDark }, FONT]}>
                   Friendship Level
                 </Text>
               </View>
-              <Text
-                style={[
-                  { paddingRight: 12, fontSize: 40, fontWeight: "900", color: CoralPalette.purple },
-                  FONT,
-                ]}
-              >
-                {friendshipMeta?.level ?? 1}
-              </Text>
+              <View className="flex-row items-center" style={{ gap: 8 }}>
+                <HeartHandshake size={40} color={CoralPalette.purple} fill={CoralPalette.purpleLight} strokeWidth={2.5} />
+                <Text style={[{ fontSize: 40, fontWeight: "900", color: CoralPalette.purple }, FONT]}>
+                  {friendshipMeta?.level ?? 1}
+                </Text>
+              </View>
             </View>
-            <View style={{ marginTop: 12, paddingHorizontal: 4 }}>
+            <View style={{ marginTop: 12, paddingHorizontal: 6 }}>
               <View
                 style={{
-                  height: 14,
+                  height: 6,
                   borderRadius: 999,
                   backgroundColor: CoralPalette.purpleLighter,
                   overflow: "hidden",
@@ -588,7 +588,7 @@ type TabType = "pets" | "accessories";
               <View className="flex-row justify-between">
                 <Text
                 style={[
-                  { textAlign: "left", marginTop: 8, marginLeft: 10, fontSize: 13, color: CoralPalette.mutedDark },
+                  { textAlign: "left", marginTop: 8, marginLeft: 8, fontSize: 13, color: CoralPalette.mutedDark },
                   FONT,
                 ]}>
                   Level up unlock app customizations 
@@ -603,8 +603,51 @@ type TabType = "pets" | "accessories";
                 {friendXpToNext === 0 ? "Max level reached" : `${friendPercent}%`}
               </Text>
               </View>
+
+        
+            </View>
+            <View className="mt-10 flex-row items-center justify-evenly px-6">
+             <View className="flex-col items-center justify-between">
+              <Clock size={40} color={CoralPalette.purple} />
+              {(() => {
+                const totalSeconds = friendshipMeta?.totalFocusSeconds ?? 0;
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+                const formatUnit = (val: number, singular: string, plural: string) =>
+                  `${val} ${val === 1 ? singular : plural}`;
+
+                let timeText = "";
+                if (totalSeconds === 0) {
+                  timeText = "0 mins";
+                } else if (hours > 0) {
+                  const parts = [
+                    formatUnit(hours, "hr", "hrs"),
+                    ...(minutes > 0 ? [formatUnit(minutes, "m", "ms")] : []),
+                  ];
+                  timeText = parts.join(" ");
+                } else if (minutes > 0) {
+                  timeText = formatUnit(minutes, "m", "ms");
+                } else {
+                  timeText = "No time yet";
+                }
+                
+                return (
+                  <Text style={[{ marginTop: 10, fontSize: 20, fontWeight: "800", color: CoralPalette.mutedDark }, FONT]}>
+                    {timeText}
+                  </Text>
+                );
+              })()}
+            </View>
+             <View className="flex-col items-center justify-between">
+              <CalendarFold size={40} color={CoralPalette.purple} />
+              <Text style={[{ marginTop: 10, fontSize: 18, fontWeight: "800", color: CoralPalette.mutedDark }, FONT]}>
+                2nd Jan 2026
+              
+              </Text>
             </View>
             </View>
+          </View>
   
         </Animated.View>
 

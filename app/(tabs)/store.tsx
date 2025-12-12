@@ -61,7 +61,7 @@ const Store = () => {
     ownedGadgets: userProfile?.ownedGadgets,
   }, { autoFetch: false });
 
-  const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("Pet");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] =
     useState<string | null>(null);
@@ -169,6 +169,10 @@ const Store = () => {
 
   const handlePurchasePress = useCallback(
     (pet: StoreItem) => {
+      // Pets can't be purchased - they're unlocked by level
+      if (pet.category === "Pet") {
+        return;
+      }
       void SheetManager.show("store-confirmation", {
         payload: {
           petName: pet.name,
@@ -198,19 +202,22 @@ const Store = () => {
   const renderTile = useCallback(
     ({ item }: { item: StoreItem }) => (
       <View style={{ width: itemWidth, flexGrow: 0 }}>
-        <Tile item={item} onPress={() => handleTilePress(item)} />
+        <Tile item={item} onPress={() => handleTilePress(item)} userLevel={userProfile?.level ?? 1} />
       </View>
     ),
-    [handleTilePress, itemWidth]
+    [handleTilePress, itemWidth, userProfile?.level]
   );
 
   const keyExtractor = useCallback((item: StoreItem) => item.id, []);
 
   const visibleItems = useMemo(() => {
+    // Filter out pets - they're unlocked by level, not purchased
+    const itemsWithoutPets = availablePets.filter((item) => item.category !== "Pet");
+    
     const filtered =
       selectedCategory === "all"
-        ? availablePets
-        : availablePets.filter((item) => item.category === selectedCategory);
+        ? itemsWithoutPets
+        : itemsWithoutPets.filter((item) => item.category === selectedCategory);
 
     return [...filtered].sort((a, b) =>
       sortOrder === "asc"

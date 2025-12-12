@@ -7,6 +7,7 @@ import {
   AppState,
   AppStateStatus,
   StatusBar,
+  Animated,
 } from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
 import { DrawerActions } from "@react-navigation/native";
@@ -53,6 +54,7 @@ export default function IndexScreen() {
   const [lastCountdownTargetSec, setLastCountdownTargetSec] = useState(INITIAL_COUNTDOWN_SECONDS);
   const [previewSeconds, setPreviewSeconds] = useState<number | null>(null);
   const lastPreviewSnap = useRef<number | null>(null);
+  const buttonScale = useRef(new Animated.Value(1)).current;
 
   const { loggedIn } = useLocalSearchParams();
   const { showBanner, userProfile, refetchUserProfile, appSettings } = useGlobalContext();
@@ -61,11 +63,15 @@ export default function IndexScreen() {
   const [sessionSummary, setSessionSummary] = useState<{
     visible: boolean;
     coinsAwarded: number;
+    xpAwarded: number;
+    friendshipXpAwarded: number;
     durationSec: number;
     activity: SessionActivity;
   }>({
     visible: false,
     coinsAwarded: 0,
+    xpAwarded: 0,
+    friendshipXpAwarded: 0,
     durationSec: 0,
     activity: "Focus",
   });
@@ -97,7 +103,14 @@ export default function IndexScreen() {
   const { upload } = useSessionUploader();
   const sessionStartMsRef = useRef<number | null>(null);
   const closeSessionSummary = useCallback(() => {
-    setSessionSummary((prev) => ({ ...prev, visible: false }));
+    setSessionSummary({
+      visible: false,
+      coinsAwarded: 0,
+      xpAwarded: 0,
+      friendshipXpAwarded: 0,
+      durationSec: 0,
+      activity: "Focus",
+    });
   }, []);
 
   // We keep pointer refs so uploads always use the last persisted time
@@ -151,6 +164,7 @@ export default function IndexScreen() {
     const startMs = sessionStartMsRef.current ?? end.getTime() - elapsedSec * 1000;
 
     let coinsEarned = 0;
+    let xpEarned = 0;
     if (elapsedSec > 0 && userProfile?.userId) {
       try {
         const awarded = await upload({
@@ -159,7 +173,8 @@ export default function IndexScreen() {
           startTs: new Date(startMs).toISOString(),
           durationSec: Math.floor(elapsedSec),
         });
-        coinsEarned = awarded ?? 0;
+        coinsEarned = awarded?.coinsAwarded ?? 0;
+        xpEarned = awarded?.xpAwarded ?? 0;
         console.log("✅ Session uploaded successfully");
         void refetchUserProfile().catch((err) => {
           console.error("❌ Failed to refetch profile:", err);
@@ -169,6 +184,7 @@ export default function IndexScreen() {
       }
     }
 
+    // Reset all state first to ensure clean state
     clearTicker();
     clearGraceTimer();
     setGraceLeft(0);
@@ -180,14 +196,30 @@ export default function IndexScreen() {
     else setSecondsElapsed(0);
     sessionStartMsRef.current = null;
 
+    // Ensure sessionSummary is reset before potentially setting it again
+    setSessionSummary({
+      visible: false,
+      coinsAwarded: 0,
+      xpAwarded: 0,
+      friendshipXpAwarded: 0,
+      durationSec: 0,
+      activity: "Focus",
+    });
+
+    // Only show session summary if there was meaningful time elapsed
     if (elapsedSec > 0) {
-      setSessionSummary({
-        visible: true,
-        coinsAwarded: coinsEarned,
-        durationSec: elapsedSec,
-        activity,
-      });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Use setTimeout to ensure state updates are processed and modals don't conflict
+      setTimeout(() => {
+        setSessionSummary({
+          visible: true,
+          coinsAwarded: coinsEarned,
+          xpAwarded: xpEarned,
+          friendshipXpAwarded: userProfile?.selectedPet ? xpEarned : 0,
+          durationSec: elapsedSec,
+          activity,
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }, 100);
     } else if (reason === "app-closed") {
       showBanner("Session saved on app close.", "info");
     }
@@ -263,6 +295,25 @@ export default function IndexScreen() {
     if (!appSettings.vibrations) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
   }, [running, mode, secondsLeft, appSettings.vibrations]);
+
+  // Button press animation handlers
+  const handleButtonPressIn = useCallback(() => {
+    Animated.spring(buttonScale, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  }, [buttonScale]);
+
+  const handleButtonPressOut = useCallback(() => {
+    Animated.spring(buttonScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 10,
+    }).start();
+  }, [buttonScale]);
 
   // Main timer ticker: updates either the countdown or stopwatch every second
   useEffect(() => {
@@ -557,27 +608,38 @@ export default function IndexScreen() {
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={handleStartStop}
-          onPressIn={handleStartPressIn}
-          disabled={!running && countdownInvalid}
-          className="w-40 items-center py-3 mb-5 rounded-full shadow-sm opacity-100"
+        <Animated.View
           style={{
-            backgroundColor: CoralPalette.primary,
-            opacity: running ? 0.9 : countdownInvalid ? 0.6 : 1,
+            transform: [{ scale: buttonScale }],
           }}
         >
-          <Text
-            className="text-lg text-white font-semibold shadow-lg"
-            style={{ fontFamily: "Nunito" }}
+          <TouchableOpacity
+            onPress={handleStartStop}
+            onPressIn={(e) => {
+              handleStartPressIn();
+              handleButtonPressIn();
+            }}
+            onPressOut={handleButtonPressOut}
+            disabled={!running && countdownInvalid}
+            className="w-40 items-center py-3 mb-5 rounded-full shadow-sm opacity-100"
+            style={{
+              backgroundColor: CoralPalette.primary,
+              opacity: running ? 0.9 : countdownInvalid ? 0.6 : 1,
+            }}
+            activeOpacity={1}
           >
-            {!running
-              ? "Start"
-              : graceLeft > 0
-              ? `Cancel (${graceLeft})`
-              : "Give up"}
-          </Text>
-        </TouchableOpacity>
+            <Text
+              className="text-lg text-white font-semibold shadow-lg"
+              style={{ fontFamily: "Nunito" }}
+            >
+              {!running
+                ? "Start"
+                : graceLeft > 0
+                ? `Cancel (${graceLeft})`
+                : "Give up"}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
 
       <ModePickerModal
@@ -599,6 +661,8 @@ export default function IndexScreen() {
       <SessionEndModal
         visible={sessionSummary.visible}
         coinsAwarded={sessionSummary.coinsAwarded}
+        xpAwarded={sessionSummary.xpAwarded}
+        friendshipXpAwarded={sessionSummary.friendshipXpAwarded}
         durationMinutes={Math.floor(sessionSummary.durationSec / 60)}
         activity={sessionSummary.activity}
         onClose={closeSessionSummary}

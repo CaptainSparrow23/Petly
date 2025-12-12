@@ -1,6 +1,6 @@
 import React from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { Cpu, Crown, PawPrint, Tag, Glasses } from "lucide-react-native";
+import { Cpu, Crown, Tag, Glasses, Grid3x3 } from "lucide-react-native";
 import type { StoreCategory } from "@/components/store/Tiles";
 import { CoralPalette } from "@/constants/colors";
 
@@ -56,7 +56,7 @@ const categoryOptions: Array<{
   label: string;
   icon: FilterChipProps["Icon"];
 }> = [
-  { value: "Pet", label: "Pets", icon: PawPrint },
+  { value: "all", label: "All", icon: Grid3x3 },
   { value: "Hat", label: "Hats", icon: Crown },
   { value: "Face", label: "Face", icon: Glasses },
   { value: "Collar", label: "Collars", icon: Tag },
@@ -69,7 +69,7 @@ interface FiltersProps {
 }
 
 const Filters = ({
-  selectedCategory = "Pet",
+  selectedCategory = "all",
   onCategoryChange,
 }: FiltersProps) => {
   return (

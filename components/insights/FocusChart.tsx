@@ -1,10 +1,12 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
-import { View, Text, TouchableOpacity, Modal, Platform, ActivityIndicator, Pressable } from "react-native";
+import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import { View, Text, TouchableOpacity, Modal, Platform } from "react-native";
 import { VictoryAxis, VictoryBar, VictoryChart, VictoryLabel } from "victory-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import { Picker } from "@react-native-picker/picker";
 import { useFocusEffect } from "expo-router";
+import { getApiBaseUrl } from "@/utils/api";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 
 // --- Types ---
 export type ChartDatum = { key: string; label: string; totalMinutes: number };
@@ -14,14 +16,17 @@ type FocusChartProps = { title?: string };
 // --- Constants ---
 const FONT = { fontFamily: "Nunito" };
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "https://petly-gsxb.onrender.com";
 const CARD_SHADOW = {
-  shadowColor: "#0F172A",
-  shadowOpacity: 0.06,
-  shadowOffset: { width: 0, height: 6 },
-  shadowRadius: 12,
-  elevation: 8,
+  shadowColor: "#191d31",
+  shadowOpacity: 0.25,
+  shadowOffset: { width: 3, height: 5},
+  shadowRadius: 2,
+  elevation: 10,
 };
+
+// Tick format lookup sets for O(1) performance
+const DAY_TICK_SET = new Set(["00:00", "06:00", "12:00", "18:00", "23:00"]);
+const YEAR_TICK_SET = new Set(["Jan", "Mar", "May", "Aug", "Oct", "Dec"]);
 
 // --- Helper Functions ---
 const getLabel = (v: ViewState) => {
@@ -37,7 +42,8 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   const showHours = appSettings.displayFocusInHours;
 
   // Active View State (Source of Truth for Chart)
-  const today = useMemo(() => new Date(), []);
+  // Calculate today fresh on each render to ensure it's current
+  const today = new Date();
   const [view, setView] = useState<ViewState>({
     mode: "day",
     day: today.getDate(),
@@ -53,7 +59,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   const [selectedBar, setSelectedBar] = useState<{ x: string; y: number; raw: number } | null>(null);
   const [chartAnimKey, setChartAnimKey] = useState(0);
 
-  // Fetch Data
+  // Fetch Data - use individual view properties to avoid unnecessary re-fetches
   const fetchData = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
@@ -68,8 +74,8 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
         if (view.mode === "month") params.set("month", String(view.month + 1));
       }
 
+      const API_BASE = getApiBaseUrl();
       const url = `${API_BASE}/api/get_focus_range/${encodeURIComponent(userId)}?${params.toString()}`;
-      console.log("[FocusChart] Fetching:", url);
 
       const res = await fetch(url);
       const text = await res.text();
@@ -88,12 +94,34 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
     } finally {
       setLoading(false);
     }
-  }, [userId, view]);
+  }, [userId, view.mode, view.year, view.month, view.day]);
+
+  // Track previous view to detect changes
+  const prevViewRef = useRef<ViewState>(view);
+  const prevViewKeyRef = useRef<string>('');
+  
+  // Create view-based key that changes immediately when view changes (before data loads)
+  const viewKey = useMemo(
+    () => `${view.mode}-${view.year}-${view.month}-${view.day}`,
+    [view.mode, view.year, view.month, view.day]
+  );
+  
+  // When view changes, immediately clear old data and prepare for new data
+  useEffect(() => {
+    const viewChanged = viewKey !== prevViewKeyRef.current;
+    
+    if (viewChanged) {
+      prevViewRef.current = view;
+      prevViewKeyRef.current = viewKey;
+      setSelectedBar(null);
+      setError(null);
+      setChartPoints([]); // Clear old data immediately - no trace of old data
+      setChartAnimKey((k) => k + 1); // New animation key for fresh start
+      setLoading(true);
+    }
+  }, [viewKey, view]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-
-  // Clear selected bar when view changes
-  useEffect(() => { setSelectedBar(null); }, [view]);
 
   // Bump animation key when screen gains focus
   useFocusEffect(
@@ -115,25 +143,84 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
 
   const xTickValues = useMemo(() => victoryData.map(d => d.x), [victoryData]);
   const maxY = useMemo(() => Math.max(1, ...victoryData.map(d => d.y)), [victoryData]);
-  const barKey = useMemo(() => {
-    const total = chartPoints.reduce((acc, curr) => acc + (curr.totalMinutes || 0), 0);
-    return `${view.mode}-${view.year}-${view.month}-${view.day}-${chartPoints.length}-${total}`;
-  }, [view.mode, view.year, view.month, view.day, chartPoints]);
+
+  // Use totalMinutes instead of recalculating - preserves remount behavior for animations
+  // chartKey changes immediately when viewKey changes (before data loads) to force remount
   const chartKey = useMemo(
-    () => `${chartAnimKey}-${view.mode}-${view.year}-${view.month}-${chartPoints.length}`,
-    [chartAnimKey, view.mode, view.year, view.month, chartPoints.length]
+    () => `${chartAnimKey}-${viewKey}`,
+    [chartAnimKey, viewKey]
   );
+  
+  const barKey = useMemo(() => {
+    return `${viewKey}-${chartPoints.length}-${totalMinutes}`;
+  }, [viewKey, chartPoints.length, totalMinutes]);
   
   const barWidth = useMemo(() => {
     if (!chartWidth || !victoryData.length) return 10;
     return Math.min((chartWidth - 40) / victoryData.length * 0.6, 18);
   }, [chartWidth, victoryData.length]);
 
+  // Memoize time formatting to avoid recreating on every render
+  const formattedTime = useMemo(() => {
+    const total = totalMinutes;
+    const s = { color: CoralPalette.primary };
+    if (showHours && total < 60) {
+      const hours = (total / 60).toFixed(1);
+      return <><Text style={s}>{hours}</Text> hours</>;
+    }
+    if (total < 60) return <><Text style={s}>{total}</Text> minutes</>;
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    return m > 0 ? <><Text style={s}>{h}</Text> hours <Text style={s}>{m}</Text> minutes</> : <><Text style={s}>{h}</Text> hours</>;
+  }, [totalMinutes, showHours]);
+
+  // Memoize tick format function to avoid recreating on every render
+  const tickFormat = useCallback((t: string) => {
+    if (view.mode === "day") return DAY_TICK_SET.has(t) ? t : "";
+    if (view.mode === "year") return YEAR_TICK_SET.has(t) ? t : "";
+    if (view.mode === "month") {
+      const d = parseInt(t, 10);
+      const lastDay = new Date(view.year, view.month + 1, 0).getDate();
+      if ([1, 8, 15, 22].includes(d) || d === lastDay) return `${t}/${view.month + 1}`;
+      return "";
+    }
+    return t;
+  }, [view.mode, view.year, view.month]);
+
+  // Memoize axis styles to avoid recreating on every render
+  const xAxisStyle = useMemo(() => ({
+    axis: { stroke: "#f3d9cf" },
+    ticks: { stroke: "transparent" },
+    tickLabels: { fill: CoralPalette.dark, fontSize: 12, fontFamily: "Nunito", fontWeight: "600" as const, padding: 12 },
+    grid: { stroke: "transparent" }
+  }), []);
+
+  const yAxisStyle = useMemo(() => ({
+    axis: { stroke: "transparent" },
+    ticks: { stroke: "transparent" },
+    tickLabels: { fill: "#a0a0a0", fontSize: 12, fontFamily: "Nunito", fontWeight: "400" as const, padding: 6 },
+    grid: { stroke: "#e5e7eb", strokeDasharray: "4,4" }
+  }), []);
+
+  // Memoize bar style function
+  const barStyleFunction = useCallback(({ datum }: any) => {
+    return datum.raw > 0 
+      ? (selectedBar?.x === datum.x ? CoralPalette.primaryMuted : CoralPalette.primary)
+      : CoralPalette.border;
+  }, [selectedBar?.x]);
+
+  // Memoize bar labels function
+  const barLabelsFunction = useCallback(({ datum }: any) => {
+    return selectedBar?.x === datum.x && datum.raw > 0 
+      ? (showHours ? `${(datum.raw / 60).toFixed(1)}h` : `${datum.raw}m`)
+      : "";
+  }, [selectedBar?.x, showHours]);
+
   return (
     <View
       className="relative my-4 rounded-3xl p-5"
       style={[
-        { backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+        { backgroundColor: CoralPalette.white, borderColor: CoralPalette.white, borderWidth: 1 },
         CARD_SHADOW,
       ]}
     >
@@ -151,24 +238,18 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
       
       <View className="-mt-3">
         <Text style={[{ color: CoralPalette.mutedDark, fontSize: 12, fontWeight: "600" }, FONT]}>
-          Total Focused Time: {(() => {
-            const total = Math.floor(totalMinutes);
-            const s = { color: CoralPalette.primary };
-            if (showHours && total < 60) {
-              const hours = (total / 60).toFixed(1);
-              return <><Text style={s}>{hours}</Text> hours</>;
-            }
-            if (total < 60) return <><Text style={s}>{total}</Text> minutes</>;
-            const h = Math.floor(total / 60);
-            const m = total % 60;
-            return m > 0 ? <><Text style={s}>{h}</Text> hours <Text style={s}>{m}</Text> minutes</> : <><Text style={s}>{h}</Text> hours</>;
-          })()}
+          Total Focused Time: {formattedTime}
         </Text>
       </View>
 
       {/* Chart Area */}
-      <View className="relative mt-2" onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}>
-        {!loading && !hasData && (
+      <View className="relative mt-2" style={{ minHeight: 250 }} onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}>
+        {loading && chartPoints.length === 0 && (
+          <View className="absolute inset-0 z-20 items-center justify-center" style={{ backgroundColor: `${CoralPalette.surfaceAlt}80` }}>
+            <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>Loading...</Text>
+          </View>
+        )}
+        {!loading && !hasData && chartPoints.length === 0 && (
           <View className="absolute inset-0 z-10 items-center justify-center">
             <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>No data to display</Text>
           </View>
@@ -184,29 +265,19 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
             padding={{ top: 8, bottom: 30, left: 30, right: 0 }}
           >
             <VictoryAxis
-              tickValues={xTickValues}
-              tickFormat={(t) => {
-                if (view.mode === "day") return ["00:00", "06:00", "12:00", "18:00", "23:00"].includes(t) ? t : "";
-                if (view.mode === "year") return ["Jan", "Mar", "May", "Aug", "Oct", "Dec"].includes(t) ? t : "";
-                if (view.mode === "month") {
-                   const d = parseInt(t, 10);
-                   const lastDay = new Date(view.year, view.month + 1, 0).getDate();
-                   if ([1, 8, 15, 22].includes(d) || d === lastDay) return `${t}/${view.month + 1}`;
-                   return "";
-                }
-                return t;
-              }}
-              style={{ axis: { stroke: "#f3d9cf" }, ticks: { stroke: "transparent" }, tickLabels: { fill: CoralPalette.dark, fontSize: 12, fontFamily: "Nunito", fontWeight: "600", padding: 12 }, grid: { stroke: "transparent" } }}
+              tickValues={xTickValues.length > 0 ? xTickValues : ['']}
+              tickFormat={tickFormat}
+              style={xAxisStyle}
             />
-            <VictoryAxis dependentAxis style={{ axis: { stroke: "transparent" }, ticks: { stroke: "transparent" }, tickLabels: { fill: "#a0a0a0", fontSize: 12, fontFamily: "Nunito", fontWeight: "400", padding: 6 }, grid: { stroke: "#e5e7eb", strokeDasharray: "4,4" } }} />
+            <VictoryAxis dependentAxis style={yAxisStyle} />
             <VictoryBar
               key={`${barKey}-${chartAnimKey}`}
               data={victoryData}
-              animate={{ duration: 300, onLoad: { duration: 300} }}
+              animate={!loading && victoryData.length > 0 ? { duration: 300, onLoad: { duration: 300} } : false}
               barWidth={barWidth}
               cornerRadius={{ top: 4, bottom: 0 }}
-              style={{ data: { fill: ({ datum }: any) => datum.raw > 0 ? (selectedBar?.x === datum.x ? CoralPalette.primaryMuted : CoralPalette.primary) : CoralPalette.border } }}
-              labels={({ datum }: any) => selectedBar?.x === datum.x && datum.raw > 0 ? (showHours ? `${(datum.raw / 60).toFixed(1)}h` : `${datum.raw}m`) : ""}
+              style={{ data: { fill: barStyleFunction } }}
+              labels={barLabelsFunction}
               labelComponent={
                 <VictoryLabel
                   dy={-8}
@@ -263,19 +334,51 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
 // --- Filter Modal Component ---
 function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: boolean; initialView: ViewState; onClose: () => void; onConfirm: (v: ViewState) => void }) {
   const [draft, setDraft] = useState(initialView);
+  const [tabLayouts, setTabLayouts] = useState<{ [key: string]: { x: number; width: number } }>({});
+  const tabContainerRef = useRef<View>(null);
   
-  // Reset draft when modal opens
-  useEffect(() => { if (visible) setDraft(initialView); }, [visible, initialView]);
+  // Animated value for pill position (0 = day, 1 = month, 2 = year)
+  const pillPosition = useSharedValue(0);
+  
+  // Update pill position when mode changes
+  useEffect(() => {
+    const modeIndex = { day: 0, month: 1, year: 2 }[draft.mode] ?? 0;
+    pillPosition.value = withTiming(modeIndex, {
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [draft.mode, pillPosition]);
+  
+  // Memoize today values to avoid recalculating on every render
+  const { today, todayYear, todayMonth, todayDate } = useMemo(() => {
+    const t = new Date();
+    return {
+      today: t,
+      todayYear: t.getFullYear(),
+      todayMonth: t.getMonth(),
+      todayDate: t.getDate()
+    };
+  }, []);
 
-  const today = new Date();
-  const todayYear = today.getFullYear();
-  const todayMonth = today.getMonth();
+  // Reset draft when modal opens - use individual properties to avoid unnecessary resets
+  useEffect(() => {
+    if (visible) {
+      setDraft(initialView);
+    }
+  }, [visible, initialView.mode, initialView.year, initialView.month, initialView.day]);
 
-  // Limits
-  const maxMonth = draft.year === todayYear ? todayMonth : 11;
-  const maxDay = (draft.year === todayYear && draft.month === todayMonth) 
-    ? today.getDate() 
-    : new Date(draft.year, draft.month + 1, 0).getDate();
+  // Memoize limits
+  const maxMonth = useMemo(() => 
+    draft.year === todayYear ? todayMonth : 11,
+    [draft.year, todayYear, todayMonth]
+  );
+
+  const maxDay = useMemo(() => 
+    (draft.year === todayYear && draft.month === todayMonth)
+      ? todayDate
+      : new Date(draft.year, draft.month + 1, 0).getDate(),
+    [draft.year, draft.month, todayYear, todayMonth, todayDate]
+  );
 
   // Auto-correct limits
   useEffect(() => {
@@ -283,10 +386,8 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
   }, [draft.year, maxMonth]);
 
   useEffect(() => {
-     const daysInCurrent = new Date(draft.year, draft.month + 1, 0).getDate();
-     const actualMaxDay = (draft.year === todayYear && draft.month === todayMonth) ? today.getDate() : daysInCurrent;
-     if (draft.day > actualMaxDay) setDraft(p => ({ ...p, day: actualMaxDay }));
-  }, [draft.year, draft.month, maxDay, todayYear, todayMonth]);
+    if (draft.day > maxDay) setDraft(p => ({ ...p, day: maxDay }));
+  }, [draft.year, draft.month, maxDay]);
 
 
   // Options Generation
@@ -302,17 +403,62 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
   const pickerStyle = { color: CoralPalette.dark };
   const pickerItemStyle = Platform.select({ ios: { height: 160, color: CoralPalette.dark, fontFamily: "Nunito" } });
 
+  // Animated style for the pill background
+  const animatedPillStyle = useAnimatedStyle(() => {
+    if (!tabLayouts['day']) {
+      return { opacity: 0 };
+    }
+    
+    const tabWidth = tabLayouts['day'].width;
+    const translateX = pillPosition.value * tabWidth;
+    
+    return {
+      transform: [{ translateX }],
+      width: tabWidth,
+      opacity: 1,
+    };
+  }, [tabLayouts]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 bg-black/40 justify-center items-center">
-        <View className="w-[90%] max-w-md rounded-3xl p-5" style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}>
+        <View className="w-[90%] max-w-md rounded-3xl p-7" style={{ backgroundColor: CoralPalette.white, borderColor: CoralPalette.white, borderWidth: 1 }}>
           {/* Tabs */}
-          <View className="flex-row bg-[#f7ece7] rounded-full p-1 mb-4">
+          <View 
+            ref={tabContainerRef}
+            className="flex-row bg-[#f7ece7] rounded-full p-1 mb-4 relative"
+            onLayout={(e) => {
+              // Measure container and calculate tab width
+              const containerWidth = e.nativeEvent.layout.width;
+              const padding = 4; // p-1 = 4px
+              const tabWidth = (containerWidth - padding * 2) / 3;
+              setTabLayouts({
+                day: { x: padding, width: tabWidth },
+                month: { x: padding + tabWidth, width: tabWidth },
+                year: { x: padding + tabWidth * 2, width: tabWidth },
+              });
+            }}
+          >
+            {/* Animated pill background */}
+            {tabLayouts['day'] && (
+              <Animated.View
+                style={[
+                  {
+                    position: 'absolute',
+                    left: tabLayouts['day'].x,
+                    top: 4,
+                    bottom: 4,
+                    backgroundColor: CoralPalette.primary,
+                    borderRadius: 999,
+                  },
+                  animatedPillStyle,
+                ]}
+              />
+            )}
             {(["day", "month", "year"] as const).map((m) => (
               <TouchableOpacity
                 key={m}
-                className="flex-1 rounded-full py-2"
-                style={{ backgroundColor: draft.mode === m ? CoralPalette.primary : "transparent" }}
+                className="flex-1 rounded-full py-2 z-10"
                 onPress={() => setDraft(p => ({ ...p, mode: m }))}
               >
                 <Text className="text-center text-sm font-semibold" style={[{ color: draft.mode === m ? "#fff" : CoralPalette.dark }, FONT]}>
@@ -330,7 +476,7 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
           <View className="rounded-2xl overflow-hidden border border-gray-200">
             {draft.mode === "day" && (
                <Picker selectedValue={draft.day} onValueChange={d => setDraft(p => ({...p, day: d}))} style={pickerStyle} itemStyle={pickerItemStyle}>
-                 {days.map(d => <Picker.Item key={d} label={d === today.getDate() && draft.month === todayMonth && draft.year === todayYear ? "Today" : `${d}`} value={d} color={CoralPalette.dark} />)}
+                 {days.map(d => <Picker.Item key={d} label={d === todayDate && draft.month === todayMonth && draft.year === todayYear ? "Today" : `${d}`} value={d} color={CoralPalette.dark} />)}
                </Picker>
             )}
             {draft.mode === "month" && (
