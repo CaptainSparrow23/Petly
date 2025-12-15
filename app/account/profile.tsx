@@ -19,7 +19,6 @@ import {
   Zap,
   Award,
   ChevronRight,
-  UsersRound,
   Clock
 } from "lucide-react-native";
 import { router } from "expo-router";
@@ -101,23 +100,20 @@ export default function Profile() {
   });
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface}}>
-        <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ backgroundColor: CoralPalette.surface }}
-      >
+    <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.primaryMuted}}>
+        
 
       {/* Header */}
       <View
         className="flex-row items-center justify-between px-5 py-2"
-        style={{ backgroundColor: CoralPalette.surface }}
+        style={{ backgroundColor: CoralPalette.primaryMuted }}
       >
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-          <ChevronLeft size={30} color={CoralPalette.dark} />
+          <ChevronLeft size={30} color={CoralPalette.white} />
         </TouchableOpacity>
         <Text
-          className="text-lg font-bold pr-2"
-          style={[{ color: CoralPalette.dark }, FONT]}
+          className="text-xl font-extrabold pr-2"
+          style={[{ color: CoralPalette.white }, FONT]}
         >
           Account
         </Text>
@@ -125,16 +121,19 @@ export default function Profile() {
           onPress={() => router.push('/settings/editProfile')} 
           activeOpacity={0.7}
         >
-          <Settings size={24} color={CoralPalette.dark} />
+          <Settings size={24} color={CoralPalette.white} />
         </TouchableOpacity>
       </View>
 
     
 
   
-        
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ backgroundColor: CoralPalette. surface}}
+      >
         {/* Profile Header Section */}
-        <View className="px-5 mt-2 pb-2" style={{ backgroundColor: CoralPalette.surface }}>
+        <View className="px-5 mt-4 pb-2" >
           <View className="items-center">
             <View
               className="rounded-full overflow-hidden"
@@ -153,13 +152,13 @@ export default function Profile() {
               />
             </View>
             <Text
-              className="mt-3 text-xl font-extrabold mb-1"
+              className="mt-1 text-lg font-extrabold mb-1"
               style={[{ color: CoralPalette.dark }, FONT]}
             >
               {userProfile?.displayName || "Petly Explorer"}
             </Text>
             <Text
-              className="text-sm mb-2"
+              className="text-sm mb-0"
               style={[{ color: CoralPalette.mutedDark }, FONT]}
             >
               @{userProfile?.username || "no_username"}
@@ -188,7 +187,11 @@ export default function Profile() {
 
             {/* XP */}
             <View className="flex-row items-center">
-              <UsersRound size={25} color={CoralPalette.primary} fill={CoralPalette.primary} />
+              <Image
+                source={images.friends}
+                style={{ width: 25, height: 25 }}
+                resizeMode="contain"
+              />
               <Text
                 className="text-2xl font-black mt-1 ml-2"
                 style={[{ color: CoralPalette.dark }, FONT]}
@@ -218,7 +221,9 @@ export default function Profile() {
 
         {/* Level Progress Section */}
         <View className="px-5 mb-6">
-          <View
+          <TouchableOpacity
+            onPress={() => router.push('/account/progress-map')}
+            activeOpacity={0.7}
             className="p-4"
             style={{
               backgroundColor: CoralPalette.white,
@@ -284,7 +289,7 @@ export default function Profile() {
                 {Math.round(xpIntoLevel)} / {Math.round(xpTotal)} XP
               </Text>
               </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Overview Section */}
@@ -318,13 +323,13 @@ export default function Profile() {
               </View>
               <Text
                 className="ml-1 text-2xl font-black"
-                style={[{ color: CoralPalette.dark }, FONT]}
+                style={[{ color: CoralPalette.dark, fontWeight: "700" }, FONT]}
               >
                 {userProfile?.highestStreak ?? 0}
               </Text>
             </View>
 
-            {/* XP Card */}
+            {/* Total Focus Hours Card */}
             <View
               className="p-4"
               style={{
@@ -346,65 +351,17 @@ export default function Profile() {
               </View>
               <Text
                 className="ml-1 text-2xl font-black"
-                style={[{ color: CoralPalette.dark }, FONT]}
+                style={[{ color: CoralPalette.dark, fontWeight: "700" }, FONT]}
               >
                     {((userProfile?.totalFocusSeconds ?? 0) / 3600).toFixed(0)}
               </Text>
             </View>
 
             {/* Achievements Card */}
-            <View
-              className="rounded-xl p-4"
-              style={{
-                width: "47%",
-                backgroundColor: CoralPalette.white,
-                borderWidth: 1,
-                borderColor: CoralPalette.white,
-              }}
-            >
-              <View className="flex-row items-center mb-2">
-                <Trophy size={20} color={CoralPalette.primary}/>
-                <Text
-                  className="ml-2 text-sm font-semibold"
-                  style={[{ color: CoralPalette.mutedDark }, FONT]}
-                >
-                  Achievements
-                </Text>
-              </View>
-              <Text
-                className="ml-1 text-2xl font-black"
-                style={[{ color: CoralPalette.dark }, FONT]}
-              >
-                N/A
-              </Text>
-            </View>
+            
 
             {/* Coins Card */}
-            <View
-              className="rounded-xl p-4"
-              style={{
-                width: "47%",
-                backgroundColor: CoralPalette.white,
-                borderWidth: 1,
-                borderColor: CoralPalette.white,
-              }}
-            >
-              <View className="flex-row items-center mb-2">
-                <Award size={20} color={CoralPalette.primary}/>
-                <Text
-                  className="ml-2 text-sm font-semibold"
-                  style={[{ color: CoralPalette.mutedDark }, FONT]}
-                >
-                  Coins
-                </Text>
-              </View>
-              <Text
-                className="ml-1 text-2xl font-black"
-                style={[{ color: CoralPalette.dark }, FONT]}
-              >
-                {userProfile?.coins ?? 0}
-              </Text>
-            </View>
+            
           </View>
         </View>
 
@@ -585,7 +542,7 @@ export default function Profile() {
                 backgroundColor: CoralPalette.white,
                 borderWidth: 4,
                 borderColor: CoralPalette.purpleLighter,
-                borderRadius: 10,
+                borderRadius: 16,
               }}
             >
               <ScrollView 
@@ -594,8 +551,8 @@ export default function Profile() {
                 contentContainerStyle={{ gap: 10, marginLeft: 10}}
               >
                 {petFriendshipData.map(({ petId, petName, level, progress }) => {
-                  const SIZE = 90;
-                  const STROKE_WIDTH = 9;
+                  const SIZE = 80;
+                  const STROKE_WIDTH = 12;
                   const RADIUS = (SIZE - STROKE_WIDTH) / 2;
                   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
                   const strokeDashoffset = CIRCUMFERENCE * (1 - progress);
@@ -649,8 +606,8 @@ export default function Profile() {
                           <Image
                             source={petImage}
                             style={{
-                              width: '75%',
-                              height: '75%',
+                              width: '70%',
+                              height: '70%',
                               resizeMode: 'contain',
                               alignSelf: 'center',
                               justifyContent: 'center',

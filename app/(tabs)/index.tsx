@@ -367,6 +367,16 @@ export default function IndexScreen() {
     const appStateRef = { current: AppState.currentState };
     
     const onState = (nextState: AppStateStatus) => {
+      // When app comes to foreground, cancel the notification since user is now in app
+      if (
+        running &&
+        appStateRef.current.match(/inactive|background/) &&
+        nextState === "active"
+      ) {
+        // Cancel notification - user is now in app, they'll see completion naturally
+        void cancelSessionCompleteNotification();
+      }
+
       // Only act when coming BACK to active from background/inactive
       if (
         running &&
@@ -445,12 +455,12 @@ export default function IndexScreen() {
     [userProfile?.selectedPet]
   );
 
-  // Calculate focus value: 0 = not running, 1 = laptop, 2 = pot_and_stove
+  // Calculate focus value: 0 = not running, 1 = laptop, 3 = pot_and_stove/cello_artisan
   const focusValue = useMemo(() => {
     if (!running) return 0;
     const gadget = userProfile?.selectedGadget;
     if (gadget === "gadget_laptop") return 1;
-    if (gadget === "gadget_pot_and_stove") return 2;
+    if (gadget === "gadget_pot_and_stove" || gadget === "gadget_cello_artisan") return 3;
     return 1; // Default to laptop animation if no gadget selected
   }, [running, userProfile?.selectedGadget]);
 

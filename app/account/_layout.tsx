@@ -21,6 +21,15 @@ export default function AccountLayout() {
           fullScreenGestureEnabled: false,
         }}
       />
+      <Stack.Screen 
+        name="progress-map" 
+        options={{
+          presentation: 'card',
+          animation: 'slide_from_right',
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+        }}
+      />
     </Stack>
   );
 }
