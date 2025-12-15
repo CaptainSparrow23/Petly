@@ -44,12 +44,15 @@ import face_sun_glasses from "@/assets/images/face_sun_glasses.png";
 // Gadgets
 import gadget_laptop from "@/assets/images/gadget_laptop.png";
 import gadget_pot_and_stove from "@/assets/images/gadget_pot_and_stove.png";
+import gadget_cello_artisan from "@/assets/images/gadget_cello_artisan.png";
 // UI
 import clothes_hanger from "@/assets/images/clothes_hanger.png";
 import token from "@/assets/images/token.png";
 import xp from "@/assets/images/xp.png";
 import trophy from "@/assets/images/trophy.png";
 import fire from "@/assets/images/fire.png";
+import map_background from "@/assets/images/map_background.png";
+import friends from "@/assets/images/friends.png";
 
 export default { 
   catFamily, 
@@ -88,9 +91,12 @@ export default {
   face_sun_glasses,
   gadget_laptop,
   gadget_pot_and_stove,
+  gadget_cello_artisan,
   clothes_hanger,
   token,
   xp,
   trophy,
   fire,
+  map_background,
+  friends,
 };
