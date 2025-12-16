@@ -17,7 +17,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import images from "@/constants/images";
 import { useGlobalContext } from "@/lib/GlobalProvider";
-import { Check, HeartHandshake, Clock, CalendarFold} from "lucide-react-native";
+import { Check } from "lucide-react-native";
 import { usePets } from "@/hooks/usePets";
 import PetAnimation from "@/components/focus/PetAnimation";
 import { getPetAnimationConfig } from "@/constants/animations";
@@ -30,15 +30,12 @@ const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 const FONT = { fontFamily: "Nunito" };
 
-type TabType = "pets" | "accessories";
-
-  const TAB_WIDTH = 190;
+type AccessoryCategory = "hat" | "face" | "collar";
 
   const Profile = () => {
     const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
-    const [activeTab, setActiveTab] = useState<TabType>("pets");
-    const slideAnim = useRef(new Animated.Value(0)).current;
-    const modeAnim = useRef(new Animated.Value(0)).current; // 0 = overview, 1 = edit
+    const [activeAccessoryCategory, setActiveAccessoryCategory] = useState<AccessoryCategory>("hat");
+    const modeAnim = useRef(new Animated.Value(0)).current; // 0 = pets view, 1 = edit
     const friendAnim = useRef(new Animated.Value(0)).current; // 0 = visible, 1 = hidden (for focus pop)
   const [editing, setEditing] = useState(false);
 
@@ -57,15 +54,6 @@ type TabType = "pets" | "accessories";
   );
   const [isSavingAccessories, setIsSavingAccessories] = useState(false);
 
-  const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
-    Animated.spring(slideAnim, {
-      toValue: tab === "pets" ? 0 : TAB_WIDTH,
-      useNativeDriver: true,
-      tension: 60,
-      friction: 10,
-    }).start();
-  };
 
   const {
     pets,
@@ -267,10 +255,6 @@ type TabType = "pets" | "accessories";
     animateMode(1);
   };
 
-  const resetToPetsTab = useCallback(() => {
-    setActiveTab("pets");
-    slideAnim.setValue(0);
-  }, [slideAnim]);
 
   const cancelEditing = () => {
     // revert to saved selections
@@ -279,12 +263,11 @@ type TabType = "pets" | "accessories";
     setFocusedFace(userProfile?.selectedFace ?? null);
     setFocusedCollar(userProfile?.selectedCollar ?? null);
     setFocusedGadget(userProfile?.selectedGadget ?? "gadget_laptop");
-    resetToPetsTab();
     setEditing(false);
     animateMode(0);
   };
 
-  // Ensure the overview sheet pops into view whenever the tab is focused.
+  // Ensure the pets view pops into view whenever the tab is focused.
   useFocusEffect(
     useCallback(() => {
       if (petsLoading || error) return;
@@ -292,9 +275,8 @@ type TabType = "pets" | "accessories";
       // Exit edit instantly (no downward animation)
       setEditing(false);
       modeAnim.setValue(0);
-      resetToPetsTab();
 
-      // Play a quick pop for the overview sheet only
+      // Play a quick pop for the pets view
       friendAnim.setValue(1);
       Animated.spring(friendAnim, {
         toValue: 0,
@@ -302,12 +284,11 @@ type TabType = "pets" | "accessories";
         tension: 70,
         friction: 9,
       }).start();
-    }, [modeAnim, friendAnim, resetToPetsTab, petsLoading, error])
+    }, [modeAnim, friendAnim, petsLoading, error])
   );
 
   const confirmEditing = async () => {
     await handleSaveSelection();
-    resetToPetsTab();
     setEditing(false);
     animateMode(0);
   };
@@ -328,18 +309,18 @@ type TabType = "pets" | "accessories";
     outputRange: [1, 0],
   });
 
-  const overviewModeTranslateY = modeAnim.interpolate({
+  const petsModeTranslateY = modeAnim.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [0, 280, 280],
   });
 
-  const overviewModeOpacity = modeAnim.interpolate({
+  const petsModeOpacity = modeAnim.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [1, 0, 0],
   });
 
-  const overviewTranslateY = Animated.add(friendTranslateY, overviewModeTranslateY);
-  const overviewOpacity = Animated.multiply(friendOpacity, overviewModeOpacity);
+  const petsTranslateY = Animated.add(friendTranslateY, petsModeTranslateY);
+  const petsOpacity = Animated.multiply(friendOpacity, petsModeOpacity);
 
   const sheetOpacity = modeAnim.interpolate({
     inputRange: [0, 0.1, 1],
@@ -525,6 +506,7 @@ type TabType = "pets" | "accessories";
             </View>
           ) : null}
 
+        {/* Pets Tab - replaces overview */}
         <Animated.View
           style={{
             position: "absolute",
@@ -532,9 +514,9 @@ type TabType = "pets" | "accessories";
             right: 0,
             bottom: 0,
             paddingBottom: 70,
-            backgroundColor: CoralPalette.surfaceAlt,
-            transform: [{ translateY: overviewTranslateY }],
-            opacity: overviewOpacity,
+            backgroundColor: CoralPalette.surface,
+            transform: [{ translateY: petsTranslateY }],
+            opacity: petsOpacity,
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             shadowColor: "#000",
@@ -545,115 +527,16 @@ type TabType = "pets" | "accessories";
           }}
           pointerEvents={editing ? "none" : "auto"}
         >
-          <View style={{ padding: 20 }}>
-            <View className="flex-row items-center" style={{ marginTop: 4 }}>
-              <View className="ml-4 flex-1">
-                <Text
-                  style={[
-                    { fontSize: 30, fontWeight: "800", color: CoralPalette.purpleDark },
-                    FONT,
-                  ]}
-                >
-                  {pets.find((p) => p.id === currentPetId)?.name ?? ""}
-                </Text>
-                <Text style={[{ fontSize: 14, color: CoralPalette.mutedDark }, FONT]}>
-                  Friendship Level
-                </Text>
-              </View>
-              <View className="flex-row items-center" style={{ gap: 8 }}>
-                <HeartHandshake size={40} color={CoralPalette.purple} fill={CoralPalette.purpleLight} strokeWidth={2.5} />
-                <Text style={[{ fontSize: 40, fontWeight: "900", color: CoralPalette.purple }, FONT]}>
-                  {friendshipMeta?.level ?? 1}
-                </Text>
-              </View>
-            </View>
-            <View style={{ marginTop: 12, paddingHorizontal: 6 }}>
-              <View
-                style={{
-                  height: 6,
-                  borderRadius: 999,
-                  backgroundColor: CoralPalette.purpleLighter,
-                  overflow: "hidden",
-                }}
-              >
-                <View
-                  style={{
-                    width: `${friendPercent}%`,
-                    height: "100%",
-                    borderRadius: 999,
-                    backgroundColor: CoralPalette.purple,
-                  }}
-                />
-              </View>
-              <View className="flex-row justify-between">
-                <Text
-                style={[
-                  { textAlign: "left", marginTop: 8, marginLeft: 8, fontSize: 13, color: CoralPalette.mutedDark },
-                  FONT,
-                ]}>
-                  Level up unlock app customizations 
-                  </Text>
-
-              <Text
-                style={[
-                  { textAlign: "right", marginTop: 8, marginRight: 6,fontSize: 13, color: CoralPalette.mutedDark },
-                  FONT,
-                ]}
-              >
-                {friendXpToNext === 0 ? "Max level reached" : `${friendPercent}%`}
-              </Text>
-              </View>
-
-        
-            </View>
-            <View className="mt-10 flex-row items-center justify-evenly px-6">
-             <View className="flex-col items-center justify-between">
-              <Clock size={40} color={CoralPalette.purple} />
-              {(() => {
-                const totalSeconds = friendshipMeta?.totalFocusSeconds ?? 0;
-                const hours = Math.floor(totalSeconds / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-                const formatUnit = (val: number, singular: string, plural: string) =>
-                  `${val} ${val === 1 ? singular : plural}`;
-
-                let timeText = "";
-                if (totalSeconds === 0) {
-                  timeText = "0 mins";
-                } else if (hours > 0) {
-                  const parts = [
-                    formatUnit(hours, "hr", "hrs"),
-                    ...(minutes > 0 ? [formatUnit(minutes, "m", "ms")] : []),
-                  ];
-                  timeText = parts.join(" ");
-                } else if (minutes > 0) {
-                  timeText = formatUnit(minutes, "m", "ms");
-                } else {
-                  timeText = "No time yet";
-                }
-                
-                return (
-                  <Text style={[{ marginTop: 10, fontSize: 20, fontWeight: "800", color: CoralPalette.mutedDark }, FONT]}>
-                    {timeText}
-                  </Text>
-                );
-              })()}
-            </View>
-             <View className="flex-col items-center justify-between">
-              <CalendarFold size={40} color={CoralPalette.purple} />
-              <Text style={[{ marginTop: 10, fontSize: 18, fontWeight: "800", color: CoralPalette.mutedDark }, FONT]}>
-                2nd Jan 2026
-              
-              </Text>
-            </View>
-            </View>
-          </View>
-  
+          <PetsTab
+            pets={pets}
+            focusedPet={focusedPet}
+            setFocusedPet={setFocusedPet}
+          />
         </Animated.View>
 
 
 
-          {/* Wardrobe area */}
+          {/* Accessories Edit Mode */}
           <Animated.View
             className="rounded-t-3xl shadow-lg pt-6"
             style={{
@@ -668,100 +551,22 @@ type TabType = "pets" | "accessories";
             }}
             pointerEvents={editing ? "auto" : "none"}
           >
-            <View className="px-2 mb-3 flex-row items-center justify-center">
-              <View
-                className="flex-row rounded-full p-1"
-                style={{ backgroundColor: CoralPalette.surfaceAlt }}
-              >
-                {/* Animated sliding background */}
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: TAB_WIDTH,
-                    height: "100%",
-                    backgroundColor: CoralPalette.primary,
-                    borderRadius: 9999,
-                    top: 4,
-                    left: 4,
-                    transform: [{ translateX: slideAnim }],
-                  }}
-                />
-                <TouchableOpacity
-                  onPress={() => handleTabChange("pets")}
-                  activeOpacity={0.8}
-                  className="py-2 rounded-full items-center"
-                  style={{ width: TAB_WIDTH }}
-                >
-                  <Text
-                    className="text-sm font-bold"
-                    style={[
-                      {
-                        color:
-                          activeTab === "pets"
-                            ? CoralPalette.white
-                            : CoralPalette.mutedDark,
-                      },
-                      FONT,
-                    ]}
-                  >
-                    Pets
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleTabChange("accessories")}
-                  activeOpacity={0.8}
-                  className="py-2 rounded-full items-center"
-                  style={{ width: TAB_WIDTH }}
-                >
-                  <Text
-                    className="text-sm font-bold"
-                    style={[
-                      {
-                        color:
-                          activeTab === "accessories"
-                            ? CoralPalette.white
-                            : CoralPalette.mutedDark,
-                      },
-                      FONT,
-                    ]}
-                  >
-                    Accessories
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View
-              style={{
-                position: "absolute",
-                top: 70,
-                left: 0,
-                right: 0,
-                bottom: 0,
-              }}
-            >
-              {activeTab === "pets" ? (
-                <PetsTab
-                  pets={pets}
-                  focusedPet={focusedPet}
-                  setFocusedPet={setFocusedPet}
-                />
-              ) : (
-                <AccessoriesTab
-                  ownedHats={userProfile?.ownedHats || []}
-                  ownedFaces={userProfile?.ownedFaces || []}
-                  ownedCollars={userProfile?.ownedCollars || []}
-                  ownedGadgets={userProfile?.ownedGadgets || []}
-                  focusedHat={focusedHat}
-                  focusedFace={focusedFace}
-                  focusedCollar={focusedCollar}
-                  focusedGadget={focusedGadget}
-                  setFocusedHat={setFocusedHat}
-                  setFocusedFace={setFocusedFace}
-                  setFocusedCollar={setFocusedCollar}
-                  setFocusedGadget={setFocusedGadget}
-                />
-              )}
-            </View>
+            <AccessoriesTab
+              ownedHats={userProfile?.ownedHats || []}
+              ownedFaces={userProfile?.ownedFaces || []}
+              ownedCollars={userProfile?.ownedCollars || []}
+              ownedGadgets={userProfile?.ownedGadgets || []}
+              focusedHat={focusedHat}
+              focusedFace={focusedFace}
+              focusedCollar={focusedCollar}
+              focusedGadget={focusedGadget}
+              setFocusedHat={setFocusedHat}
+              setFocusedFace={setFocusedFace}
+              setFocusedCollar={setFocusedCollar}
+              setFocusedGadget={setFocusedGadget}
+              activeCategory={activeAccessoryCategory}
+              setActiveCategory={setActiveAccessoryCategory}
+            />
           </Animated.View>
         </View>
       </ImageBackground>

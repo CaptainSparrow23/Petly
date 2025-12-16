@@ -27,11 +27,13 @@ import { ProfilePicture } from "@/components/other/ProfilePicture";
 import { CoralPalette } from "@/constants/colors";
 import { usePets } from "@/hooks/usePets";
 import images from "@/constants/images";
+import { useHasUnclaimedRewards } from "@/utils/hasUnclaimedRewards";
 
 const FONT = { fontFamily: "Nunito" };
 
 export default function Profile() {
   const { userProfile } = useGlobalContext();
+  const hasUnclaimedRewards = useHasUnclaimedRewards();
 
   const {
     pets,
@@ -47,9 +49,33 @@ export default function Profile() {
   const xpIntoLevel = userProfile?.xpIntoLevel ?? 0;
   const xpToNextLevel = userProfile?.xpToNextLevel ?? 50;
   const xpTotal = xpIntoLevel + xpToNextLevel;
-  const levelProgress = xpTotal > 0 ? (xpIntoLevel / xpTotal) * 100 : 0;
+
+  // Display semantics: when the bar is visually full, we want to show the *next* level
+  // starting at 0 / next-level XP instead of "current level with a full bar".
+  const MAX_LEVEL = 10;
+  const xpNeededForNext = (currentLevel: number) =>
+    Math.round(50 * Math.pow(currentLevel, 1.5)); // must stay in sync with backend computeLevelMeta
+
+  let displayXpIntoLevel = xpIntoLevel;
+  let displayXpTotal = xpTotal;
+
+  const barLooksFull =
+    level < MAX_LEVEL &&
+    xpTotal > 0 &&
+    // Treat as full if we're within ~0.5 XP of the end of the bar
+    xpIntoLevel >= xpTotal - 0.5;
+
+  if (barLooksFull) {
+    const nextLevel = Math.min(level + 1, MAX_LEVEL);
+    displayXpIntoLevel = 0;
+    displayXpTotal = xpNeededForNext(nextLevel);
+  }
+
+  const levelProgress =
+    displayXpTotal > 0 ? (displayXpIntoLevel / displayXpTotal) * 100 : 0;
   const totalXP = userProfile?.totalXP ?? 0;
   const dailyStreak = userProfile?.dailyStreak ?? 0;
+  const friendsCount = userProfile?.friendsCount ?? 0;
 
   // Get next pet unlock
   const nextPetUnlock = useMemo(() => {
@@ -100,20 +126,20 @@ export default function Profile() {
   });
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.primaryMuted}}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface}}>
         
 
       {/* Header */}
       <View
         className="flex-row items-center justify-between px-5 py-2"
-        style={{ backgroundColor: CoralPalette.primaryMuted }}
+        style={{ backgroundColor: CoralPalette.surface }}
       >
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-          <ChevronLeft size={30} color={CoralPalette.white} />
+          <ChevronLeft size={30} color={CoralPalette.dark} />
         </TouchableOpacity>
         <Text
-          className="text-xl font-extrabold pr-2"
-          style={[{ color: CoralPalette.white }, FONT]}
+          className="text-xl font-bold pr-2"
+          style={[{ color: CoralPalette.dark }, FONT]}
         >
           Account
         </Text>
@@ -121,7 +147,7 @@ export default function Profile() {
           onPress={() => router.push('/settings/editProfile')} 
           activeOpacity={0.7}
         >
-          <Settings size={24} color={CoralPalette.white} />
+          <Settings size={24} color={CoralPalette.dark} />
         </TouchableOpacity>
       </View>
 
@@ -185,7 +211,7 @@ export default function Profile() {
   
             </View>
 
-            {/* XP */}
+            {/* Friends */}
             <View className="flex-row items-center">
               <Image
                 source={images.friends}
@@ -196,12 +222,12 @@ export default function Profile() {
                 className="text-2xl font-black mt-1 ml-2"
                 style={[{ color: CoralPalette.dark }, FONT]}
               >
-                {totalXP}
+                {friendsCount}
               </Text>
  
             </View>
 
-            {/* Level */}
+            {/* Achievements */}
             <View className="flex-row items-center">
               <Image
                 source={images.trophy}
@@ -212,7 +238,7 @@ export default function Profile() {
                 className="text-2xl font-black mt-1 ml-3"
                 style={[{ color: CoralPalette.dark }, FONT]}
               >
-                {level}
+                N/A
               </Text>
 
             </View>
@@ -230,8 +256,23 @@ export default function Profile() {
               borderWidth: 1,
               borderColor: CoralPalette.surfaceAlt,
               borderRadius: 10,
+              position: 'relative',
             }}
           >
+            {hasUnclaimedRewards && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -6,
+                  right: -6,
+                  width: 18,
+                  height: 18,
+                  borderRadius: 10,
+                  backgroundColor: '#FF3B30',
+                  zIndex: 10,
+                }}
+              />
+            )}
             <View className="flex-row items-center justify-between mb-3">
               <View className="flex-col items-start">
               <Text
@@ -246,6 +287,7 @@ export default function Profile() {
                 Rank up to unlock new pets and gadgets
               </Text>
               </View>
+              <View className="flex-row items-center">
               <View className="w-12 h-12 p-1 rounded-full" style={{ backgroundColor: CoralPalette.greenDark }}>
                 <Text
                   className="text-center"
@@ -254,8 +296,12 @@ export default function Profile() {
                   {level}
                 </Text>
               </View>
+         
+              </View>
+                  
 
             </View>
+            
             <View
               style={{
                 height: 12,
@@ -279,14 +325,14 @@ export default function Profile() {
                 className="text-xs mt-2"
                 style={[{ paddingLeft: 2, color: CoralPalette.greenDark }, FONT]}
               >
-                Unlock {nextPetUnlock.name} at next level
+                Unlock {nextPetUnlock.name} at level {nextPetUnlock.level}
               </Text>
             )}
-                          <Text
+              <Text
                 className="text-sm"
                 style={[{ color: CoralPalette.mutedDark }, FONT]}
               >
-                {Math.round(xpIntoLevel)} / {Math.round(xpTotal)} XP
+                {Math.round(displayXpIntoLevel)} / {Math.round(displayXpTotal)} XP
               </Text>
               </View>
           </TouchableOpacity>

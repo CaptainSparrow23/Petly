@@ -13,6 +13,7 @@ interface PetsTabProps {
 }
 
 const PetsTab = ({ pets, focusedPet, setFocusedPet }: PetsTabProps) => {
+  
   return (
     <FlatList
       data={pets}
@@ -27,6 +28,16 @@ const PetsTab = ({ pets, focusedPet, setFocusedPet }: PetsTabProps) => {
         flexGrow: 1,
       }}
       columnWrapperStyle={{ columnGap: 16, marginBottom: 14 }}
+      ListHeaderComponent={
+        <View className="w-full py-5 px-3">
+          <Text
+            className="text-lg font-bold"
+            style={[{ color: CoralPalette.dark }, FONT]}
+          >
+            Choose your companion...
+          </Text>
+        </View>
+      }
       ListEmptyComponent={
         <View className="w-full items-center py-8">
           <Text

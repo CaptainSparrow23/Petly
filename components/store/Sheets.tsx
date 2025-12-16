@@ -90,7 +90,8 @@ export const PetPreviewCard = ({
      <ImageBackground
       source={images.roomBackGround}
       resizeMode="cover"
-      style={{ width: "100%", height: 400, borderRadius: 20, marginTop: 10, overflow: "hidden" }}
+      style={{ width: "100%", height: 330, borderRadius: 20, marginTop: 10, overflow: "hidden", }}
+      imageStyle={{ width: "100%", height: "160%" }}
      >
       <PetAnimation
         source={petAnimConfig.source}
@@ -100,8 +101,8 @@ export const PetPreviewCard = ({
         selectedHat={accessoryProps.selectedHat}
         selectedFace={accessoryProps.selectedFace}
         selectedCollar={accessoryProps.selectedCollar}
-        containerStyle={{ flex: 1, position: "absolute", top: 50, left: 0, right: 0, bottom: 0 }}
-        animationStyle={{ width: "50%", height: "50%" }}
+        containerStyle={{ flex: 1, position: "absolute", top: 25, left: 0, right: 0, bottom: 0 }}
+        animationStyle={{ width: "70%", height: "70%" }}
       />
      </ImageBackground>
     ) : (

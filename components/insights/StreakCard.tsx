@@ -45,7 +45,7 @@ export default function StreakCard({ streak = 0 }: { streak?: number }) {
     <View
       className="rounded-3xl p-4 justify-between items-end"
       style={[
-        { width: "31%", backgroundColor: CoralPalette.white , borderColor: CoralPalette.white, borderWidth: 1 },
+        { width: "31%", backgroundColor: CoralPalette.surfaceAlt , borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
         CARD_SHADOW,
       ]}
     >

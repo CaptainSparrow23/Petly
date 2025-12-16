@@ -14,6 +14,8 @@ const HAT_INPUT_MAP: Record<string, number> = {
   hat_top_hat_red: 8,
   hat_top_hat_silk: 9,
   hat_special_toque_blanche: 10,
+  hat_flower_crown_spring: 11,
+  hat_flower_crown_winter: 12,
 };
 
 const FACE_INPUT_MAP: Record<string, number> = {

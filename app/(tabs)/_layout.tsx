@@ -8,9 +8,43 @@ import React, { useState } from 'react';
 import { Text, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
 import { CoralPalette } from '@/constants/colors';
 import CoinBadge from '@/components/other/CoinBadge';
+import { useHasUnclaimedRewards } from '@/utils/hasUnclaimedRewards';
+import { useHasFriendRequests } from '@/utils/hasFriendRequests';
+import { MenuButton } from '@/components/other/MenuButton';
+
+const FriendsDrawerLabel = ({ color }: { color: string }) => {
+  const hasFriendRequests = useHasFriendRequests();
+  
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <Text
+        style={{
+          fontFamily: "Nunito",
+          fontSize: 16,
+          fontWeight: '700',
+          color: color,
+        }}
+      >
+        Friends
+      </Text>
+      {hasFriendRequests && (
+        <View
+          style={{
+            marginLeft: 8,
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: '#FF3B30',
+          }}
+        />
+      )}
+    </View>
+  );
+};
 
 const CustomDrawerContent = (props: any) => {
   const { userProfile, logout } = useGlobalContext();
+  const hasUnclaimedRewards = useHasUnclaimedRewards();
   const [isLogoutConfirm, setIsLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const displayName = userProfile?.displayName || 'User';
@@ -49,12 +83,25 @@ const CustomDrawerContent = (props: any) => {
             size={90}
             className="shadow-lg border border-white"
           />
-          <Text
-            className="text-xl mt-5 font-bold text-white"
-            style={{ fontFamily: "Nunito" }}
-          >
-            {displayName}
-          </Text>
+          <View className="flex-row items-center mt-5">
+            <Text
+              className="text-xl font-bold text-white"
+              style={{ fontFamily: "Nunito" }}
+            >
+              {displayName}
+            </Text>
+            {hasUnclaimedRewards && (
+              <View
+                style={{
+                  marginLeft: 8,
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: '#FF3B30',
+                }}
+              />
+            )}
+          </View>
           <Text
             className="text-sm mt-1 text-white mb-5"
             style={{ fontFamily: "Nunito" }}
@@ -107,6 +154,7 @@ const DrawerLayout = () => {
         headerTitleContainerStyle: { marginBottom: 10 },
         headerLeftContainerStyle: { marginLeft: 10, marginBottom: 10 },
         headerRightContainerStyle: { marginBottom: 10, marginRight: 10 },
+        headerLeft: () => <MenuButton />,
         headerTintColor: CoralPalette.white,
         headerShadowVisible: false,
         headerStyle: {height: 110, backgroundColor: CoralPalette.primaryMuted },
@@ -162,6 +210,7 @@ const DrawerLayout = () => {
         options={{
           title: 'Friends',
           drawerIcon: ({ color, size }) => <UsersRound color={color} size={size} />,
+          drawerLabel: ({ color }) => <FriendsDrawerLabel color={color} />,
         }}
       />
       <Drawer.Screen

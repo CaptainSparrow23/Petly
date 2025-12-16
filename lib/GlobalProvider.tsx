@@ -24,7 +24,7 @@ const computeLevelMeta = (totalXPRaw: unknown) => {
     const totalXP = Math.max(0, toNumber(totalXPRaw, 0));
     const maxLevel = 10;
     const xpNeededForNext = (currentLevel: number) =>
-        50 * Math.pow(currentLevel, 1.5); // XP to go from L to L+1
+        Math.round(50 * Math.pow(currentLevel, 1.5)); // XP to go from L to L+1 (rounded to whole XP)
 
     let level = 1;
     let remainingXP = totalXP;
@@ -98,6 +98,9 @@ interface UserProfile {
     totalFocusSeconds: number;
     lastDailyGoalClaim: string | null;
     lastWeeklyGoalClaim: string | null;
+    claimedLevelRewards?: number[];
+    friendsCount?: number;
+    hasFriendRequests?: boolean;
 }
 
 type BannerType = "success" | "error" | "info" | "warning";
@@ -245,6 +248,8 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     totalFocusSeconds: toNumber(profile.totalFocusSeconds),
                     lastDailyGoalClaim: profile.lastDailyGoalClaim ?? null,
                     lastWeeklyGoalClaim: profile.lastWeeklyGoalClaim ?? null,
+                    claimedLevelRewards: Array.isArray(profile.claimedLevelRewards) ? profile.claimedLevelRewards : [],
+                    hasFriendRequests: profile.hasFriendRequests === true,
                 } as UserProfile;
 
                 setUserProfile(updatedProfile);

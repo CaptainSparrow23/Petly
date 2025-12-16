@@ -12,7 +12,7 @@ import {
 import { Timer, Hourglass } from "lucide-react-native";
 import { DrawerActions } from "@react-navigation/native";
 import { useFocusEffect, useNavigation } from "expo-router";
-import { DrawerToggleButton } from "@react-navigation/drawer";
+import { MenuButton } from "@/components/other/MenuButton";
 import ModePickerModal from "../../components/focus/ModePickerModal";
 import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
 import TimeTracker from "../../components/focus/TimeTracker";
@@ -81,14 +81,8 @@ export default function IndexScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
-        <View style={{ marginLeft: 3, width: 44, height: 44, justifyContent: "center", alignItems: "center", opacity: running ? 0.4 : 1 }}>
-          <DrawerToggleButton tintColor="#ffffff" />
-          <TouchableOpacity
-            onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-            disabled={running}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }}
-          />
+        <View style={{ marginLeft: 3, opacity: running ? 0.4 : 1 }}>
+          <MenuButton />
         </View>
       ),
     });
@@ -631,7 +625,7 @@ export default function IndexScreen() {
             }}
             onPressOut={handleButtonPressOut}
             disabled={!running && countdownInvalid}
-            className="w-40 items-center py-3 mb-5 rounded-full shadow-sm opacity-100"
+            className="w-40 items-center py-3 mb-5 rounded-xl shadow-sm opacity-100"
             style={{
               backgroundColor: CoralPalette.primary,
               opacity: running ? 0.9 : countdownInvalid ? 0.6 : 1,
