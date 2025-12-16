@@ -220,7 +220,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
     <View
       className="relative my-4 rounded-3xl p-5"
       style={[
-        { backgroundColor: CoralPalette.white, borderColor: CoralPalette.white, borderWidth: 1 },
+        { backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
         CARD_SHADOW,
       ]}
     >

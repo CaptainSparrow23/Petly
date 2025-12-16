@@ -339,7 +339,7 @@ const Friends = () => {
   const normalizedRequestedTab = Array.isArray(params.tab)
     ? params.tab?.[0]?.toLowerCase()
     : params.tab?.toLowerCase();
-  const { userProfile, showBanner } = useGlobalContext();
+  const { userProfile, showBanner, refetchUserProfile } = useGlobalContext();
   const [tab, setTab] = useState<"friends" | "requests">("friends");
   const tabTranslate = useRef(new Animated.Value(0)).current;
   const plusScale = useRef(new Animated.Value(1)).current;
@@ -410,6 +410,8 @@ const Friends = () => {
 
         if (response.ok) {
           await fetchFriends(false);
+          // Refresh user profile to update hasFriendRequests boolean
+          await refetchUserProfile();
           if (action === "accept") {
             showBanner({
               title: "Friend request accepted",
@@ -428,7 +430,7 @@ const Friends = () => {
         setRespondingId(null);
       }
     },
-    [fetchFriends, showBanner, userProfile?.userId]
+    [fetchFriends, showBanner, userProfile?.userId, refetchUserProfile]
   );
 
   useEffect(() => {
@@ -453,22 +455,26 @@ const Friends = () => {
   useFocusEffect(
     useCallback(() => {
       fetchFriends();
+      // Refresh user profile to update hasFriendRequests boolean
+      void refetchUserProfile();
       if (normalizedRequestedTab === "requests") {
         setTab("requests");
         tabTranslate.setValue(1);
         router.setParams({ tab: undefined });
       }
-    }, [fetchFriends, normalizedRequestedTab, tabTranslate])
+    }, [fetchFriends, normalizedRequestedTab, tabTranslate, refetchUserProfile])
   );
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       await fetchFriends(false);
+      // Refresh user profile to update hasFriendRequests boolean
+      await refetchUserProfile();
     } finally {
       setIsRefreshing(false);
     }
-  }, [fetchFriends]);
+  }, [fetchFriends, refetchUserProfile]);
 
   const LoadingState = () => (
     <View style={{ paddingTop: 8 }}>

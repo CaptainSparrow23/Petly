@@ -25,6 +25,9 @@ import hat_top_hat_red from "@/assets/images/hat_top_hat_red.png";
 import hat_top_hat_silk from "@/assets/images/hat_top_hat_silk.png";
 // Hats - special
 import hat_special_toque_blanche from "@/assets/images/hat_special_toque_blanche.png";
+// Hats - flower crowns
+import hat_flower_crown_spring from "@/assets/images/hat_flower_crown_spring.png";
+import hat_flower_crown_winter from "@/assets/images/hat_flower_crown_winter.png";
 // Collars - scarfs
 import collar_scarf_minty from "@/assets/images/collar_scarf_minty.png";
 import collar_scarf_sunset from "@/assets/images/collar_scarf_sunset.png";
@@ -53,6 +56,7 @@ import trophy from "@/assets/images/trophy.png";
 import fire from "@/assets/images/fire.png";
 import map_background from "@/assets/images/map_background.png";
 import friends from "@/assets/images/friends.png";
+import tick from "@/assets/images/tick.png";
 
 export default { 
   catFamily, 
@@ -78,6 +82,8 @@ export default {
   hat_top_hat_red,
   hat_top_hat_silk,
   hat_special_toque_blanche,
+  hat_flower_crown_spring,
+  hat_flower_crown_winter,
   collar_scarf_minty,
   collar_scarf_sunset,
   collar_scarf_lilac,
@@ -99,4 +105,5 @@ export default {
   fire,
   map_background,
   friends,
+  tick,
 };
