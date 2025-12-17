@@ -9,7 +9,6 @@ import {
   Text,
   View,
   ImageBackground,
-  Image,
   TouchableOpacity,
   ActivityIndicator,
   Animated,
@@ -17,7 +16,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import images from "@/constants/images";
 import { useGlobalContext } from "@/lib/GlobalProvider";
-import { Check } from "lucide-react-native";
+import { Check, X, HeartHandshake, Shirt, Image as ImageIcon} from "lucide-react-native";
 import { usePets } from "@/hooks/usePets";
 import PetAnimation from "@/components/focus/PetAnimation";
 import { getPetAnimationConfig } from "@/constants/animations";
@@ -25,19 +24,46 @@ import { CoralPalette } from "@/constants/colors";
 import Constants from "expo-constants";
 import PetsTab from "@/components/pets/PetsTab";
 import AccessoriesTab from "@/components/pets/AccessoriesTab";
+import FriendshipModal from "@/components/pets/FriendshipModal";
+import { petAnimations } from "@/constants/animations";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 const FONT = { fontFamily: "Nunito" };
 
+// Shared button styling constants
+const TOP_BUTTON_BASE_STYLE = {
+  width: 70,
+  height: 70,
+  backgroundColor: CoralPalette.surfaceAlt,
+  borderRadius: 100,
+  shadowColor: "#000",
+  shadowOpacity: 0.1,
+  shadowOffset: { width: 0, height: 2 },
+  shadowRadius: 2,
+  elevation: 4,
+} as const;
+
+const TOP_BUTTON_CONTAINER_STYLE = {
+  position: "absolute" as const,
+  right: 18,
+  zIndex: 20,
+} as const;
+
 type AccessoryCategory = "hat" | "face" | "collar";
 
-  const Profile = () => {
-    const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
-    const [activeAccessoryCategory, setActiveAccessoryCategory] = useState<AccessoryCategory>("hat");
-    const modeAnim = useRef(new Animated.Value(0)).current; // 0 = pets view, 1 = edit
-    const friendAnim = useRef(new Animated.Value(0)).current; // 0 = visible, 1 = hidden (for focus pop)
+const Profile = () => {
+  const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
+  const [activeAccessoryCategory, setActiveAccessoryCategory] = useState<AccessoryCategory>("hat");
+  const modeAnim = useRef(new Animated.Value(0)).current; // 0 = pets view, 1 = edit
+  const friendAnim = useRef(new Animated.Value(0)).current; // 0 = visible, 1 = hidden (for focus pop)
+  const confirmButtonScale = useRef(new Animated.Value(1)).current; // For bounce animation
+  const editButtonScale = useRef(new Animated.Value(1)).current; // For edit button bounce animation
+  const friendshipButtonScale = useRef(new Animated.Value(1)).current; // For friendship button animation
+  const imageButtonScale = useRef(new Animated.Value(1)).current; // For image button animation
   const [editing, setEditing] = useState(false);
+  const [friendshipModalVisible, setFriendshipModalVisible] = useState(false);
+  const friendshipModalAnim = useRef(new Animated.Value(0)).current;
 
   // Focused accessory states (local selection before saving)
   const [focusedHat, setFocusedHat] = useState<string | null>(
@@ -69,23 +95,6 @@ type AccessoryCategory = "hat" | "face" | "collar";
     userId: userProfile?.userId,
   });
 
-  // Reset accessories when focusedPet changes (user selects different pet)
-  useEffect(() => {
-    if (focusedPet && focusedPet !== userProfile?.selectedPet) {
-      // User is previewing a different pet - reset accessories to defaults
-      setFocusedHat(null);
-      setFocusedFace(null);
-      setFocusedCollar(null);
-      setFocusedGadget("gadget_laptop");
-    } else if (focusedPet === userProfile?.selectedPet) {
-      // User switched back to their current pet - restore saved accessories
-      setFocusedHat(userProfile?.selectedHat ?? null);
-      setFocusedFace(userProfile?.selectedFace ?? null);
-      setFocusedCollar(userProfile?.selectedCollar ?? null);
-      setFocusedGadget(userProfile?.selectedGadget ?? "gadget_laptop");
-    }
-  }, [focusedPet]);
-
   // Sync focused accessories when userProfile loads or changes
   useEffect(() => {
     if (
@@ -102,6 +111,9 @@ type AccessoryCategory = "hat" | "face" | "collar";
     userProfile?.selectedFace,
     userProfile?.selectedCollar,
     userProfile?.selectedGadget,
+    userProfile?.selectedPet,
+    focusedPet,
+    userProfile,
   ]);
 
   const changeFlags = useMemo(() => {
@@ -148,13 +160,11 @@ type AccessoryCategory = "hat" | "face" | "collar";
   const handleSaveSelection = useCallback(async () => {
     if (isSaving || isSavingAccessories || !hasUnsavedChange) return;
 
-    const { petChanged, accessoryChanged } = changeFlags;
-
     const promises: Promise<void>[] = [];
     let hasError = false;
 
     // Save pet if changed
-    if (petChanged && focusedPet) {
+    if (changeFlags.petChanged && focusedPet) {
       promises.push(
         new Promise<void>((resolve) => {
           saveSelectedPet(
@@ -170,9 +180,7 @@ type AccessoryCategory = "hat" | "face" | "collar";
     }
 
     // Save accessories if any changed OR if pet changed (always save current accessory state with pet change)
-    const shouldSaveAccessories = accessoryChanged || petChanged;
-
-    if (shouldSaveAccessories) {
+    if (changeFlags.accessoryChanged || changeFlags.petChanged) {
       setIsSavingAccessories(true);
       promises.push(
         (async () => {
@@ -209,7 +217,7 @@ type AccessoryCategory = "hat" | "face" | "collar";
       showBanner("Could not save all changes. Please try again.", "error");
     } else {
       updateUserProfile({
-        ...(petChanged && focusedPet ? { selectedPet: focusedPet } : {}),
+        ...(changeFlags.petChanged && focusedPet ? { selectedPet: focusedPet } : {}),
         selectedHat: focusedHat,
         selectedFace: focusedFace,
         selectedCollar: focusedCollar,
@@ -233,10 +241,7 @@ type AccessoryCategory = "hat" | "face" | "collar";
     hasUnsavedChange,
   ]);
 
-  const petAnimationConfig = getPetAnimationConfig(
-    focusedPet || userProfile?.selectedPet
-  );
-  const showPetAnimation = !!petAnimationConfig;
+  const currentPetId = focusedPet || userProfile?.selectedPet || "";
 
   const animateMode = useCallback(
     (toValue: number, onComplete?: () => void) => {
@@ -250,19 +255,59 @@ type AccessoryCategory = "hat" | "face" | "collar";
     [modeAnim]
   );
 
+  // Reusable button press animation handler
+  const createButtonPressHandlers = (animValue: Animated.Value) => ({
+    onPressIn: () => {
+      Animated.timing(animValue, {
+        toValue: 0.9,
+        duration: 100,
+        useNativeDriver: true,
+      }).start();
+    },
+    onPressOut: () => {
+      Animated.timing(animValue, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }).start();
+    },
+  });
+
+  const editButtonHandlers = createButtonPressHandlers(editButtonScale);
+  const friendshipButtonHandlers = createButtonPressHandlers(friendshipButtonScale);
+  const imageButtonHandlers = createButtonPressHandlers(imageButtonScale);
+
+  const openFriendshipModal = () => {
+    setFriendshipModalVisible(true);
+    Animated.spring(friendshipModalAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11,
+    }).start();
+  };
+
+  const closeFriendshipModal = () => {
+    Animated.timing(friendshipModalAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setFriendshipModalVisible(false);
+    });
+  };
+
+
   const startEditing = () => {
+    if (friendshipModalVisible) {
+      closeFriendshipModal();
+    }
     setEditing(true);
     animateMode(1);
   };
 
-
   const cancelEditing = () => {
-    // revert to saved selections
-    setFocusedPet(userProfile?.selectedPet ?? null);
-    setFocusedHat(userProfile?.selectedHat ?? null);
-    setFocusedFace(userProfile?.selectedFace ?? null);
-    setFocusedCollar(userProfile?.selectedCollar ?? null);
-    setFocusedGadget(userProfile?.selectedGadget ?? "gadget_laptop");
+    // Exit accessories/edit mode only - don't reset focused items
     setEditing(false);
     animateMode(0);
   };
@@ -274,7 +319,9 @@ type AccessoryCategory = "hat" | "face" | "collar";
 
       // Exit edit instantly (no downward animation)
       setEditing(false);
+      setFriendshipModalVisible(false);
       modeAnim.setValue(0);
+      friendshipModalAnim.setValue(0);
 
       // Play a quick pop for the pets view
       friendAnim.setValue(1);
@@ -284,10 +331,28 @@ type AccessoryCategory = "hat" | "face" | "collar";
         tension: 70,
         friction: 9,
       }).start();
-    }, [modeAnim, friendAnim, petsLoading, error])
+    }, [modeAnim, friendshipModalAnim, friendAnim, petsLoading, error])
   );
 
+  const animateConfirmButton = useCallback(() => {
+    // Bounce animation: scale down then back up with spring
+    Animated.sequence([
+      Animated.timing(confirmButtonScale, {
+        toValue: 0.85,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(confirmButtonScale, {
+        toValue: 1,
+        tension: 300,
+        friction: 10,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [confirmButtonScale]);
+
   const confirmEditing = async () => {
+    animateConfirmButton();
     await handleSaveSelection();
     setEditing(false);
     animateMode(0);
@@ -366,18 +431,6 @@ type AccessoryCategory = "hat" | "face" | "collar";
     );
   }
 
-  const currentPetId = focusedPet || userProfile?.selectedPet || "";
-  const friendshipMeta = currentPetId
-    ? userProfile?.petFriendships?.[currentPetId]
-    : undefined;
-  const friendXpInto = friendshipMeta?.xpIntoLevel ?? 0;
-  const friendXpToNext = friendshipMeta?.xpToNextLevel ?? 50;
-  const friendXpTotal = friendXpInto + friendXpToNext;
-  const friendPercent =
-    friendXpTotal === 0
-      ? 0
-      : Math.min(100, Math.round((friendXpInto / friendXpTotal) * 100));
-
   return (
     <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
       <ImageBackground
@@ -386,134 +439,139 @@ type AccessoryCategory = "hat" | "face" | "collar";
         resizeMode="cover"
         imageStyle={{ transform: [{ translateY: 0 }] }}
       >
-        {editing && (
-          <TouchableOpacity
-            onPress={cancelEditing}
-            activeOpacity={0.85}
-            className="rounded-full"
+        {/* Top right - Friendship level indicator */}
+        {currentPetId && (
+          <Animated.View
             style={{
-              position: "absolute",
-              top: 14,
-              left: 16,
-              zIndex: 20,
-              backgroundColor: CoralPalette.surfaceAlt,
-              borderColor: CoralPalette.border,
-              borderWidth: 1,
-              width: 44,
-              height: 44,
-              alignItems: "center",
-              justifyContent: "center",
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowOffset: { width: 0, height: 2 },
-              shadowRadius: 6,
-              elevation: 4,
+              ...TOP_BUTTON_CONTAINER_STYLE,
+              top: 100,
+              transform: [{ scale: friendshipButtonScale }],
             }}
           >
-            <Text
-              style={[
-                { color: CoralPalette.dark, fontSize: 16, fontWeight: "700" },
-                FONT,
-              ]}
+            <TouchableOpacity
+              onPress={openFriendshipModal}
+              onPressIn={friendshipButtonHandlers.onPressIn}
+              onPressOut={friendshipButtonHandlers.onPressOut}
+              activeOpacity={1}
+              className="flex-row items-center justify-center rounded-full"
+              style={TOP_BUTTON_BASE_STYLE}
             >
-              ✕
-            </Text>
-          </TouchableOpacity>
-        )}
-        {!editing && (
-          <TouchableOpacity
-            onPress={startEditing}
-            activeOpacity={0.85}
-            className="rounded-full"
-            style={{
-              position: "absolute",
-              top: 14,
-              right: 16,
-              zIndex: 20,
-              backgroundColor: CoralPalette.primary,
-              width: 44,
-              height: 44,
-              alignItems: "center",
-              justifyContent: "center",
-              shadowColor: "#000",
-              shadowOpacity: 0.1,
-              shadowOffset: { width: 0, height: 2 },
-              shadowRadius: 6,
-              elevation: 4,
-            }}
-          >
-            <Image
-              source={images.clothes_hanger}
-              style={{
-                paddingBottom: 3,
-                width: 23,
-                height: 20,
-                resizeMode: "cover",
-                tintColor: CoralPalette.white,
-              }}
-            />
-          </TouchableOpacity>
-        )}
-        {editing && hasUnsavedChange && (
-          <TouchableOpacity
-            onPress={confirmEditing}
-            activeOpacity={0.85}
-            className="rounded-full"
-            style={{
-              position: "absolute",
-              top: 14,
-              right: 16,
-              zIndex: 20,
-              backgroundColor:
-                isSaving || isSavingAccessories
-                  ? CoralPalette.primaryLight
-                  : CoralPalette.primary,
-              opacity: isSaving || isSavingAccessories ? 0.7 : 1,
-              width: 44,
-              height: 44,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Check size={20} color={CoralPalette.white} />
-          </TouchableOpacity>
+              <HeartHandshake size={30} color={CoralPalette.purple} strokeWidth={3} stroke={CoralPalette.purple} />
+            </TouchableOpacity>
+          </Animated.View>
         )}
 
+        {/* Top right - Image button (below friendship button) */}
+        <Animated.View
+          style={{
+            ...TOP_BUTTON_CONTAINER_STYLE,
+            top: 180,
+            transform: [{ scale: imageButtonScale }],
+          }}
+        >
+          <TouchableOpacity
+            onPressIn={imageButtonHandlers.onPressIn}
+            onPressOut={imageButtonHandlers.onPressOut}
+            activeOpacity={1}
+            className="flex-row items-center justify-center rounded-full"
+            style={TOP_BUTTON_BASE_STYLE}
+          >
+            <ImageIcon size={30} color={CoralPalette.blue} strokeWidth={3} />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Top right button - edit mode toggle or cancel */}
+        <Animated.View
+          style={{
+            ...TOP_BUTTON_CONTAINER_STYLE,
+            top: 18,
+            transform: [{ scale: editButtonScale }],
+          }}
+        >
+          <TouchableOpacity
+            onPress={editing ? cancelEditing : startEditing}
+            onPressIn={editButtonHandlers.onPressIn}
+            onPressOut={editButtonHandlers.onPressOut}
+            activeOpacity={1}
+            className="rounded-full"
+            style={{
+              ...TOP_BUTTON_BASE_STYLE,
+              alignItems: "center",
+              justifyContent: "center",
+              borderColor: editing ? CoralPalette.border : "transparent",
+              borderWidth: editing ? 1 : 0,
+            }}
+          >
+            {editing ? (
+              <X size={30} color={CoralPalette.mutedDark} strokeWidth={3} />
+            ) : (
+             <Shirt size={30} color={CoralPalette.primaryMuted} strokeWidth={3} />
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+
         <View className="flex-1">
-          {showPetAnimation && petAnimationConfig ? (
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                top: -160,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <PetAnimation
-                source={petAnimationConfig.source}
-                stateMachineName={petAnimationConfig.stateMachineName}
-                focusInputName={petAnimationConfig.focusInputName}
-                selectedHat={focusedHat}
-                selectedFace={focusedFace}
-                selectedCollar={focusedCollar}
-                containerStyle={{ width: "100%", height: "100%" }}
-                animationStyle={{ width: "65%", height: "65%" }}
-              />
-            </View>
-          ) : null}
+          {/* Render only owned pet animations, but only show the active one */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: -165,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {(() => {
+              // Ensure selectedPet is always included even if not in ownedPets (edge case)
+              const petsToRender = new Set(userProfile?.ownedPets || []);
+              if (currentPetId) petsToRender.add(currentPetId);
+              
+              return Array.from(petsToRender).map((petId) => {
+                const config = petAnimations[petId];
+                if (!config) return null;
+                
+                const isActive = petId === currentPetId;
+                return (
+                  <View
+                    key={petId}
+                    style={{
+                      position: "absolute",
+                      width: "100%",
+                      height: "100%",
+                      opacity: isActive ? 1 : 0,
+                      pointerEvents: isActive ? "auto" : "none",
+                    }}
+                  >
+                    <PetAnimation
+                      source={config.source}
+                      stateMachineName={config.stateMachineName}
+                      focusInputName={config.focusInputName}
+                      focusValue={0}
+                      selectedHat={focusedHat}
+                      selectedFace={focusedFace}
+                      selectedCollar={focusedCollar}
+                      containerStyle={{ width: "100%", height: "100%" }}
+                      animationStyle={{ width: "65%", height: "65%" }}
+                    />
+                  </View>
+                );
+              });
+            })()}
+          </View>
 
         {/* Pets Tab - replaces overview */}
         <Animated.View
           style={{
             position: "absolute",
+            top: '56%',
             left: 0,
             right: 0,
             bottom: 0,
-            paddingBottom: 70,
+            paddingBottom: 0,
+            paddingTop: 12,
             backgroundColor: CoralPalette.surface,
             transform: [{ translateY: petsTranslateY }],
             opacity: petsOpacity,
@@ -533,8 +591,6 @@ type AccessoryCategory = "hat" | "face" | "collar";
             setFocusedPet={setFocusedPet}
           />
         </Animated.View>
-
-
 
           {/* Accessories Edit Mode */}
           <Animated.View
@@ -568,8 +624,50 @@ type AccessoryCategory = "hat" | "face" | "collar";
               setActiveCategory={setActiveAccessoryCategory}
             />
           </Animated.View>
+
+          {/* Confirm button - bottom right, on top of views */}
+          {hasUnsavedChange && (
+            <Animated.View
+              style={{
+                position: "absolute",
+                bottom: 30,
+                right: 30,
+                zIndex: 30,
+                transform: [{ scale: confirmButtonScale }],
+              }}
+            >
+              <TouchableOpacity
+                onPress={confirmEditing}
+                activeOpacity={0.85}
+                className="rounded-full"
+                style={{
+                  backgroundColor: CoralPalette.white,
+                  width: 70,
+                  height: 70,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  shadowColor: "#000",
+                  shadowOpacity: 0.2,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowRadius: 8,
+                  elevation: 8,
+                }}
+              >
+                <Check size={40} color={CoralPalette.primaryMuted} strokeWidth={4} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
         </View>
       </ImageBackground>
+
+      {/* Friendship Modal - Centered */}
+      <FriendshipModal
+        visible={friendshipModalVisible}
+        onClose={closeFriendshipModal}
+        animValue={friendshipModalAnim}
+        userProfile={userProfile}
+        pets={pets}
+      />
     </View>
   );
 };

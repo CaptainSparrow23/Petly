@@ -1,6 +1,6 @@
 import { useGlobalContext } from '@/lib/GlobalProvider';
 import { ProfilePicture } from '@/components/other/ProfilePicture';
-import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
+import { DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import { Cat, Home, Settings, Store, UsersRound, BarChart3, LogOut } from 'lucide-react-native';
@@ -10,7 +10,9 @@ import { CoralPalette } from '@/constants/colors';
 import CoinBadge from '@/components/other/CoinBadge';
 import { useHasUnclaimedRewards } from '@/utils/hasUnclaimedRewards';
 import { useHasFriendRequests } from '@/utils/hasFriendRequests';
+import { useHasClaimableGoals } from '@/utils/hasClaimableGoals';
 import { MenuButton } from '@/components/other/MenuButton';
+import * as Haptics from 'expo-haptics';
 
 const FriendsDrawerLabel = ({ color }: { color: string }) => {
   const hasFriendRequests = useHasFriendRequests();
@@ -42,8 +44,38 @@ const FriendsDrawerLabel = ({ color }: { color: string }) => {
   );
 };
 
+const InsightsDrawerLabel = ({ color }: { color: string }) => {
+  const hasClaimableGoals = useHasClaimableGoals();
+  
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <Text
+        style={{
+          fontFamily: "Nunito",
+          fontSize: 16,
+          fontWeight: '700',
+          color: color,
+        }}
+      >
+        Insights
+      </Text>
+      {hasClaimableGoals && (
+        <View
+          style={{
+            marginLeft: 8,
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: '#FF3B30',
+          }}
+        />
+      )}
+    </View>
+  );
+};
+
 const CustomDrawerContent = (props: any) => {
-  const { userProfile, logout } = useGlobalContext();
+  const { userProfile, logout, appSettings } = useGlobalContext();
   const hasUnclaimedRewards = useHasUnclaimedRewards();
   const [isLogoutConfirm, setIsLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -75,7 +107,12 @@ const CustomDrawerContent = (props: any) => {
         <TouchableOpacity
           className=" items-center"
           style={{ backgroundColor: CoralPalette.primaryMuted }}
-          onPress={() => router.push('/account/profile')}
+          onPress={() => {
+            if (appSettings.vibrations) {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
+            }
+            router.push('/account/profile');
+          }}
           activeOpacity={0.7}
         >
           <ProfilePicture
@@ -110,7 +147,46 @@ const CustomDrawerContent = (props: any) => {
           </Text>
         </TouchableOpacity>
 
-        <DrawerItemList {...props} />
+        {props.state.routes.map((route: any, index: number) => {
+          const { options } = props.descriptors[route.key];
+          const label =
+            options.drawerLabel !== undefined
+              ? options.drawerLabel
+              : options.title !== undefined
+              ? options.title
+              : route.name;
+
+          const isFocused = props.state.index === index;
+
+          const onPress = () => {
+            const event = props.navigation.emit({
+              type: 'drawerItemPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!event.defaultPrevented) {
+              if (appSettings.vibrations) {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
+              }
+              props.navigation.navigate(route.name, route.params);
+            }
+          };
+
+          return (
+            <DrawerItem
+              key={route.key}
+              label={label}
+              focused={isFocused}
+              activeTintColor={options.drawerActiveTintColor}
+              inactiveTintColor={options.drawerInactiveTintColor}
+              activeBackgroundColor={options.drawerActiveBackgroundColor}
+              inactiveBackgroundColor={options.drawerInactiveBackgroundColor}
+              icon={options.drawerIcon}
+              onPress={onPress}
+            />
+          );
+        })}
       </DrawerContentScrollView>
 
       {/* Logout Button at Bottom */}
@@ -118,7 +194,12 @@ const CustomDrawerContent = (props: any) => {
         <TouchableOpacity
           className="flex-row items-center py-3 px-6 rounded-full"
           style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: isLogoutConfirm ? CoralPalette.primary : CoralPalette.border, borderWidth: 1 }}
-          onPress={handleLogout}
+          onPress={() => {
+            if (appSettings.vibrations) {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
+            }
+            handleLogout();
+          }}
           activeOpacity={0.7}
           disabled={isLoggingOut}
         >
@@ -157,7 +238,7 @@ const DrawerLayout = () => {
         headerLeft: () => <MenuButton />,
         headerTintColor: CoralPalette.white,
         headerShadowVisible: false,
-        headerStyle: {height: 110, backgroundColor: CoralPalette.primaryMuted },
+        headerStyle: {height: 120, backgroundColor: CoralPalette.primaryMuted },
         drawerStyle: { width: 210, backgroundColor: CoralPalette.primaryMuted },
         drawerActiveBackgroundColor: CoralPalette.primaryLight,
         drawerInactiveBackgroundColor: 'transparent',
@@ -183,7 +264,7 @@ const DrawerLayout = () => {
           name="insights"
           options={{
             title: 'Insights',
-            drawerLabel: 'Insights',
+            drawerLabel: ({ color }) => <InsightsDrawerLabel color={color} />,
             drawerIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
             headerRight: () => <CoinBadge />
           }}

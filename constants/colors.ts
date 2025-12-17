@@ -23,6 +23,7 @@ export const CoralPalette = {
   purpleLight: "#E3D2F3",
   purpleDark: "#8758AE",
   purpleLighter: "#F4ECFB",
+  purpleBright: "#C084FC",
   // Coin colors
   coinBg: "#fac400ff",
   coinIcon: "#78350F",

@@ -23,16 +23,16 @@ const PetsTab = ({ pets, focusedPet, setFocusedPet }: PetsTabProps) => {
       scrollEnabled={true}
       contentContainerStyle={{
         paddingHorizontal: 22,
-        paddingTop: 3,
-        paddingBottom: 96,
+    
+        paddingBottom: 0,
         flexGrow: 1,
       }}
       columnWrapperStyle={{ columnGap: 16, marginBottom: 14 }}
       ListHeaderComponent={
-        <View className="w-full py-5 px-3">
+        <View className="w-full py-4 px-3 -mt-2">
           <Text
             className="text-lg font-bold"
-            style={[{ color: CoralPalette.dark }, FONT]}
+            style={[{ color: CoralPalette.mutedDark }, FONT]}
           >
             Choose your companion...
           </Text>
@@ -50,7 +50,7 @@ const PetsTab = ({ pets, focusedPet, setFocusedPet }: PetsTabProps) => {
             className="mt-2 text-sm text-center"
             style={[{ color: CoralPalette.mutedDark }, FONT]}
           >
-            Visit the store to adopt your first companion.
+            Rank up to adopt your first companion.
           </Text>
         </View>
       }
@@ -67,8 +67,8 @@ const PetsTab = ({ pets, focusedPet, setFocusedPet }: PetsTabProps) => {
                 {
                   paddingHorizontal: 12,
                   paddingVertical: 12,
-                  borderRadius: 20,
-                  borderWidth: 1,
+                  borderRadius: 10,
+                  borderWidth: 5,
                   borderColor: CoralPalette.surfaceAlt,
                   backgroundColor: CoralPalette.surfaceAlt,
                   shadowColor: "#000",
@@ -78,8 +78,8 @@ const PetsTab = ({ pets, focusedPet, setFocusedPet }: PetsTabProps) => {
                   elevation: 2,
                 },
                 isFocused && {
-                  borderColor: CoralPalette.primary,
-                  backgroundColor: `${CoralPalette.primary}25`,
+                  borderColor: CoralPalette.primaryMuted,
+                  borderWidth: 5,
                   shadowOpacity: 0.14,
                 },
               ]}
@@ -88,7 +88,7 @@ const PetsTab = ({ pets, focusedPet, setFocusedPet }: PetsTabProps) => {
                 source={
                   images[item.id as keyof typeof images] ?? images.lighting
                 }
-                className="w-16 h-20 rounded-2xl mr-5 ml-1"
+                className="w-16 h-20 rounded-2xl mr-3 ml-1"
                 resizeMode="contain"
               />
 

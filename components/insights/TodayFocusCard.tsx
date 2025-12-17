@@ -245,9 +245,9 @@ export default function TodayFocusCard() {
       ) : null}
 
       <View
-        className="rounded-3xl p-4"
+        className="p-4"
         style={[
-          { backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+          { borderRadius: 5, backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.lightGrey, borderWidth: 1, minHeight: 120 },
           CARD_SHADOW,
         ]}
       >

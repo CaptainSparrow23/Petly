@@ -20,9 +20,8 @@ const toNumber = (value: unknown, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const computeLevelMeta = (totalXPRaw: unknown) => {
+const computeLevelMeta = (totalXPRaw: unknown, maxLevel: number = 9) => {
     const totalXP = Math.max(0, toNumber(totalXPRaw, 0));
-    const maxLevel = 10;
     const xpNeededForNext = (currentLevel: number) =>
         Math.round(50 * Math.pow(currentLevel, 1.5)); // XP to go from L to L+1 (rounded to whole XP)
 
@@ -217,7 +216,7 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                 if (profile.petFriendships) {
                     Object.entries(profile.petFriendships as Record<string, any>).forEach(([petId, val]) => {
                         petFriendships[petId] = {
-                            ...computeLevelMeta((val as any)?.totalXP),
+                            ...computeLevelMeta((val as any)?.totalXP, 4),
                             totalFocusSeconds: toNumber((val as any)?.totalFocusSeconds, 0),
                         };
                     });

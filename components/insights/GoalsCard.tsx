@@ -250,14 +250,28 @@ export default function GoalsCard({
   return (
     <>
       <View
-        className="rounded-3xl p-5 mt-2"
+        className="p-5 mt-2"
         style={[
-          { backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+          { borderRadius: 5, backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.lightGrey, borderWidth: 1 },
           CARD_SHADOW,
         ]}
       >
-        <View className="flex-row justify-between items-center">
+        <View className="flex-row justify-between items-center relative">
           <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: '700' }, FONT]}>Goals</Text>
+          {canClaim && (
+            <View
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                width: 12,
+                height: 12,
+                borderRadius: 6,
+                backgroundColor: '#FF3B30',
+                zIndex: 10,
+              }}
+            />
+          )}
           <View className="min-w-[70px] h-[30px]">
             {canClaim && (
               <TouchableOpacity

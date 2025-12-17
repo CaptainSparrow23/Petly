@@ -1,20 +1,33 @@
 import { DrawerActions } from '@react-navigation/native';
-import { useNavigation } from 'expo-router';
-import React from 'react';
+import { useNavigation, useSegments } from 'expo-router';
+import React, { useMemo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { Menu } from 'lucide-react-native';
-import { useHasUnclaimedRewards } from '@/utils/hasUnclaimedRewards';
-import { useHasFriendRequests } from '@/utils/hasFriendRequests';
+import { useNotifications } from '@/utils/useNotifications';
 import { CoralPalette } from '@/constants/colors';
+import * as Haptics from 'expo-haptics';
+import { useGlobalContext } from '@/lib/GlobalProvider';
 
 export const MenuButton = () => {
   const navigation = useNavigation();
-  const hasUnclaimedRewards = useHasUnclaimedRewards();
-  const hasFriendRequests = useHasFriendRequests();
+  const segments = useSegments();
+  const { appSettings } = useGlobalContext();
+  
+  // Get current route path from segments
+  const currentRoute = useMemo(() => {
+    return segments.join('/');
+  }, [segments]);
+  
+  const notifications = useNotifications(currentRoute);
 
   return (
     <TouchableOpacity 
-      className="p-2.5 rounded-lg ml-2"
+      className="p-3 rounded-lg ml-3 mt-2"
+      onPressIn={() => {
+        if (appSettings.vibrations) {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        }
+      }}
       onPress={() => {
         navigation.dispatch(DrawerActions.toggleDrawer());
       }}
@@ -24,7 +37,7 @@ export const MenuButton = () => {
       }}
     >
       <Menu size={24} color={CoralPalette.white} />
-      {(hasUnclaimedRewards || hasFriendRequests) && (
+      {notifications.hasAny && (
         <View
           style={{
             position: 'absolute',

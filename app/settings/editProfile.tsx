@@ -177,7 +177,7 @@ const renderProfileOption = ({ item }: { item: { id: number; name: string } }) =
     <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
       <View className="relative flex-row mb-1 items-center justify-between px-4 py-4">
     <TouchableOpacity onPress={() => router.back()}>
-     <ChevronLeft size={24} color={CoralPalette.dark} />
+     <ChevronLeft size={30} color={CoralPalette.dark} />
     </TouchableOpacity>
     <View className="absolute items-center justify-center left-0 right-0">
     <Text className="text-[17px] font-bold" style={[{color: CoralPalette.dark }, FONT]}>

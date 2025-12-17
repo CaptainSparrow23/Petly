@@ -9,23 +9,13 @@ const SESSION_COMPLETE_ID = "session-complete";
 // Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
-    // Don't show session complete notifications when app is in foreground
-    // User will see the completion naturally in the app
-    if (notification.request.identifier === SESSION_COMPLETE_ID) {
-      return {
-        shouldPlaySound: false,
-        shouldSetBadge: false,
-        shouldShowBanner: false,
-        shouldShowList: false,
-      };
-    }
-    
-    // Show other notifications normally
+    // Suppress all notifications when app is in foreground
+    // User is actively using the app, so notifications are not needed
     return {
-      shouldPlaySound: true,
+      shouldPlaySound: false,
       shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
+      shouldShowBanner: false,
+      shouldShowList: false,
     };
   },
 });

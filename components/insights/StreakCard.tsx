@@ -43,13 +43,13 @@ export default function StreakCard({ streak = 0 }: { streak?: number }) {
 
   return (
     <View
-      className="rounded-3xl p-4 justify-between items-end"
+      className="p-4 justify-between items-end"
       style={[
-        { width: "31%", backgroundColor: CoralPalette.surfaceAlt , borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+        { width: "31%", borderRadius: 5, backgroundColor: CoralPalette.surfaceAlt , borderColor: CoralPalette.lightGrey, borderWidth: 1, minHeight: 120 },
         CARD_SHADOW,
       ]}
     >
-      <Text style={[{ color: CoralPalette.mutedDark, fontSize: 14 }, FONT]}>Focus streak</Text>
+      <Text style={[{ color: CoralPalette.mutedDark, fontSize: 13 }, FONT]}>Focus streak</Text>
       <View className="items-end justify-between">
         <View className='items-end'>
           <Text className="-mt-2" style={[{ fontSize: 54, fontWeight: "800", color: CoralPalette.primary }, FONT]}>

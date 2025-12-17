@@ -10,6 +10,14 @@ config.resolver.assetExts = config.resolver.assetExts.filter(ext => ext !== 'svg
 config.resolver.sourceExts.push('svg');
 config.resolver.assetExts.push('riv');
 
+// Ensure Fast Refresh is enabled
+config.server = {
+  ...config.server,
+  enhanceMiddleware: (middleware) => {
+    return middleware;
+  },
+};
+
 // Wrap with NativeWind and export
 module.exports = withNativeWind(config, {
   input: './app/global.css',

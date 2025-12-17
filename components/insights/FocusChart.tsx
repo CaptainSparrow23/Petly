@@ -45,7 +45,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   // Calculate today fresh on each render to ensure it's current
   const today = new Date();
   const [view, setView] = useState<ViewState>({
-    mode: "day",
+    mode: "month",
     day: today.getDate(),
     month: today.getMonth(),
     year: today.getFullYear(),
@@ -218,9 +218,9 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
 
   return (
     <View
-      className="relative my-4 rounded-3xl p-5"
+      className="relative my-4 p-5"
       style={[
-        { backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.surfaceAlt, borderWidth: 1 },
+        { borderRadius: 5, backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.lightGrey, borderWidth: 1 },
         CARD_SHADOW,
       ]}
     >
@@ -401,7 +401,7 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
   const days = useMemo(() => Array.from({ length: maxDay }, (_, i) => i + 1), [maxDay]);
 
   const pickerStyle = { color: CoralPalette.dark };
-  const pickerItemStyle = Platform.select({ ios: { height: 160, color: CoralPalette.dark, fontFamily: "Nunito" } });
+  const pickerItemStyle = Platform.select({ ios: { height: 120, color: CoralPalette.dark, fontFamily: "Nunito" } });
 
   // Animated style for the pill background
   const animatedPillStyle = useAnimatedStyle(() => {
@@ -422,11 +422,12 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 bg-black/40 justify-center items-center">
-        <View className="w-[90%] max-w-md rounded-3xl p-7" style={{ backgroundColor: CoralPalette.white, borderColor: CoralPalette.white, borderWidth: 1 }}>
+        <View className="w-[90%] max-w-md p-7" style={{ borderRadius: 30, backgroundColor: CoralPalette.surface }}>
           {/* Tabs */}
           <View 
             ref={tabContainerRef}
-            className="flex-row bg-[#f7ece7] rounded-full p-1 mb-4 relative"
+            className="flex-row p-1 mb-4 relative"
+            style={{ borderRadius: 5, backgroundColor: CoralPalette.white }}
             onLayout={(e) => {
               // Measure container and calculate tab width
               const containerWidth = e.nativeEvent.layout.width;
@@ -449,7 +450,7 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
                     top: 4,
                     bottom: 4,
                     backgroundColor: CoralPalette.primary,
-                    borderRadius: 999,
+                    borderRadius: 5,
                   },
                   animatedPillStyle,
                 ]}
@@ -458,8 +459,9 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
             {(["day", "month", "year"] as const).map((m) => (
               <TouchableOpacity
                 key={m}
-                className="flex-1 rounded-full py-2 z-10"
+                className="flex-1 py-2 z-10"
                 onPress={() => setDraft(p => ({ ...p, mode: m }))}
+                style={{ borderRadius: 5 }}
               >
                 <Text className="text-center text-sm font-semibold" style={[{ color: draft.mode === m ? "#fff" : CoralPalette.dark }, FONT]}>
                   {m.charAt(0).toUpperCase() + m.slice(1)}
@@ -468,12 +470,12 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
             ))}
           </View>
 
-          <Text className="text-center text-lg font-semibold mb-4" style={[{ color: CoralPalette.dark }, FONT]}>
+          <Text className="text-center text-xl font-bold py-3 mb-3" style={[{ color: CoralPalette.dark }, FONT]}>
             {getLabel(draft)}
           </Text>
 
           {/* Pickers */}
-          <View className="rounded-2xl overflow-hidden border border-gray-200">
+          <View className="rounded-2xl overflow-hidden" style={{  backgroundColor: CoralPalette.white }}>
             {draft.mode === "day" && (
                <Picker selectedValue={draft.day} onValueChange={d => setDraft(p => ({...p, day: d}))} style={pickerStyle} itemStyle={pickerItemStyle}>
                  {days.map(d => <Picker.Item key={d} label={d === todayDate && draft.month === todayMonth && draft.year === todayYear ? "Today" : `${d}`} value={d} color={CoralPalette.dark} />)}
@@ -493,8 +495,8 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
 
           {/* Buttons */}
           <View className="flex-row gap-3 mt-6">
-            <TouchableOpacity className="flex-1 rounded-2xl py-3 items-center bg-gray-200/50" onPress={onClose}>
-              <Text className="text-base font-semibold text-gray-500" style={FONT}>Cancel</Text>
+            <TouchableOpacity className="flex-1 rounded-2xl py-3 items-center" style={{ backgroundColor: CoralPalette.white }} onPress={onClose}>
+              <Text className="text-base font-semibold text-black" style={FONT}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity className="flex-1 rounded-2xl py-3 items-center" style={{ backgroundColor: CoralPalette.primary }} onPress={() => onConfirm(draft)}>
               <Text className="text-base font-semibold text-white" style={FONT}>Confirm</Text>

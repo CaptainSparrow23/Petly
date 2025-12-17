@@ -11,7 +11,7 @@ export default function CoinBadge() {
 
   return (
     <View
-      className="absolute top-1 right-0 z-20 mr-2 flex-row items-center rounded-full"
+      className="absolute top-3 right-0 z-20 mr-2 flex-row items-center rounded-full"
       style={{
         backgroundColor: CoralPalette.surfaceAlt,
         borderColor: CoralPalette.border,
