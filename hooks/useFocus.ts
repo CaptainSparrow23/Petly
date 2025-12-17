@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { getApiBaseUrl } from "@/utils/api";
 
-export type SessionActivity = "Focus" | "Rest";
+export type SessionActivity = string; // Can be any tag label like "Focus", "Work", "Study", "Rest", etc.
 
 export interface SessionPayload {
   userId: string;

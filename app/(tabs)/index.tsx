@@ -13,7 +13,7 @@ import { Timer, Hourglass } from "lucide-react-native";
 import { DrawerActions } from "@react-navigation/native";
 import { useFocusEffect, useNavigation } from "expo-router";
 import { MenuButton } from "@/components/other/MenuButton";
-import ModePickerModal from "../../components/focus/ModePickerModal";
+import { SheetManager } from "react-native-actions-sheet";
 import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
 import TimeTracker from "../../components/focus/TimeTracker";
 import PetAnimation from "../../components/focus/PetAnimation";
@@ -38,8 +38,7 @@ import * as Haptics from 'expo-haptics';
 export default function IndexScreen() {
   // UI mode/timer state
   const [mode, setMode] = useState<"timer" | "countdown">("countdown");
-  const [activity, setActivity] = useState<"Focus" | "Rest">("Focus");
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [activity, setActivity] = useState<string>("Focus");
 
   const INITIAL_COUNTDOWN_SECONDS = 20 * 60;
   const GRACE_SECONDS = 10;
@@ -127,7 +126,31 @@ export default function IndexScreen() {
 
   const progress =
     mode === "countdown" ? secondsLeft / maxSessionSeconds : secondsElapsed / maxSessionSeconds;
-  const isRest = activity !== "Focus";
+  const isRest = activity === "Rest";
+
+  // Get the selected tag from userProfile
+  const selectedTag = useMemo(() => {
+    if (userProfile?.tagList && Array.isArray(userProfile.tagList) && userProfile.tagList.length > 0) {
+      // First try to find by selectedTag ID
+      if (userProfile.selectedTag) {
+        const tagById = userProfile.tagList.find((tag: any) => tag.id === userProfile.selectedTag);
+        if (tagById) return tagById;
+      }
+      // Fallback to matching by activity label
+      const tagByLabel = userProfile.tagList.find((tag: any) => tag.label === activity);
+      if (tagByLabel) return tagByLabel;
+      // Fallback to first tag
+      return userProfile.tagList[0];
+    }
+    // Default tags if no tagList
+    const defaultTags = [
+      { id: "focus", label: "Focus", color: CoralPalette.primary },
+      { id: "rest", label: "Rest", color: "#9AA587" },
+      { id: "work", label: "Work", color: CoralPalette.green },
+      { id: "study", label: "Study", color: CoralPalette.blue },
+    ];
+    return defaultTags.find(tag => tag.label === activity) || defaultTags[0];
+  }, [userProfile?.tagList, userProfile?.selectedTag, activity]);
   const trackColor = CoralPalette.primary;
   const trackBgColor = "rgba(255,255,255,0.5)";
   const centerFillColor = CoralPalette.surface;
@@ -502,8 +525,8 @@ export default function IndexScreen() {
 
   const infoText = useMemo(() => {
     if (!running) return `You have focused for ${dailyFocusLabel()} today.`;
-    if (activity === "Focus") return "Work hard and stay focused!";
-    return "Getting some rest...";
+    if (activity === "Rest") return "Getting some rest...";
+    return `Working on ${activity}...`;
   }, [running, activity, dailyFocusLabel]);
 
   const handleOpenPicker = () => {
@@ -511,7 +534,29 @@ export default function IndexScreen() {
       showBanner("End your session before changing activity.", "error");
       return;
     }
-    setPickerOpen(true);
+    const displaySeconds = previewSeconds ?? secondsToShow;
+    const totalMinutes = Math.floor(displaySeconds / 60);
+    const seconds = Math.floor(displaySeconds % 60);
+    const mm = totalMinutes.toString().padStart(2, "0");
+    const ss = seconds.toString().padStart(2, "0");
+    const timerDisplay = `${mm}:${ss}`;
+    
+    void SheetManager.show("tag-selection", {
+      payload: {
+        currentActivity: activity,
+        currentTimerValue: timerDisplay,
+        currentTimerSeconds: displaySeconds,
+        onSelect: setActivity,
+        onTimeChange: (newSeconds: number) => {
+          if (mode === "countdown") {
+            setSecondsLeft(newSeconds);
+            setLastCountdownTargetSec(newSeconds);
+          }
+        },
+        onStart: handleStart,
+        onClosed: () => {},
+      },
+    });
   };
 
 
@@ -583,14 +628,14 @@ export default function IndexScreen() {
             <View
               className="w-3 h-3 rounded-full mr-2"
               style={{
-                backgroundColor: isRest ? "#9AA587" : CoralPalette.primary,
+                backgroundColor: selectedTag?.color || CoralPalette.primary,
               }}
             />
             <Text
               className="text-sm font-semibold"
               style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}
             >
-              {activity}
+              {selectedTag?.label || activity}
             </Text>
           </TouchableOpacity>
         </View>
@@ -640,10 +685,15 @@ export default function IndexScreen() {
             }}
             onPressOut={handleButtonPressOut}
             disabled={!running && countdownInvalid}
-            className="w-40 items-center py-3 mb-5 rounded-xl shadow-sm opacity-100"
+            className="w-40 items-center py-3 mb-5 rounded-xl"
             style={{
               backgroundColor: CoralPalette.primary,
               opacity: running ? 0.9 : countdownInvalid ? 0.6 : 1,
+              shadowColor: CoralPalette.primaryDark,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 1,
+              shadowRadius: 1,
+              elevation: 0,
             }}
             activeOpacity={1}
           >
@@ -660,13 +710,6 @@ export default function IndexScreen() {
           </TouchableOpacity>
         </Animated.View>
       </View>
-
-      <ModePickerModal
-        visible={pickerOpen}
-        currentActivity={activity}
-        onSelect={setActivity}
-        onClose={() => setPickerOpen(false)}
-      />
 
       <ConfirmStopModal
         visible={stopModalOpen}

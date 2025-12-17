@@ -42,15 +42,16 @@ export default function SessionEndModal({
 
     if (visible) {
       setMounted(true);
-      Animated.timing(anim, {
+      Animated.spring(anim, {
         toValue: 1,
-        duration: 200,
+        tension: 50,
+        friction: 7,
         useNativeDriver: true,
       }).start();
     } else {
       Animated.timing(anim, {
         toValue: 0,
-        duration: 200,
+        duration: 150,
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (finished && !visibleRef.current) setMounted(false);
@@ -82,7 +83,12 @@ export default function SessionEndModal({
 
   const translateY = anim.interpolate({
     inputRange: [0, 1],
-    outputRange: [height, 0],
+    outputRange: [0, 0], // No slide from bottom
+  });
+
+  const scale = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.95, 1], // Slight scale for smooth appearance
   });
 
   // Button press animation handlers
@@ -121,10 +127,10 @@ export default function SessionEndModal({
       >
         <View className="flex-1 items-center justify-center px-2">
           <Animated.View
-            className="flex-col items-center rounded-3xl w-2/3 h-3/10 p-5"
+            className="flex-col items-center rounded-2xl w-[65%] p-5"
             style={{
-              backgroundColor: CoralPalette.surfaceAlt,
-              transform: [{ translateY }],
+              backgroundColor: CoralPalette.greyLighter,
+              transform: [{ translateY }, { scale }],
             }}
           >
             <Text className="text-xl font-semibold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>
@@ -204,7 +210,7 @@ export default function SessionEndModal({
                     onPress={onClose}
                     onPressIn={handleReturnPressIn}
                     onPressOut={handleReturnPressOut}
-                    className="py-3 w-60 items-center justify-center rounded-full mt-6"
+                    className="py-3 w-60 items-center justify-center rounded-2xl mt-6"
                     style={{ backgroundColor: CoralPalette.primary }}
                     activeOpacity={1}
                   >

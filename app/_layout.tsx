@@ -4,6 +4,7 @@ import 'react-native-gesture-handler';
 import "./global.css";
 import { SheetProvider } from "react-native-actions-sheet";
 import "@/components/store/register-sheets";
+import "@/components/focus/TagSelectionSheet";
 import { useEffect } from "react";
 import { Text, TextInput } from "react-native";
 import { useFonts } from "expo-font";
