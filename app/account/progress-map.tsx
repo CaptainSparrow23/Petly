@@ -11,7 +11,7 @@ import {
 import Rive from "rive-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Constants from "expo-constants";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, Check } from "lucide-react-native";
 import { router } from "expo-router";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
@@ -31,19 +31,18 @@ const UNLOCK_TRIGGER_INPUT = "unlock";
 // These are fractions of the map width/height, so nodes stay pinned even when screen size changes.
 const NODE_POINTS: Array<{ level: number; x: number; y: number }> = [
   // Top segment
-  { level: 1, x: 0.15, y: 0.31 },
-  { level: 2, x: 0.39, y: 0.365 },
+  { level: 1, x: 0.27, y: 0.345},
+  { level: 2, x: 0.75, y: 0.38 },
   // Upper mid
-  { level: 3, x: 0.7, y: 0.39 },
-  { level: 4, x: 0.16, y: 0.44 },
+  { level: 3, x: 0.15, y: 0.45 },
+  { level: 4, x: 0.49, y: 0.48 },
   // Around the bridge / mid section
-  { level: 5, x: 0.49, y: 0.47 },
-  { level: 6, x: 0.84, y: 0.5 },
+  { level: 5, x: 0.86, y: 0.52 },
+  { level: 6, x: 0.19, y: 0.60},
   // Lower S curves
-  { level: 7, x: 0.21, y: 0.58 },
-  { level: 8, x: 0.76, y: 0.66 },
-  { level: 9, x: 0.51, y: 0.7 },
-  { level: 10, x: 0.3, y: 0.79 },
+  { level: 7, x: 0.48, y: 0.65 },
+  { level: 8, x: 0.775, y: 0.70 },
+  { level: 9, x: 0.285, y: 0.8 },
 ]
 
 interface RewardNode {
@@ -57,6 +56,55 @@ export default function ProgressMap() {
   const { userProfile, showBanner, refetchUserProfile } = useGlobalContext();
   const currentLevel = userProfile?.level ?? 1;
   const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string | undefined;
+
+  // Level progression data (same as profile page)
+  const level = userProfile?.level ?? 1;
+  const xpIntoLevel = userProfile?.xpIntoLevel ?? 0;
+  const xpToNextLevel = userProfile?.xpToNextLevel ?? 50;
+  const xpTotal = xpIntoLevel + xpToNextLevel;
+
+  // Display semantics: when the bar is visually full, we want to show the *next* level
+  // starting at 0 / next-level XP instead of "current level with a full bar".
+  const MAX_LEVEL = 9;
+  const xpNeededForNext = (currentLevel: number) =>
+    Math.round(50 * Math.pow(currentLevel, 1.5)); // must stay in sync with backend computeLevelMeta
+
+  let displayXpIntoLevel = xpIntoLevel;
+  let displayXpTotal = xpTotal;
+
+  const barLooksFull =
+    level < MAX_LEVEL &&
+    xpTotal > 0 &&
+    // Treat as full if we're within ~0.5 XP of the end of the bar
+    xpIntoLevel >= xpTotal - 0.5;
+
+  if (barLooksFull) {
+    const nextLevel = Math.min(level + 1, MAX_LEVEL);
+    displayXpIntoLevel = 0;
+    displayXpTotal = xpNeededForNext(nextLevel);
+  }
+
+  const levelProgress =
+    displayXpTotal > 0 ? (displayXpIntoLevel / displayXpTotal) * 100 : 0;
+
+  // Get next pet unlock
+  const nextPetUnlock = useMemo(() => {
+    const unlockLevels = [1, 3, 5, 7, 9];
+    const petNames: Record<number, string> = {
+      1: "Smurf",
+      3: "Pebbles",
+      5: "Chedrick",
+      7: "Gooner",
+      9: "Kitty",
+    };
+
+    for (const unlockLevel of unlockLevels) {
+      if (level < unlockLevel) {
+        return { level: unlockLevel, name: petNames[unlockLevel] };
+      }
+    }
+    return null; // Max level reached
+  }, [level]);
 
   // 16:9 vertical-ish container based on screen width
   const MAP_ASPECT = 17 / 9; // height / width
@@ -78,9 +126,21 @@ export default function ProgressMap() {
   const rewardNodes = useMemo((): RewardNode[] => {
     const nodes: RewardNode[] = [];
     
-    for (let level = 1; level <= 10; level++) {
-      // First node gets laptop image
+    for (let level = 1; level <= 9; level++) {
+      // Level 1: smurf (pet)
       if (level === 1) {
+        const petImage = images.pet_smurf;
+        nodes.push({
+          level,
+          type: "pet",
+          petId: "pet_smurf",
+          icon: petImage,
+        });
+        continue;
+      }
+      
+      // Level 2: laptop (gadget)
+      if (level === 2) {
         nodes.push({
           level,
           type: "regular",
@@ -89,8 +149,41 @@ export default function ProgressMap() {
         continue;
       }
       
-      // Fifth node gets pot and stove image
+      // Level 3: pebbles (pet)
+      if (level === 3) {
+        const petImage = images.pet_pebbles;
+        nodes.push({
+          level,
+          type: "pet",
+          petId: "pet_pebbles",
+          icon: petImage,
+        });
+        continue;
+      }
+      
+      // Level 4: empty
+      if (level === 4) {
+        nodes.push({
+          level,
+          type: "regular",
+        });
+        continue;
+      }
+      
+      // Level 5: chedrick (pet)
       if (level === 5) {
+        const petImage = images.pet_chedrick;
+        nodes.push({
+          level,
+          type: "pet",
+          petId: "pet_chedrick",
+          icon: petImage,
+        });
+        continue;
+      }
+      
+      // Level 6: pot and stove (gadget)
+      if (level === 6) {
         nodes.push({
           level,
           type: "regular",
@@ -98,9 +191,21 @@ export default function ProgressMap() {
         });
         continue;
       }
-
-      // Seventh node gets cello artisan gadget
+      
+      // Level 7: gooner (pet)
       if (level === 7) {
+        const petImage = images.pet_gooner;
+        nodes.push({
+          level,
+          type: "pet",
+          petId: "pet_gooner",
+          icon: petImage,
+        });
+        continue;
+      }
+      
+      // Level 8: cello artisan (gadget)
+      if (level === 8) {
         nodes.push({
           level,
           type: "regular",
@@ -109,23 +214,16 @@ export default function ProgressMap() {
         continue;
       }
       
-      const petId = Object.keys(PET_UNLOCK_LEVELS).find(
-        (id) => PET_UNLOCK_LEVELS[id] === level
-      );
-      
-      if (petId) {
-        const petImage = images[petId as keyof typeof images];
+      // Level 9: kitty (pet)
+      if (level === 9) {
+        const petImage = images.pet_kitty;
         nodes.push({
           level,
           type: "pet",
-          petId,
+          petId: "pet_kitty",
           icon: petImage,
         });
-      } else {
-        nodes.push({
-          level,
-          type: "regular",
-        });
+        continue;
       }
     }
     
@@ -154,6 +252,13 @@ export default function ProgressMap() {
   const riveInputInitialized = useRef<Record<number, boolean>>({});
   // Per-level scale for reward icon so we can pop it in after unlock
   const iconScaleByLevel = useRef<Record<number, Animated.Value>>({});
+  
+  // Initial pop-out animation for nodes on mount
+  const nodePopScaleByLevel = useRef<Record<number, Animated.Value>>({});
+
+  // Slide-in animations for overlays
+  const focusRankSlideY = useRef(new Animated.Value(-200)).current; // Start above screen
+  const legendSlideY = useRef(new Animated.Value(200)).current; // Start below screen
 
   // Background animation values
   const particleAnimations = useRef(
@@ -164,6 +269,45 @@ export default function ProgressMap() {
       scale: new Animated.Value(0.5 + Math.random() * 0.5),
     }))
   ).current;
+
+
+  // Animate overlays sliding in on mount
+  useEffect(() => {
+    // Focus Rank slides in from top
+    Animated.spring(focusRankSlideY, {
+      toValue: 0,
+      tension: 50,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+
+    // Legend slides in from bottom
+    Animated.spring(legendSlideY, {
+      toValue: 0,
+      tension: 50,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+
+    // Animate nodes popping out with staggered delays
+    rewardNodes.forEach((node, index) => {
+      if (!nodePopScaleByLevel.current[node.level]) {
+        nodePopScaleByLevel.current[node.level] = new Animated.Value(0);
+      }
+      
+      const delay = index * 50; // Stagger each node by 50ms
+      const scaleAnim = nodePopScaleByLevel.current[node.level];
+      
+      setTimeout(() => {
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 40,
+          friction: 6,
+          useNativeDriver: true,
+        }).start();
+      }, delay);
+    });
+  }, []);
 
   // Start background animations on mount
   useEffect(() => {
@@ -232,6 +376,7 @@ export default function ProgressMap() {
       });
     };
   }, [mapWidth, mapHeight]);
+
 
   // When the user profile changes, hydrate claimedLevels from backend state
   useEffect(() => {
@@ -467,7 +612,7 @@ export default function ProgressMap() {
           {rewardNodes.map((node, index) => {
             const position = nodePositions[index];
             const isUnlocked = currentLevel >= node.level;
-            const nodeSize = 60; // All nodes same size
+            const nodeSize = 65; // All nodes same size
             const borderWidth = 5;
             const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -495,6 +640,12 @@ export default function ProgressMap() {
               );
             }
             const iconScale = iconScaleByLevel.current[node.level];
+            
+            // Get or create initial pop scale for this node
+            if (!nodePopScaleByLevel.current[node.level]) {
+              nodePopScaleByLevel.current[node.level] = new Animated.Value(0);
+            }
+            const nodePopScale = nodePopScaleByLevel.current[node.level];
 
             const handlePressIn = () => {
               Animated.spring(scaleAnim, {
@@ -557,8 +708,8 @@ export default function ProgressMap() {
                 // Mark as claimed locally so UI updates immediately
                 setClaimedLevels((prev) => ({ ...prev, [node.level]: true }));
                 
-                // Refetch user profile to sync claimedLevelRewards from backend
-                refetchUserProfile?.();
+                // Refetch user profile to sync claimedLevelRewards and owned lists from backend
+                await refetchUserProfile?.();
                 
                 showBanner(`Rewards for level ${node.level} claimed!`, "success");
               } catch (err) {
@@ -593,8 +744,11 @@ export default function ProgressMap() {
                     transform: [
                       {
                         scale: isClaimable
-                          ? Animated.multiply(scaleAnim, claimableBounce)
-                          : scaleAnim,
+                          ? Animated.multiply(
+                              nodePopScale,
+                              Animated.multiply(scaleAnim, claimableBounce)
+                            )
+                          : Animated.multiply(nodePopScale, scaleAnim),
                       },
                       // While unlocking, slightly enlarge the node to catch attention
                       ...unlockScaleTransform,
@@ -616,7 +770,7 @@ export default function ProgressMap() {
                         : isClaimable
                         ? CoralPalette.primary
                         : isNextLevel
-                        ? CoralPalette.purple
+                        ? CoralPalette.purpleBright
                         : isFarLocked
                         ? CoralPalette.grey
                         : CoralPalette.greenLight,
@@ -624,8 +778,8 @@ export default function ProgressMap() {
                       justifyContent: "center",
                       shadowColor: "#000",
                       shadowOffset: { width: 1, height: 4 },
-                      shadowOpacity: 0.5,
-                      shadowRadius: 0.5,
+                      shadowOpacity: 0.2,
+                      shadowRadius: 1,
                     }}
                   >
                   {/* Visual priority:
@@ -646,13 +800,12 @@ export default function ProgressMap() {
                           }}
                         />
                       )}
-                      <Image
-                        source={images.tick}
+                      <Check
+                        size={nodeSize * 0.6}
+                        color={CoralPalette.greenDark}
+                        strokeWidth={3.5}
                         style={{
                           position: 'absolute',
-                          width: nodeSize * 0.5,
-                          height: nodeSize * 0.5,
-                          resizeMode: "contain",
                         }}
                       />
                     </View>
@@ -717,9 +870,9 @@ export default function ProgressMap() {
                 <Text
                   style={{
                     color: CoralPalette.white,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: "900",
-                    marginTop: 6,
+                    marginTop: 2,
                     fontFamily: "Nunito",
                   }}
                 >
@@ -729,14 +882,94 @@ export default function ProgressMap() {
             );
           })}
 
-          {/* Legend Overlay */}
-          <View
+          {/* Focus Rank View Overlay */}
+          <Animated.View
             style={{
               position: "absolute",
-              top: 30,
-              left: 170,
-              right: 30,
-              paddingHorizontal: 0,
+              top: 20,
+              left: 20,
+              right: 20,
+              padding: 16,
+              backgroundColor: CoralPalette.white,
+              borderWidth: 1,
+              borderColor: CoralPalette.surfaceAlt,
+              borderRadius: 10,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 5,
+              elevation: 10,
+              transform: [{ translateY: focusRankSlideY }],
+            }}
+            pointerEvents="box-none"
+          >
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-col items-start">
+                <Text
+                  style={[{ paddingLeft: 2, color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}
+                >
+                  Focus Rank
+                </Text>
+                <Text
+                  style={[{ paddingLeft: 2, color: CoralPalette.mutedDark, fontSize: 10 }, FONT]}
+                >
+                  Rank up to unlock new pets and gadgets
+                </Text>
+              </View>
+              <View className="flex-row items-center">
+                <View className="w-12 h-12 p-1 rounded-full" style={{ backgroundColor: CoralPalette.greenDark }}>
+                  <Text
+                    className="text-center"
+                    style={[{ color: CoralPalette.white, fontSize: 26, fontWeight: "700" }, FONT]}
+                  >
+                    {level}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            
+            <View
+              style={{
+                height: 12,
+                borderRadius: 6,
+                backgroundColor: CoralPalette.greenLighter,
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  width: `${levelProgress}%`,
+                  height: "100%",
+                  backgroundColor: CoralPalette.green,
+                  borderRadius: 6,
+                }}
+              />
+            </View>
+            <View className="flex-row mt-2 items-center justify-between">
+              {nextPetUnlock && (
+                <Text
+                  className="text-xs mt-2"
+                  style={[{ paddingLeft: 2, color: CoralPalette.greenDark }, FONT]}
+                >
+                  Unlock {nextPetUnlock.name} at level {nextPetUnlock.level}
+                </Text>
+              )}
+              <Text
+                className="text-sm"
+                style={[{ color: CoralPalette.mutedDark }, FONT]}
+              >
+                {Math.round(displayXpIntoLevel)} / {Math.round(displayXpTotal)} XP
+              </Text>
+            </View>
+          </Animated.View>
+
+          {/* Legend Overlay */}
+          <Animated.View
+            style={{
+              position: "absolute",
+              bottom: 25,
+              left: mapWidth / 2 - 150,
+              paddingHorizontal: 16,
               paddingVertical: 10,
               backgroundColor: "rgba(255, 255, 255, 0.95)",
               borderRadius: 12,
@@ -750,33 +983,11 @@ export default function ProgressMap() {
               shadowOpacity: 0.1,
               shadowRadius: 4,
               elevation: 3,
+              width: 300,
+              transform: [{ translateY: legendSlideY }],
             }}
             pointerEvents="none"
           >
-            {/* Claimed */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <View
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  backgroundColor: CoralPalette.white,
-                  borderWidth: 2.5,
-                  borderColor: CoralPalette.primaryLighter,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Image
-                  source={images.tick}
-                  style={{ width: 10, height: 10, resizeMode: "contain" }}
-                />
-              </View>
-              <Text style={[{ fontSize: 11, color: CoralPalette.dark }, FONT]}>
-                Claimed
-              </Text>
-            </View>
-
             {/* Next Level */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <View
@@ -786,7 +997,7 @@ export default function ProgressMap() {
                   borderRadius: 9,
                   backgroundColor: CoralPalette.white,
                   borderWidth: 2.5,
-                  borderColor: CoralPalette.green,
+                  borderColor: CoralPalette.greenLight,
                 }}
               />
               <Text style={[{ fontSize: 11, color: CoralPalette.dark }, FONT]}>
@@ -794,8 +1005,40 @@ export default function ProgressMap() {
               </Text>
             </View>
 
-   
-          </View>
+            {/* Current Level */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <View
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  backgroundColor: CoralPalette.white,
+                  borderWidth: 2.5,
+                  borderColor: CoralPalette.purpleBright,
+                }}
+              />
+              <Text style={[{ fontSize: 11, color: CoralPalette.dark }, FONT]}>
+                Current Level
+              </Text>
+            </View>
+
+            {/* Locked */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <View
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  backgroundColor: CoralPalette.white,
+                  borderWidth: 2.5,
+                  borderColor: CoralPalette.grey,
+                }}
+              />
+              <Text style={[{ fontSize: 11, color: CoralPalette.dark }, FONT]}>
+                Locked
+              </Text>
+            </View>
+          </Animated.View>
         </View>
       </View>
     </View>

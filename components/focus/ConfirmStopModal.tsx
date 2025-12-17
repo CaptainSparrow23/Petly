@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Modal, View, Text, TouchableOpacity, Animated, useWindowDimensions } from "react-native";
 import { CoralPalette } from "@/constants/colors";
+import * as Haptics from 'expo-haptics';
+import { useGlobalContext } from '@/lib/GlobalProvider';
 
 type Props = {
   visible: boolean;
@@ -9,6 +11,7 @@ type Props = {
 };
 
 export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props) {
+  const { appSettings } = useGlobalContext();
   const { height } = useWindowDimensions();
   const [mounted, setMounted] = useState(visible);
   const anim = useRef(new Animated.Value(visible ? 1 : 0)).current;
@@ -24,13 +27,13 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
       setMounted(true);
       Animated.timing(anim, {
         toValue: 1,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }).start();
     } else {
       Animated.timing(anim, {
         toValue: 0,
-        duration: 260,
+        duration: 250,
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (finished && !visibleRef.current) setMounted(false);
@@ -50,6 +53,9 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
 
   // Button press animation handlers
   const handleCancelPressIn = () => {
+    if (appSettings.vibrations) {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
     Animated.spring(cancelButtonScale, {
       toValue: 0.95,
       useNativeDriver: true,
@@ -68,6 +74,9 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
   };
 
   const handleConfirmPressIn = () => {
+    if (appSettings.vibrations) {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
     Animated.spring(confirmButtonScale, {
       toValue: 0.95,
       useNativeDriver: true,
@@ -118,7 +127,7 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
                   onPress={onCancel}
                   onPressIn={handleCancelPressIn}
                   onPressOut={handleCancelPressOut}
-                  className="py-3 rounded-full"
+                  className="py-4 rounded-full"
                   style={{ 
                     backgroundColor: CoralPalette.white,
                     borderWidth: 1,
@@ -141,7 +150,7 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
                   onPress={onConfirm}
                   onPressIn={handleConfirmPressIn}
                   onPressOut={handleConfirmPressOut}
-                  className="py-3 rounded-full"
+                  className="py-4 rounded-full"
                   style={{ backgroundColor: CoralPalette.primary }}
                   activeOpacity={1}
                 >

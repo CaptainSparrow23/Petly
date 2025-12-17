@@ -1,5 +1,6 @@
 import React from "react";
-import { View, ViewStyle } from "react-native";
+import { View, ViewStyle, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { MotiView } from "moti";
 import { CoralPalette } from "@/constants/colors";
 
@@ -252,6 +253,183 @@ export const FocusChartSkeleton: React.FC = () => (
       <Skeleton width={60} height={28} radius={14} />
     </View>
   </View>
+);
+
+/**
+ * Skeleton for Profile page
+ */
+export const ProfileSkeleton: React.FC = () => (
+  <SafeAreaView style={{ flex: 1, backgroundColor: CoralPalette.surface }}>
+    {/* Header skeleton */}
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        backgroundColor: CoralPalette.surface,
+      }}
+    >
+      <Skeleton width={30} height={30} radius={4} />
+      <Skeleton width={100} height={20} radius={4} />
+      <Skeleton width={24} height={24} radius={4} />
+    </View>
+
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ backgroundColor: CoralPalette.surface }}
+    >
+      {/* Profile Header Section */}
+      <View style={{ paddingHorizontal: 20, marginTop: 16, paddingBottom: 8, alignItems: "center" }}>
+        <Skeleton width={98} height={98} radius={49} />
+        <Skeleton width={150} height={20} radius={4} style={{ marginTop: 8 }} />
+        <Skeleton width={120} height={14} radius={4} style={{ marginTop: 4 }} />
+      </View>
+
+      {/* Quick Stats Row */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-evenly" }}>
+          {[1, 2, 3].map((i) => (
+            <View key={i} style={{ flexDirection: "row", alignItems: "center" }}>
+              <Skeleton width={25} height={25} radius={4} />
+              <Skeleton width={40} height={28} radius={4} style={{ marginLeft: 8 }} />
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Level Progress Section */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+        <View
+          style={{
+            backgroundColor: CoralPalette.white,
+            borderWidth: 1,
+            borderColor: CoralPalette.surfaceAlt,
+            borderRadius: 10,
+            padding: 16,
+          }}
+        >
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Skeleton width={100} height={16} radius={4} />
+              <Skeleton width={180} height={10} radius={4} style={{ marginTop: 4 }} />
+            </View>
+            <Skeleton width={48} height={48} radius={24} />
+          </View>
+          <Skeleton width="100%" height={12} radius={6} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
+            <Skeleton width={120} height={12} radius={4} />
+            <Skeleton width={80} height={12} radius={4} />
+          </View>
+        </View>
+      </View>
+
+      {/* Overview Section */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+        <Skeleton width={80} height={14} radius={4} style={{ marginLeft: 8, marginBottom: 16 }} />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+          {[1, 2].map((i) => (
+            <View
+              key={i}
+              style={{
+                width: "47%",
+                backgroundColor: CoralPalette.white,
+                borderWidth: 1,
+                borderColor: CoralPalette.white,
+                borderRadius: 10,
+                padding: 16,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                <Skeleton width={20} height={20} radius={4} />
+                <Skeleton width={100} height={14} radius={4} style={{ marginLeft: 8 }} />
+              </View>
+              <Skeleton width={60} height={28} radius={4} style={{ marginLeft: 4 }} />
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Achievements Section */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 16 }}>
+          <Skeleton width={100} height={14} radius={4} style={{ marginLeft: 8 }} />
+          <Skeleton width={18} height={18} radius={4} />
+        </View>
+        <View
+          style={{
+            backgroundColor: CoralPalette.white,
+            borderWidth: 1,
+            borderColor: CoralPalette.white,
+            borderRadius: 10,
+            padding: 24,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Skeleton width={120} height={16} radius={4} />
+        </View>
+      </View>
+
+      {/* Collection Section */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 16 }}>
+          <Skeleton width={100} height={14} radius={4} style={{ marginLeft: 8 }} />
+          <Skeleton width={18} height={18} radius={4} />
+        </View>
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          {[1, 2, 3].map((i) => (
+            <View
+              key={i}
+              style={{
+                flex: 1,
+                backgroundColor: CoralPalette.white,
+                borderWidth: 1,
+                borderColor: CoralPalette.white,
+                borderRadius: 10,
+                padding: 16,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                <Skeleton width={20} height={20} radius={4} />
+                <Skeleton width={60} height={14} radius={4} style={{ marginLeft: 8 }} />
+              </View>
+              <Skeleton width={40} height={36} radius={4} style={{ marginLeft: 4 }} />
+              <Skeleton width={50} height={12} radius={4} style={{ marginLeft: 4, marginTop: 4 }} />
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Pet Friendships Section */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 16 }}>
+          <Skeleton width={140} height={14} radius={4} style={{ marginLeft: 8 }} />
+          <Skeleton width={18} height={18} radius={4} />
+        </View>
+        <View
+          style={{
+            backgroundColor: CoralPalette.white,
+            borderWidth: 4,
+            borderColor: CoralPalette.purpleLighter,
+            borderRadius: 16,
+            paddingVertical: 16,
+            paddingHorizontal: 10,
+          }}
+        >
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={{ alignItems: "center", width: 100 }}>
+                <Skeleton width={80} height={80} radius={40} />
+                <Skeleton width={70} height={14} radius={4} style={{ marginTop: 8 }} />
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+    </ScrollView>
+  </SafeAreaView>
 );
 
 export default Skeleton;

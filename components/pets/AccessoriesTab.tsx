@@ -49,7 +49,7 @@ const AccessoriesTab = ({
   const sortedGadgets = [...ownedGadgets].sort((a, b) => a.localeCompare(b));
 
   const pillAnim = useRef(new Animated.Value(0)).current;
-  const CATEGORY_WIDTH = 100;
+  const CATEGORY_WIDTH = 125;
 
   const handleCategoryChange = (category: AccessoryCategory) => {
     setActiveCategory(category);
@@ -62,10 +62,15 @@ const AccessoriesTab = ({
     }).start();
   };
 
-  // Initialize animation position
+  // Animate pill position when activeCategory changes (from parent or local)
   React.useEffect(() => {
     const index = activeCategory === "hat" ? 0 : activeCategory === "face" ? 1 : 2;
-    pillAnim.setValue(index * CATEGORY_WIDTH);
+    Animated.spring(pillAnim, {
+      toValue: index * CATEGORY_WIDTH,
+      useNativeDriver: true,
+      tension: 60,
+      friction: 10,
+    }).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCategory]);
 
@@ -75,108 +80,106 @@ const AccessoriesTab = ({
     setFocused: (item: string | null) => void,
     title: string
   ) => {
+    // Create array with null (X button) as first item, then all items
+    const allItems: (string | null)[] = [null, ...items];
+    
+    // Calculate number of rows needed (3 items per row)
+    const numRows = Math.ceil(allItems.length / 3);
+    
+    // Group items into rows of 3
+    const rows: (string | null)[][] = [];
+    for (let i = 0; i < numRows; i++) {
+      rows.push(allItems.slice(i * 3, i * 3 + 3));
+    }
+
     return (
-      <>
-        <Text
-          className="text-base font-extrabold mb-3"
-          style={[
-            { fontSize: 16, color: CoralPalette.dark, marginLeft: 40 },
-            FONT,
-          ]}
-        >
-          {title}
-        </Text>
-        <View style={{ minHeight: 80 }}>
-          <FlatList
-            data={items}
-            keyExtractor={(item) => item}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12, paddingLeft: 30 }}
-            ListHeaderComponent={
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => setFocused(null)}
-                style={[
-                  {
+      <View style={{ alignItems: "center", paddingHorizontal: 20 }}>
+        {rows.map((row, rowIndex) => (
+          <View
+            key={rowIndex}
+            style={{
+              flexDirection: "row",
+              paddingHorizontal: 16,
+              gap: 40,
+              marginBottom: 12,
+              justifyContent: "flex-start",
+            }}
+          >
+            {row.map((item, itemIndex) => {
+              const isNull = item === null;
+              const isFocused = item === focused;
+              
+              return (
+                <TouchableOpacity
+                  key={isNull ? "null" : item}
+                  activeOpacity={0.8}
+                  onPress={() => setFocused(item)}
+                  style={{
                     width: 90,
                     height: 90,
                     borderRadius: 16,
                     borderWidth: 2,
-                    borderColor:
-                      focused === null
-                        ? CoralPalette.primary
-                        : CoralPalette.border,
-                    backgroundColor:
-                      focused === null
-                        ? `${CoralPalette.primary}25`
-                        : CoralPalette.surfaceAlt,
+                    borderColor: isNull
+                      ? (focused === null
+                          ? CoralPalette.primary
+                          : CoralPalette.border)
+                      : isFocused
+                      ? CoralPalette.primary
+                      : "transparent",
+                    backgroundColor: isNull
+                      ? (focused === null
+                          ? `${CoralPalette.primary}25`
+                          : CoralPalette.surfaceAlt)
+                      : isFocused
+                      ? `${CoralPalette.primary}25`
+                      : "transparent",
                     alignItems: "center",
                     justifyContent: "center",
-                    marginRight: 12,
-                  },
-                ]}
-              >
-                <X
-                  size={50}
-                  color={
-                    focused === null
-                      ? CoralPalette.primary
-                      : CoralPalette.mutedDark
-                  }
-                />
-              </TouchableOpacity>
-            }
-            renderItem={({ item }) => {
-              const isFocused = item === focused;
-              return (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setFocused(item)}
-                  style={[
-                    {
-                      height: 90,
-                      width: 90,
-                      borderRadius: 16,
-                      borderWidth: 2,
-                      borderColor: isFocused
-                        ? CoralPalette.primary
-                        : "transparent",
-                      backgroundColor: isFocused
-                        ? `${CoralPalette.primary}25`
-                        : "transparent",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    },
-                  ]}
+                  }}
                 >
-                  <Image
-                    source={
-                      images[item as keyof typeof images] ?? images.lighting
-                    }
-                    style={{
-                      width: 60,
-                      height: 60,
-                      borderRadius: 14,
-                    }}
-                    resizeMode="contain"
-                  />
+                  {isNull ? (
+                    <X
+                      size={50}
+                      color={
+                        focused === null
+                          ? CoralPalette.primary
+                          : CoralPalette.mutedDark
+                      }
+                    />
+                  ) : (
+                    <Image
+                      source={
+                        images[item as keyof typeof images] ?? images.lighting
+                      }
+                      style={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: 14,
+                      }}
+                      resizeMode="contain"
+                    />
+                  )}
                 </TouchableOpacity>
               );
-            }}
-          />
-        </View>
-      </>
+            })}
+            {/* Fill remaining spaces in the row if less than 3 items */}
+            {row.length < 3 &&
+              Array.from({ length: 3 - row.length }).map((_, fillIndex) => (
+                <View key={`fill-${fillIndex}`} style={{ width: 90 }} />
+              ))}
+          </View>
+        ))}
+      </View>
     );
   };
 
   return (
     <View className="flex-1">
       {/* Pill Selector */}
-      <View className="px-4 mb-4 flex-row items-center justify-center mt-2">
+      <View className="px-4 mb-4 flex-row items-center justify-center">
         <View
-          className="flex-row rounded-full p-1"
-          style={{ backgroundColor: CoralPalette.surfaceAlt }}
+          className="flex-row p-1"
+          style={{ backgroundColor: CoralPalette.surfaceAlt, borderRadius: 5 }}
         >
           {/* Animated sliding background */}
           <Animated.View
@@ -185,7 +188,7 @@ const AccessoriesTab = ({
               width: CATEGORY_WIDTH,
               height: "100%",
               backgroundColor: CoralPalette.primary,
-              borderRadius: 9999,
+              borderRadius: 5,
               top: 4,
               left: 4,
               transform: [{ translateX: pillAnim }],

@@ -28,11 +28,12 @@ import { CoralPalette } from "@/constants/colors";
 import { usePets } from "@/hooks/usePets";
 import images from "@/constants/images";
 import { useHasUnclaimedRewards } from "@/utils/hasUnclaimedRewards";
+import { ProfileSkeleton } from "@/components/other/Skeleton";
 
 const FONT = { fontFamily: "Nunito" };
 
 export default function Profile() {
-  const { userProfile } = useGlobalContext();
+  const { userProfile, loading } = useGlobalContext();
   const hasUnclaimedRewards = useHasUnclaimedRewards();
 
   const {
@@ -52,7 +53,7 @@ export default function Profile() {
 
   // Display semantics: when the bar is visually full, we want to show the *next* level
   // starting at 0 / next-level XP instead of "current level with a full bar".
-  const MAX_LEVEL = 10;
+  const MAX_LEVEL = 9;
   const xpNeededForNext = (currentLevel: number) =>
     Math.round(50 * Math.pow(currentLevel, 1.5)); // must stay in sync with backend computeLevelMeta
 
@@ -79,13 +80,13 @@ export default function Profile() {
 
   // Get next pet unlock
   const nextPetUnlock = useMemo(() => {
-    const unlockLevels = [2, 4, 6, 8, 10];
+    const unlockLevels = [1, 3, 5, 7, 9];
     const petNames: Record<number, string> = {
-      2: "Smurf",
-      4: "Chedrick",
-      6: "Gooner",
-      8: "Pebbles",
-      10: "Kitty",
+      1: "Smurf",
+      3: "Pebbles",
+      5: "Chedrick",
+      7: "Gooner",
+      9: "Kitty",
     };
 
     for (const unlockLevel of unlockLevels) {
@@ -124,6 +125,10 @@ export default function Profile() {
       progress,
     };
   });
+
+  if (loading || !userProfile) {
+    return <ProfileSkeleton />;
+  }
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface}}>

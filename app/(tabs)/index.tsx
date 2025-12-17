@@ -277,18 +277,33 @@ export default function IndexScreen() {
       if (running) return;
       if (mode === targetMode) return;
       if (!appSettings.vibrations) return;
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft).catch(() => {});
     },
     [running, mode, appSettings.vibrations]
   );
 
   // Trigger haptic immediately when tapping Start (only if it will start).
   const handleStartPressIn = useCallback(() => {
-    if (running) return;
-    if (mode === "countdown" && secondsLeft <= 0) return;
-    if (!appSettings.vibrations) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    // Check conditions first, but trigger haptic immediately if valid
+    if (!running && !(mode === "countdown" && secondsLeft <= 0) && appSettings.vibrations) {
+      // Fire haptic immediately without await/catch to minimize delay
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
   }, [running, mode, secondsLeft, appSettings.vibrations]);
+
+  // Trigger haptic immediately when tapping Cancel (during grace period).
+  const handleCancelPressIn = useCallback(() => {
+    if (running && graceLeft > 0 && appSettings.vibrations) {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+  }, [running, graceLeft, appSettings.vibrations]);
+
+  // Trigger haptic immediately when tapping Give up (after grace period).
+  const handleGiveUpPressIn = useCallback(() => {
+    if (running && graceLeft === 0 && appSettings.vibrations) {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
+    }
+  }, [running, graceLeft, appSettings.vibrations]);
 
   // Button press animation handlers
   const handleButtonPressIn = useCallback(() => {
@@ -408,11 +423,10 @@ export default function IndexScreen() {
   }, [running, mode, lastCountdownTargetSec, maxSessionSeconds]);
 
   // Countdown scrubber helpers
+  // TimeTracker already handles snapping to 5-minute intervals on release, so we just convert progress to seconds
   const handleTrackerChange = (p: number) => {
     if (!running && mode === "countdown") {
-      const SNAP_S = 300;
-      const raw = p * maxSessionSeconds;
-      const next = raw < SNAP_S ? 0 : Math.round(raw / SNAP_S) * SNAP_S;
+      const next = Math.round(p * maxSessionSeconds);
       setSecondsLeft(next);
       setLastCountdownTargetSec(next);
     }
@@ -430,9 +444,7 @@ export default function IndexScreen() {
     const SNAP_S = 300;
     const raw = progress * maxSessionSeconds;
     const next = raw < SNAP_S ? 0 : Math.round(raw / SNAP_S) * SNAP_S;
-    if (appSettings.vibrations && next !== lastPreviewSnap.current) {
-      void Haptics.selectionAsync().catch(() => {});
-    }
+  
     lastPreviewSnap.current = next;
     setPreviewSeconds(next);
   };
@@ -513,25 +525,26 @@ export default function IndexScreen() {
           backgroundColor: CoralPalette.surfaceAlt,
           borderColor: CoralPalette.border,
           borderWidth: 1,
+          
         }}
       >
         <TouchableOpacity
           onPress={() => setMode("countdown")}
           onPressIn={() => handleModePressIn("countdown")}
           disabled={running}
-          className="w-14 items-center py-3"
+          className="w-12 items-center py-3.5"
           style={{ backgroundColor: mode === "countdown" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
         >
-          <Hourglass size={20} color={mode === "countdown" ? "#ffffff" : CoralPalette.primary} />
+          <Hourglass size={16} color={mode === "countdown" ? "#ffffff" : CoralPalette.primary} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setMode("timer")}
           onPressIn={() => handleModePressIn("timer")}
           disabled={running}
-          className="w-14 items-center py-3"
+          className="w-12 items-center py-3.5"
           style={{ backgroundColor: mode === "timer" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
         >
-          <Timer size={20} color={mode === "timer" ? "#ffffff" : CoralPalette.primary} />
+          <Timer size={16} color={mode === "timer" ? "#ffffff" : CoralPalette.primary} />
         </TouchableOpacity>
       </View>
 
@@ -621,6 +634,8 @@ export default function IndexScreen() {
             onPress={handleStartStop}
             onPressIn={(e) => {
               handleStartPressIn();
+              handleCancelPressIn();
+              handleGiveUpPressIn();
               handleButtonPressIn();
             }}
             onPressOut={handleButtonPressOut}

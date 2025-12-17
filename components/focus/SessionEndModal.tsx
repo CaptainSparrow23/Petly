@@ -5,6 +5,8 @@ import { HeartHandshake } from "lucide-react-native";
 import { SessionActivity } from "@/hooks/useFocus";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
+import * as Haptics from 'expo-haptics';
+import { useGlobalContext } from '@/lib/GlobalProvider';
 
 type Props = {
   visible: boolean;
@@ -25,6 +27,7 @@ export default function SessionEndModal({
   activity,
   onClose,
 }: Props) {
+  const { appSettings } = useGlobalContext();
   const { height } = useWindowDimensions();
   const [mounted, setMounted] = useState(visible);
   const anim = useRef(new Animated.Value(visible ? 1 : 0)).current;
@@ -41,13 +44,13 @@ export default function SessionEndModal({
       setMounted(true);
       Animated.timing(anim, {
         toValue: 1,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }).start();
     } else {
       Animated.timing(anim, {
         toValue: 0,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (finished && !visibleRef.current) setMounted(false);
@@ -84,6 +87,9 @@ export default function SessionEndModal({
 
   // Button press animation handlers
   const handleReturnPressIn = () => {
+    if (appSettings.vibrations) {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
     Animated.spring(returnButtonScale, {
       toValue: 0.95,
       useNativeDriver: true,

@@ -244,16 +244,16 @@ const SearchFriends = () => {
      style={{ backgroundColor: CoralPalette.primaryMuted }}
     >
      <TouchableOpacity onPress={() => router.back()}>
-      <ChevronLeft size={24} color={CoralPalette.white} />
+      <ChevronLeft size={30} color={CoralPalette.white} />
      </TouchableOpacity>
-     <Text className="text-[17px] font-semibold" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>Find Friends</Text>
+     <Text className="text-[17px] font-extrabold" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>Find Friends</Text>
      <View style={{ width: 24 }} />
     </View>
 
     {/* Search Input */}
     <View className="px-4 py-4">
-     <View className="flex-row items-center rounded-xl px-4 py-3" style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}>
-      <Search size={20} color={CoralPalette.primary} />
+     <View className="flex-row items-center rounded-xl px-4 py-3" style={{ backgroundColor: CoralPalette.surfaceAlt }}>
+      <Search size={20} color={CoralPalette.mutedDark} />
       <TextInput
        ref={searchInputRef}
        className="flex-1 ml-3 text-gray-900"
