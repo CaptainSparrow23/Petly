@@ -104,9 +104,9 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
       >
         <View className="flex-1 items-center justify-center px-2 pb-4">
           <Animated.View
-            className="flex-col items-center rounded-3xl p-5 w-[70%] max-w-md"
+            className="flex-col items-center rounded-2xl p-5 w-[65%] max-w-md"
             style={{
-              backgroundColor: CoralPalette.surfaceAlt,
+              backgroundColor: CoralPalette.greyLighter,
               transform: [{ translateY }],
             }}
           >
@@ -127,11 +127,10 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
                   onPress={onCancel}
                   onPressIn={handleCancelPressIn}
                   onPressOut={handleCancelPressOut}
-                  className="py-4 rounded-full"
+                  className="py-3 rounded-2xl"
                   style={{ 
                     backgroundColor: CoralPalette.white,
-                    borderWidth: 1,
-                    borderColor: CoralPalette.border,
+            
                   }}
                   activeOpacity={1}
                 >
@@ -150,11 +149,11 @@ export default function ConfirmStopModal({ visible, onCancel, onConfirm }: Props
                   onPress={onConfirm}
                   onPressIn={handleConfirmPressIn}
                   onPressOut={handleConfirmPressOut}
-                  className="py-4 rounded-full"
+                  className="py-3 rounded-2xl"
                   style={{ backgroundColor: CoralPalette.primary }}
                   activeOpacity={1}
                 >
-                  <Text className="text-white text-base font-semibold text-center" style={{ fontFamily: "Nunito" }}>End session</Text>
+                  <Text className="text-white text-base font-semibold text-center" style={{ fontFamily: "Nunito" }}>End</Text>
                 </TouchableOpacity>
               </Animated.View>
             </View>

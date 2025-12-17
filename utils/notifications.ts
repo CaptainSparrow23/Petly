@@ -128,21 +128,22 @@ export async function cancelWeeklyResetReminder(): Promise<void> {
 /**
  * Schedule a notification for when focus/rest session completes
  * @param secondsFromNow - seconds until the session ends
- * @param activity - "Focus" or "Rest"
+ * @param activity - Activity name (e.g., "Focus", "Work", "Study", "Rest")
  */
 export async function scheduleSessionCompleteNotification(
   secondsFromNow: number,
-  activity: "Focus" | "Rest"
+  activity: string
 ): Promise<void> {
   // Cancel any existing session notification first
   await cancelSessionCompleteNotification();
 
   if (secondsFromNow <= 0) return;
 
-  const title = activity === "Focus" ? "🎉 Focus Session Complete!" : "☕ Rest Session Complete!";
-  const body = activity === "Focus" 
-    ? "Great work! You've earned coins for your focus time."
-    : "Break's over! Ready to focus again?";
+  const isRest = activity === "Rest";
+  const title = isRest ? "☕ Rest Session Complete!" : "🎉 Focus Session Complete!";
+  const body = isRest 
+    ? "Break's over! Ready to focus again?"
+    : `Great work on ${activity}! You've earned coins for your focus time.`;
 
   await Notifications.scheduleNotificationAsync({
     identifier: SESSION_COMPLETE_ID,

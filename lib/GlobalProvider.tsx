@@ -92,6 +92,7 @@ interface UserProfile {
     selectedFace: string | null;
     selectedCollar: string | null;
     selectedGadget: string | null;
+    selectedTag: string | null;
     dailyStreak: number;
     highestStreak: number;
     totalFocusSeconds: number;
@@ -100,6 +101,12 @@ interface UserProfile {
     claimedLevelRewards?: number[];
     friendsCount?: number;
     hasFriendRequests?: boolean;
+    tagList?: Array<{
+        id: string;
+        label: string;
+        color: string;
+        activity: string; // Each tag represents a different activity
+    }>;
 }
 
 type BannerType = "success" | "error" | "info" | "warning";
@@ -239,6 +246,7 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     selectedFace: profile.selectedFace ?? null,
                     selectedCollar: profile.selectedCollar ?? null,
                     selectedGadget: profile.selectedGadget ?? "gadget_laptop",
+                    selectedTag: profile.selectedTag ?? null,
                     allowFriendRequests: typeof profile.allowFriendRequests === "boolean"
                         ? profile.allowFriendRequests
                         : true,
@@ -249,6 +257,7 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     lastWeeklyGoalClaim: profile.lastWeeklyGoalClaim ?? null,
                     claimedLevelRewards: Array.isArray(profile.claimedLevelRewards) ? profile.claimedLevelRewards : [],
                     hasFriendRequests: profile.hasFriendRequests === true,
+                    tagList: Array.isArray(profile.tagList) ? profile.tagList : undefined,
                 } as UserProfile;
 
                 setUserProfile(updatedProfile);
