@@ -252,7 +252,7 @@ export default function GoalsCard({
       <View
         className="p-5 mt-2"
         style={[
-          { borderRadius: 5, backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.lightGrey, borderWidth: 1 },
+          { borderRadius: 5, backgroundColor: CoralPalette.white, borderColor: CoralPalette.lightGrey, borderWidth: 1 },
           CARD_SHADOW,
         ]}
       >

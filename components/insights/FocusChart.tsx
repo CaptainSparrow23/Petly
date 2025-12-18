@@ -9,7 +9,7 @@ import { getApiBaseUrl } from "@/utils/api";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 
 // --- Types ---
-export type ChartDatum = { key: string; label: string; totalMinutes: number };
+export type ChartDatum = { key: string; label: string; totalMinutes: number; totalSeconds?: number };
 type ViewState = { mode: "day" | "month" | "year"; day: number; month: number; year: number };
 type FocusChartProps = { title?: string };
 
@@ -40,6 +40,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   const { appSettings, userProfile } = useGlobalContext();
   const userId = userProfile?.userId;
   const showHours = appSettings.displayFocusInHours;
+  const tz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/London", []);
 
   // Active View State (Source of Truth for Chart)
   // Calculate today fresh on each render to ensure it's current
@@ -56,7 +57,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chartWidth, setChartWidth] = useState(0);
-  const [selectedBar, setSelectedBar] = useState<{ x: string; y: number; raw: number } | null>(null);
+  const [selectedBar, setSelectedBar] = useState<{ x: string; y: number; rawSeconds: number } | null>(null);
   const [chartAnimKey, setChartAnimKey] = useState(0);
 
   // Fetch Data - use individual view properties to avoid unnecessary re-fetches
@@ -67,6 +68,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
 
     try {
       const params = new URLSearchParams({ mode: view.mode, tz: "Europe/London" });
+      params.set("tz", tz);
       if (view.mode === "day") {
         params.set("date", `${view.year}-${String(view.month + 1).padStart(2, "0")}-${String(view.day).padStart(2, "0")}`);
       } else {
@@ -86,7 +88,14 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
         throw new Error(`Invalid server response: ${text.slice(0, 50)}...`);
       }
 
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
+      if (!res.ok || !json.success) {
+        const errorMsg = json.error || `HTTP ${res.status}`;
+        // Handle quota/resource exhaustion errors with user-friendly message
+        if (errorMsg.includes("RESOURCE_EXHAUSTED") || errorMsg.includes("Quota exceeded")) {
+          throw new Error("Service temporarily unavailable. Please try again in a moment.");
+        }
+        throw new Error(errorMsg);
+      }
       setChartPoints(json.data?.points ?? []);
     } catch (err: any) {
       console.error("[FocusChart] Error:", err);
@@ -94,7 +103,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
     } finally {
       setLoading(false);
     }
-  }, [userId, view.mode, view.year, view.month, view.day]);
+  }, [userId, view.mode, view.year, view.month, view.day, tz]);
 
   // Track previous view to detect changes
   const prevViewRef = useRef<ViewState>(view);
@@ -131,15 +140,25 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   );
 
   // Chart Data Prep
-  const victoryData = useMemo(() => chartPoints.map((d, i) => ({
-    x: d.label ?? d.key ?? String(i + 1),
-    y: showHours ? d.totalMinutes / 60 : d.totalMinutes,
-    raw: d.totalMinutes
-  })), [chartPoints, showHours]);
+  const victoryData = useMemo(
+    () =>
+      chartPoints.map((d, i) => {
+        const rawSeconds = d.totalSeconds ?? (d.totalMinutes || 0) * 60;
+        return {
+          x: d.label ?? d.key ?? String(i + 1),
+          y: showHours ? rawSeconds / 3600 : rawSeconds / 60,
+          rawSeconds,
+        };
+      }),
+    [chartPoints, showHours]
+  );
 
-  const totalMinutes = useMemo(() => chartPoints.reduce((acc, curr) => acc + (curr.totalMinutes || 0), 0), [chartPoints]);
+  const totalSeconds = useMemo(
+    () => chartPoints.reduce((acc, curr) => acc + (curr.totalSeconds ?? (curr.totalMinutes || 0) * 60), 0),
+    [chartPoints]
+  );
 
-  const hasData = useMemo(() => victoryData.some(d => d.raw > 0), [victoryData]);
+  const hasData = useMemo(() => victoryData.some((d) => d.rawSeconds > 0), [victoryData]);
 
   const xTickValues = useMemo(() => victoryData.map(d => d.x), [victoryData]);
   const maxY = useMemo(() => Math.max(1, ...victoryData.map(d => d.y)), [victoryData]);
@@ -152,8 +171,8 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   );
   
   const barKey = useMemo(() => {
-    return `${viewKey}-${chartPoints.length}-${totalMinutes}`;
-  }, [viewKey, chartPoints.length, totalMinutes]);
+    return `${viewKey}-${chartPoints.length}-${totalSeconds}`;
+  }, [viewKey, chartPoints.length, totalSeconds]);
   
   const barWidth = useMemo(() => {
     if (!chartWidth || !victoryData.length) return 10;
@@ -162,17 +181,17 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
 
   // Memoize time formatting to avoid recreating on every render
   const formattedTime = useMemo(() => {
-    const total = totalMinutes;
+    const totalMinutes = Math.round(totalSeconds / 60);
     const s = { color: CoralPalette.primary };
-    if (showHours && total < 60) {
-      const hours = (total / 60).toFixed(1);
+    if (showHours && totalMinutes < 60) {
+      const hours = (totalMinutes / 60).toFixed(1);
       return <><Text style={s}>{hours}</Text> hours</>;
     }
-    if (total < 60) return <><Text style={s}>{total}</Text> minutes</>;
-    const h = Math.floor(total / 60);
-    const m = total % 60;
+    if (totalMinutes < 60) return <><Text style={s}>{totalMinutes}</Text> minutes</>;
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
     return m > 0 ? <><Text style={s}>{h}</Text> hours <Text style={s}>{m}</Text> minutes</> : <><Text style={s}>{h}</Text> hours</>;
-  }, [totalMinutes, showHours]);
+  }, [totalSeconds, showHours]);
 
   // Memoize tick format function to avoid recreating on every render
   const tickFormat = useCallback((t: string) => {
@@ -204,15 +223,15 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
 
   // Memoize bar style function
   const barStyleFunction = useCallback(({ datum }: any) => {
-    return datum.raw > 0 
+    return datum.rawSeconds > 0 
       ? (selectedBar?.x === datum.x ? CoralPalette.primaryMuted : CoralPalette.primary)
       : CoralPalette.border;
   }, [selectedBar?.x]);
 
   // Memoize bar labels function
   const barLabelsFunction = useCallback(({ datum }: any) => {
-    return selectedBar?.x === datum.x && datum.raw > 0 
-      ? (showHours ? `${(datum.raw / 60).toFixed(1)}h` : `${datum.raw}m`)
+    return selectedBar?.x === datum.x && datum.rawSeconds > 0 
+      ? (showHours ? `${(datum.rawSeconds / 3600).toFixed(1)}h` : `${Math.round(datum.rawSeconds / 60)}m`)
       : "";
   }, [selectedBar?.x, showHours]);
 
@@ -220,7 +239,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
     <View
       className="relative my-4 p-5"
       style={[
-        { borderRadius: 5, backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.lightGrey, borderWidth: 1 },
+        { borderRadius: 5, backgroundColor: CoralPalette.white, borderColor: CoralPalette.lightGrey, borderWidth: 1 },
         CARD_SHADOW,
       ]}
     >
@@ -228,7 +247,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
       <View className="mb-4 flex-row justify-between items-center">
         <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}>{title}</Text>
         <TouchableOpacity
-          className="rounded-full px-3 py-1"
+          className="rounded-lg px-3 py-1"
           style={{ backgroundColor: `${CoralPalette.primaryLight}55` }}
           onPress={() => setModalVisible(true)}
         >
@@ -245,7 +264,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
       {/* Chart Area */}
       <View className="relative mt-2" style={{ minHeight: 250 }} onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}>
         {loading && chartPoints.length === 0 && (
-          <View className="absolute inset-0 z-20 items-center justify-center" style={{ backgroundColor: `${CoralPalette.surfaceAlt}80` }}>
+          <View className="absolute inset-0 z-20 items-center justify-center" style={{ backgroundColor: `${CoralPalette.white}80` }}>
             <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>Loading...</Text>
           </View>
         )}
@@ -296,7 +315,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
                     target: "data",
                     mutation: (props: any) => {
                       const datum = props.datum;
-                      if (datum.raw > 0) {
+                      if (datum.rawSeconds > 0) {
                         setSelectedBar(datum);
                       }
                       return null;
@@ -422,12 +441,12 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 bg-black/40 justify-center items-center">
-        <View className="w-[90%] max-w-md p-7" style={{ borderRadius: 30, backgroundColor: CoralPalette.surface }}>
+        <View className="w-[90%] max-w-md p-7" style={{ borderRadius: 30, backgroundColor: CoralPalette.white }}>
           {/* Tabs */}
           <View 
             ref={tabContainerRef}
             className="flex-row p-1 mb-4 relative"
-            style={{ borderRadius: 5, backgroundColor: CoralPalette.white }}
+            style={{ borderRadius: 5, backgroundColor: CoralPalette.greyVeryLight}}
             onLayout={(e) => {
               // Measure container and calculate tab width
               const containerWidth = e.nativeEvent.layout.width;
@@ -454,8 +473,10 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
                   },
                   animatedPillStyle,
                 ]}
-              />
+              
+            />
             )}
+            
             {(["day", "month", "year"] as const).map((m) => (
               <TouchableOpacity
                 key={m}
@@ -470,7 +491,7 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
             ))}
           </View>
 
-          <Text className="text-center text-xl font-bold py-3 mb-3" style={[{ color: CoralPalette.dark }, FONT]}>
+          <Text className="text-center text-xl font-bold py-2" style={[{ color: CoralPalette.dark }, FONT]}>
             {getLabel(draft)}
           </Text>
 
@@ -494,12 +515,12 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
           </View>
 
           {/* Buttons */}
-          <View className="flex-row gap-3 mt-6">
-            <TouchableOpacity className="flex-1 rounded-2xl py-3 items-center" style={{ backgroundColor: CoralPalette.white }} onPress={onClose}>
+          <View className="flex-row gap-3">
+            <TouchableOpacity className="flex-1 rounded-2xl py-3 items-center" style={{ backgroundColor: CoralPalette.greyLighter }} onPress={onClose}>
               <Text className="text-base font-semibold text-black" style={FONT}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity className="flex-1 rounded-2xl py-3 items-center" style={{ backgroundColor: CoralPalette.primary }} onPress={() => onConfirm(draft)}>
-              <Text className="text-base font-semibold text-white" style={FONT}>Confirm</Text>
+              <Text className="text-base font-bold text-white" style={FONT}>Confirm</Text>
             </TouchableOpacity>
           </View>
         </View>

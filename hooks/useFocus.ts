@@ -8,8 +8,11 @@ export type SessionActivity = string; // Can be any tag label like "Focus", "Wor
 export interface SessionPayload {
   userId: string;
   activity: SessionActivity;
+  tagId?: string | null;
   startTs: string;      // ISO
+  endTs: string;        // ISO
   durationSec: number;  // positive integer
+  tz?: string;          // IANA timezone, e.g. "Europe/London"
 }
 
 /**

@@ -24,13 +24,14 @@ type WeekResponse = {
   error?: string;
 };
 
-const LONDON_TZ = "Europe/London";
+const DEFAULT_TZ = "Europe/London";
 
 export function useInsights(
   userId?: string, 
   todayMinutesFromProfile?: number,
   minutesByHourFromProfile?: number[]
 ) {
+  const tz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TZ, []);
   // streak
   const [streak, setStreak] = useState<number>(0);
   const [streakLoading, setStreakLoading] = useState<boolean>(!!userId);
@@ -86,7 +87,7 @@ export function useInsights(
         : '';
       
       const API_BASE = getApiBaseUrl();
-      const url = `${API_BASE}/api/get_week_focus/${encodeURIComponent(userId)}?tz=${encodeURIComponent(LONDON_TZ)}${todayParam}`;
+      const url = `${API_BASE}/api/get_week_focus/${encodeURIComponent(userId)}?tz=${encodeURIComponent(tz)}${todayParam}`;
       const res = await fetch(url);
       const json: WeekResponse = await res.json();
       if (!res.ok || !json.success || !json.data) throw new Error(json.error || `HTTP ${res.status}`);
@@ -106,7 +107,7 @@ export function useInsights(
     } finally {
       setWeekLoading(false);
     }
-  }, [userId, todayMinutesFromProfile]);
+  }, [userId, todayMinutesFromProfile, tz]);
 
   // Fetch week data with today's minutes from profile
   useEffect(() => {

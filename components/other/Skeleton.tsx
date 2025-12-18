@@ -122,7 +122,7 @@ export const TodayFocusCardSkeleton: React.FC = () => (
   <View
     style={{
       width: "65%",
-      backgroundColor: CoralPalette.surfaceAlt,
+      backgroundColor: CoralPalette.white,
       borderRadius: 24,
       padding: 16,
       borderWidth: 1,
@@ -148,7 +148,7 @@ export const StreakCardSkeleton: React.FC = () => (
   <View
     style={{
       width: "31%",
-      backgroundColor: CoralPalette.surfaceAlt,
+      backgroundColor: CoralPalette.white,
       borderRadius: 24,
       padding: 16,
       borderWidth: 1,
@@ -171,7 +171,7 @@ export const StreakCardSkeleton: React.FC = () => (
 export const GoalsCardSkeleton: React.FC = () => (
   <View
     style={{
-      backgroundColor: CoralPalette.surfaceAlt,
+      backgroundColor: CoralPalette.white,
       borderRadius: 24,
       padding: 20,
       borderWidth: 1,
@@ -217,40 +217,69 @@ export const GoalsCardSkeleton: React.FC = () => (
 export const FocusChartSkeleton: React.FC = () => (
   <View
     style={{
-      backgroundColor: CoralPalette.surfaceAlt,
-      borderRadius: 24,
+      backgroundColor: CoralPalette.white,
+      borderRadius: 5,
       padding: 20,
       borderWidth: 1,
-      borderColor: CoralPalette.border,
+      borderColor: CoralPalette.lightGrey,
       marginTop: 16,
     }}
   >
     {/* Header row */}
-    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <Skeleton width={180} height={18} radius={4} />
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <Skeleton width={30} height={30} radius={15} />
-        <Skeleton width={100} height={30} radius={15} />
-        <Skeleton width={30} height={30} radius={15} />
-      </View>
+      <Skeleton width={80} height={28} radius={14} />
     </View>
     {/* Total time */}
-    <View style={{ alignItems: "flex-end", marginTop: 12 }}>
-      <Skeleton width={100} height={24} radius={4} />
+    <View style={{ marginTop: -12, marginBottom: 8 }}>
+      <Skeleton width={150} height={14} radius={4} />
     </View>
     {/* Chart area */}
-    <View style={{ marginTop: 16, height: 180, justifyContent: "flex-end" }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-around", alignItems: "flex-end", height: 150 }}>
+    <View style={{ marginTop: 8, height: 250, justifyContent: "flex-end" }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-around", alignItems: "flex-end", height: 200 }}>
         {[60, 90, 40, 120, 80, 100, 70, 50].map((h, i) => (
           <Skeleton key={i} width={20} height={h} radius={4} />
         ))}
       </View>
     </View>
-    {/* Mode tabs */}
-    <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 16, gap: 8 }}>
-      <Skeleton width={60} height={28} radius={14} />
-      <Skeleton width={60} height={28} radius={14} />
-      <Skeleton width={60} height={28} radius={14} />
+  </View>
+);
+
+/**
+ * Skeleton for Tag Distribution Chart on insights page
+ */
+export const TagDistributionChartSkeleton: React.FC = () => (
+  <View
+    style={{
+      backgroundColor: CoralPalette.white,
+      borderRadius: 5,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: CoralPalette.lightGrey,
+      marginTop: 16,
+    }}
+  >
+    {/* Header row */}
+    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+      <Skeleton width={140} height={18} radius={4} />
+      <Skeleton width={80} height={28} radius={14} />
+    </View>
+    {/* Total time */}
+    <View style={{ marginBottom: 8 }}>
+      <Skeleton width={150} height={14} radius={4} />
+    </View>
+    {/* Chart area - pie chart */}
+    <View style={{ marginTop: -28, height: 300, alignItems: "center", justifyContent: "center" }}>
+      <Skeleton width={280} height={280} radius={140} />
+    </View>
+    {/* Legend area */}
+    <View style={{ marginTop: 16, gap: 8 }}>
+      {[1, 2, 3, 4].map((i) => (
+        <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Skeleton width={12} height={12} radius={6} />
+          <Skeleton width={100} height={14} radius={4} />
+        </View>
+      ))}
     </View>
   </View>
 );

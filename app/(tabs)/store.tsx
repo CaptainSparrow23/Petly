@@ -1,29 +1,28 @@
-import React, { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
+import { Animated, Image, ImageBackground, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import Constants from "expo-constants";
 import { SheetManager } from "react-native-actions-sheet";
 
-import Filters, { type CategoryValue } from "@/components/store/Filters";
-import { Tile, StoreItem } from "@/components/store/Tiles";
+import { StoreItem } from "@/components/store/Tiles";
 import { useStoreCatalog } from "@/hooks/useStore";
 import { useGlobalContext } from "@/lib/GlobalProvider";
-import CoinBadge from "@/components/other/CoinBadge";
-import { StoreTileSkeleton } from "@/components/other/Skeleton";
-import { ArrowUpDown } from "lucide-react-native";
 import { CoralPalette } from "@/constants/colors";
+import images from "@/constants/images";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
+
+// --- Constants ---
+const TILE_GAP = 30;
+const BACKGROUND_ZOOM = 1.3;
+const TILE_SHADOW = {
+  shadowColor: "#000",
+  shadowOpacity: 0.06,
+  shadowRadius: 5,
+  shadowOffset: { width: 0, height: 3 },
+  elevation: 2,
+};
 
 // Maps category to userProfile field
 const categoryToField: Record<string, 'ownedPets' | 'ownedHats' | 'ownedFaces' | 'ownedCollars' | 'ownedGadgets'> = {
@@ -34,57 +33,59 @@ const categoryToField: Record<string, 'ownedPets' | 'ownedHats' | 'ownedFaces' |
   Gadget: 'ownedGadgets',
 };
 
-// layout constants
-const HORIZONTAL_PADDING = 24; // matches header px-6
-const HORIZONTAL_GAP = 20;
-const VERTICAL_GAP = 20;
+// --- Types ---
+interface ComponentPosition {
+  x: number; // 0-1, left to right
+  y: number; // 0-1, top to bottom
+}
+
+// --- Configuration ---
+// Normalized positions (0-1) for tile rows on the background image
+const LIST_POSITIONS = {
+  hats: { x: 0.07, y: 0.265 } as ComponentPosition,
+  face: { x: 0.07, y: 0.43 } as ComponentPosition,
+  collars: { x: 0.07, y: 0.615 } as ComponentPosition,
+};
 
 const Store = () => {
   const { userProfile, updateUserProfile } = useGlobalContext();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
-  // perfect pixel width per tile
-  const itemWidth = Math.floor(
-    (width - HORIZONTAL_PADDING * 2 - HORIZONTAL_GAP) / 2
-  );
+  const storeWidth = width;
+  const storeHeight = height;
+  const itemWidth = Math.floor((storeWidth - 80) / 3.5);
+
+  const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] = useState<string | null>(null);
+
+  // Animation refs for tile pop-in animations
+  const tileScaleRefs = useRef<Record<string, Animated.Value>>({});
+  // Animation refs for tile press animations
+  const tilePressScaleRefs = useRef<Record<string, Animated.Value>>({});
 
   const {
     availablePets,
     loading,
     error,
     refetch: refetchCatalog,
-  } = useStoreCatalog({
-    ownedPets: userProfile?.ownedPets,
-    ownedHats: userProfile?.ownedHats,
-    ownedFaces: userProfile?.ownedFaces,
-    ownedCollars: userProfile?.ownedCollars,
-    ownedGadgets: userProfile?.ownedGadgets,
-  }, { autoFetch: false });
+  } = useStoreCatalog(
+    {
+      ownedPets: userProfile?.ownedPets,
+      ownedHats: userProfile?.ownedHats,
+      ownedFaces: userProfile?.ownedFaces,
+      ownedCollars: userProfile?.ownedCollars,
+      ownedGadgets: userProfile?.ownedGadgets,
+    },
+    { autoFetch: false }
+  );
 
-  const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("all");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] =
-    useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // refresh data when screen gains focus
+  // Refresh data when screen gains focus
   useFocusEffect(
     useCallback(() => {
       void refetchCatalog();
-      return undefined;
     }, [refetchCatalog])
   );
 
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      await refetchCatalog();
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [refetchCatalog]);
-
-  // confirm purchase flow
+  // --- Handlers ---
   const handleConfirmPurchase = useCallback(
     async (pet: StoreItem) => {
       try {
@@ -186,11 +187,11 @@ const Store = () => {
   );
 
   const handleTilePress = useCallback(
-    (pet: StoreItem) => {
+    (item: StoreItem) => {
       setRecentlyPurchasedPetName(null);
       void SheetManager.show("store-preview", {
         payload: {
-          pet,
+          pet: item,
           onPurchase: handlePurchasePress,
           onClosed: () => setRecentlyPurchasedPetName(null),
         },
@@ -199,158 +200,299 @@ const Store = () => {
     [handlePurchasePress]
   );
 
-  const renderTile = useCallback(
-    ({ item }: { item: StoreItem }) => (
-      <View style={{ width: itemWidth, flexGrow: 0 }}>
-        <Tile item={item} onPress={() => handleTilePress(item)} userLevel={userProfile?.level ?? 1} />
-      </View>
-    ),
-    [handleTilePress, itemWidth, userProfile?.level]
+  // --- Tile Rendering ---
+  const renderPositionedTile = useCallback(
+    (item: StoreItem, x: number, y: number) => {
+      // Get or create animation value (start at 0, will animate to 1)
+      if (!tileScaleRefs.current[item.id]) {
+        tileScaleRefs.current[item.id] = new Animated.Value(0);
+      }
+      if (!tilePressScaleRefs.current[item.id]) {
+        tilePressScaleRefs.current[item.id] = new Animated.Value(1);
+      }
+      const scaleAnim = tileScaleRefs.current[item.id];
+      const pressScaleAnim = tilePressScaleRefs.current[item.id];
+      const combinedScale = Animated.multiply(scaleAnim, pressScaleAnim);
+      
+      return (
+        <Animated.View
+          key={item.id}
+          style={{
+            position: "absolute",
+            left: x,
+            top: y,
+            width: itemWidth,
+            marginHorizontal: 3,
+            marginVertical: 3,
+            transform: [{ scale: combinedScale }],
+          }}
+        >
+        <View
+          style={{
+            backgroundColor: CoralPalette.white,
+            borderRadius: 16,
+            padding: 10,
+            ...TILE_SHADOW,
+          }}
+        >
+          {item.owned && (
+            <View
+              style={{
+                position: "absolute",
+                top: 8,
+                left: 8,
+                paddingHorizontal: 6,
+                paddingVertical: 3,
+                borderRadius: 999,
+                backgroundColor: `${CoralPalette.primaryLight}55`,
+                zIndex: 1,
+              }}
+            >
+              <Text className="text-xs font-bold" style={[{ color: CoralPalette.primary, fontSize: 9 }, FONT]}>
+                Owned
+              </Text>
+            </View>
+          )}
+          
+          <View className="items-center justify-center" style={{ marginBottom: 8 }}>
+            <Image
+              source={images[item.id as keyof typeof images] ?? images.lighting}
+              resizeMode="contain"
+              style={{ width: 70, height: 70 }}
+            />
+          </View>
+
+          <View className="w-full">
+            <View className="flex-row items-center justify-center">
+              <View className="h-5 w-5 items-center justify-center">
+                <Image source={images.token} style={{ width: 14, height: 14 }} resizeMode="contain" />
+              </View>
+              <Text className="ml-1 text-sm font-semibold" style={[{ color: CoralPalette.dark, fontSize: 12 }, FONT]}>
+                {item.priceCoins.toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <TouchableOpacity
+          onPress={() => handleTilePress(item)}
+          onPressIn={() => {
+            Animated.spring(pressScaleAnim, {
+              toValue: 0.9,
+              useNativeDriver: true,
+            }).start();
+          }}
+          onPressOut={() => {
+            Animated.spring(pressScaleAnim, {
+              toValue: 1,
+              useNativeDriver: true,
+            }).start();
+          }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+          activeOpacity={1}
+        />
+      </Animated.View>
+      );
+    },
+    [handleTilePress, itemWidth]
   );
 
-  const keyExtractor = useCallback((item: StoreItem) => item.id, []);
-
-  const visibleItems = useMemo(() => {
-    // Filter out pets - they're unlocked by level, not purchased
-    const itemsWithoutPets = availablePets.filter((item) => item.category !== "Pet");
-    
-    const filtered =
-      selectedCategory === "all"
-        ? itemsWithoutPets
-        : itemsWithoutPets.filter((item) => item.category === selectedCategory);
-
-    return [...filtered].sort((a, b) =>
-      sortOrder === "asc"
-        ? a.id.localeCompare(b.id)
-        : b.id.localeCompare(a.id)
-    );
-  }, [availablePets, selectedCategory, sortOrder]);
-
-  const toggleSortOrder = useCallback(() => {
-    setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
+  // --- Data Processing ---
+  const getRandomItems = useCallback((items: StoreItem[], count: number): StoreItem[] => {
+    const shuffled = [...items].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(count, shuffled.length));
   }, []);
 
-  if (error) {
-    return (
-      <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: CoralPalette.surface }}>
-        <Text className="text-lg font-extrabold text-center" style={[{ color: CoralPalette.dark }, FONT]}>
-          We hit a snag
-        </Text>
-        <Text className="text-sm mt-2 text-center" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
-          {error}
-        </Text>
-      </View>
-    );
-  }
+  const hatItems = useMemo(() => {
+    const hats = availablePets.filter((item) => item.category === "Hat");
+    return getRandomItems(hats, 3);
+  }, [availablePets, getRandomItems]);
 
-  const EmptyState = () => (
-    <View className="flex-1 items-center justify-center h-full w-full pt-40 ">
-      <Text className="text-base font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
-        Sold Out!
-      </Text>
-      <Text className="text-sm mt-2 text-center" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
-        Check back later for more pets and accessories.
-      </Text>
-    </View>
+  const faceItems = useMemo(() => {
+    const faces = availablePets.filter((item) => item.category === "Face");
+    return getRandomItems(faces, 1);
+  }, [availablePets, getRandomItems]);
+
+  const collarItems = useMemo(() => {
+    const collars = availablePets.filter((item) => item.category === "Collar");
+    return getRandomItems(collars, 3);
+  }, [availablePets, getRandomItems]);
+
+  // --- Position Calculations ---
+  const getPixelPosition = useCallback(
+    (normalizedPos: ComponentPosition) => ({
+      x: normalizedPos.x * storeWidth,
+      y: normalizedPos.y * storeHeight,
+    }),
+    [storeWidth, storeHeight]
   );
 
-  const LoadingState = () => {
-    // Show 4 skeletons as a reasonable default during loading
-    const skeletonCount = 4;
-    return (
-      <View
-        style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          paddingHorizontal: HORIZONTAL_PADDING,
-          paddingTop: 8,
-          gap: HORIZONTAL_GAP,
-        }}
-      >
-        {Array.from({ length: skeletonCount }).map((_, i) => (
-          <View key={i} style={{ marginBottom: VERTICAL_GAP }}>
-            <StoreTileSkeleton width={itemWidth} />
-          </View>
-        ))}
-      </View>
-    );
-  };
+  const hatsPosition = useMemo(() => getPixelPosition(LIST_POSITIONS.hats), [getPixelPosition]);
+  const facePosition = useMemo(() => getPixelPosition(LIST_POSITIONS.face), [getPixelPosition]);
+  const collarsPosition = useMemo(() => getPixelPosition(LIST_POSITIONS.collars), [getPixelPosition]);
 
-  return (
-    <View className="flex-1 relative" style={{ backgroundColor: CoralPalette.surface }}>
- 
+  const calculateTilePositions = useCallback(
+    (startPos: { x: number; y: number }, count: number) => {
+      return Array.from({ length: count }, (_, index) => ({
+        x: startPos.x + index * (itemWidth + TILE_GAP),
+        y: startPos.y,
+      }));
+    },
+    [itemWidth]
+  );
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32, paddingTop: 16 }}
-        scrollEnabled={true}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={CoralPalette.primary}
-            colors={[CoralPalette.primary]}
-          />
+  const hatTilePositions = useMemo(
+    () => calculateTilePositions(hatsPosition, hatItems.length),
+    [hatsPosition, hatItems.length, calculateTilePositions]
+  );
+
+  const faceTilePositions = useMemo(
+    () => calculateTilePositions(facePosition, faceItems.length),
+    [facePosition, faceItems.length, calculateTilePositions]
+  );
+
+  const collarTilePositions = useMemo(
+    () => calculateTilePositions(collarsPosition, collarItems.length),
+    [collarsPosition, collarItems.length, calculateTilePositions]
+  );
+
+  // Initialize animation values for all items when they're available
+  useEffect(() => {
+    if (loading) return;
+    
+    const allItems = [...hatItems, ...faceItems, ...collarItems];
+    allItems.forEach((item) => {
+      if (!tileScaleRefs.current[item.id]) {
+        tileScaleRefs.current[item.id] = new Animated.Value(0);
+      }
+      if (!tilePressScaleRefs.current[item.id]) {
+        tilePressScaleRefs.current[item.id] = new Animated.Value(1);
+      }
+    });
+  }, [loading, hatItems, faceItems, collarItems]);
+
+  // Animate tiles popping out when page is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (loading) return; // Don't animate while loading
+
+      // Get all items to animate and shuffle for random pop-out order
+      const allItems = [...hatItems, ...faceItems, ...collarItems].sort(() => Math.random() - 0.5);
+      
+      if (allItems.length === 0) return;
+      
+      // Initialize animation values if they don't exist
+      allItems.forEach((item) => {
+        if (!tileScaleRefs.current[item.id]) {
+          tileScaleRefs.current[item.id] = new Animated.Value(0);
         }
-      >
-        <View className="px-6 flex-row items-start justify-between">
-          <View className="flex-1 pr-3">
-            <Text className="text-xs font-extrabold uppercase" style={[{ color: CoralPalette.primaryMuted, letterSpacing: 1 }, FONT]}>
-              Petly store
-            </Text>
-            <Text className="text-3xl font-extrabold mt-2" style={[{ color: CoralPalette.dark }, FONT]}>
-              Pets and accessories
-            </Text>
-            <Text className="text-sm mt-1" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
-              Browse companions and different accessories
-            </Text>
+        if (!tilePressScaleRefs.current[item.id]) {
+          tilePressScaleRefs.current[item.id] = new Animated.Value(1);
+        }
+      });
+      
+      // Animate each tile with staggered delay
+      allItems.forEach((item, index) => {
+        const scaleAnim = tileScaleRefs.current[item.id];
+        
+        // Reset to 0 and animate to 1 with staggered delay
+        scaleAnim.setValue(0);
+        const delay = index * 50; // Stagger each tile by 50ms
+        
+        setTimeout(() => {
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            tension: 40,
+            friction: 6,
+            useNativeDriver: true,
+          }).start();
+        }, delay);
+      });
+    }, [loading, hatItems, faceItems, collarItems])
+  );
+
+  // --- Error State ---
+  if (error) {
+    return (
+      <ImageBackground source={images.store_background} style={{ flex: 1 }} resizeMode="cover">
+        <View className="flex-1 items-center justify-center px-6">
+          <Text className="text-lg font-extrabold text-center" style={[{ color: CoralPalette.dark }, FONT]}>
+            We hit a snag
+          </Text>
+          <Text className="text-sm mt-2 text-center" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
+            {error}
+          </Text>
+        </View>
+      </ImageBackground>
+    );
+  }
+  return (
+    <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: storeWidth, height: storeHeight, overflow: "hidden", position: "relative" }}>
+          {/* Background */}
+          <ImageBackground
+            source={images.store_background}
+            style={{
+              position: "absolute",
+              width: storeWidth,
+              height: storeHeight,
+            }}
+            resizeMode="cover"
+            imageStyle={{
+              transform: [{ scale: BACKGROUND_ZOOM }, { translateY: height * 0.06 }],
+            }}
+          />
+
+          {/* Header */}
+          <View 
+            style={{
+              position: "absolute",
+              left: storeWidth * 0.05,
+              top: height * 0.08,
+              right: storeWidth * 0.05,
+            }}
+            pointerEvents="box-none"
+          >
+            <View className="flex-row items-start justify-between">
+              <View className="flex-1 pr-3">
+                <Text
+                  className="uppercase"
+                  style={[
+                    { fontSize: 40, fontWeight: "700", color: CoralPalette.primaryMuted, letterSpacing: 1 },
+                    FONT,
+                  ]}
+                >
+                  Petly store
+                </Text>
+                <Text className="text-md mt-1 ml-1" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
+                  Browse gifts for your companions
+                </Text>
+              </View>
+            </View>
           </View>
 
-          <TouchableOpacity
-            onPress={toggleSortOrder}
-            activeOpacity={0.85}
-            className="flex-row items-center mt-1"
-          >
-            <ArrowUpDown size={18} color={CoralPalette.primary} />
-            <Text className="ml-2 text-sm font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
-              {sortOrder === "asc" ? "Sort A → Z" : "Sort Z → A"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+          {/* Hats Tiles */}
+          {!loading && hatItems.map((item, index) =>
+            renderPositionedTile(item, hatTilePositions[index].x, hatTilePositions[index].y)
+          )}
 
-        <View className="px-6 mt-5">
-          <Filters
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-          />
-        </View>
+          {/* Face Tiles */}
+          {!loading && faceItems.map((item, index) =>
+            renderPositionedTile(item, faceTilePositions[index].x, faceTilePositions[index].y)
+          )}
 
-        {/* grid or loading */}
-        {loading && !isRefreshing ? (
-          <LoadingState />
-        ) : (
-          <FlatList
-            className="mt-5"
-            data={visibleItems}
-            keyExtractor={keyExtractor}
-            renderItem={renderTile}
-            numColumns={2}
-            showsVerticalScrollIndicator={false}
-            scrollEnabled={false}
-            ListEmptyComponent={EmptyState}
-            contentContainerStyle={{
-              paddingHorizontal: HORIZONTAL_PADDING,
-              paddingTop: 8,
-              paddingBottom: 32,
-            }}
-            columnWrapperStyle={{
-              columnGap: HORIZONTAL_GAP,
-              justifyContent: "flex-start",
-            }}
-            ItemSeparatorComponent={() => <View style={{ height: VERTICAL_GAP }} />}
-          />
-        )}
-      </ScrollView>
+          {/* Collars Tiles */}
+          {!loading && collarItems.map((item, index) =>
+            renderPositionedTile(item, collarTilePositions[index].x, collarTilePositions[index].y)
+          )}
+        </View>
+      </View>
     </View>
   );
 };

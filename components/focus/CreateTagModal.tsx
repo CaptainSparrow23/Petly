@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { Modal, View, Text, TouchableOpacity, TextInput, Animated, useWindowDimensions } from "react-native";
 import { CoralPalette } from "@/constants/colors";
 import * as Haptics from 'expo-haptics';
@@ -26,14 +26,24 @@ const COLOR_OPTIONS = [
   CoralPalette.yellowLight,
 ];
 
+const MAX_TAGS = 6;
+
 export default function CreateTagModal({ visible, onClose, onCreate }: Props) {
-  const { appSettings, showBanner } = useGlobalContext();
+  const { appSettings, showBanner, userProfile } = useGlobalContext();
   const { height } = useWindowDimensions();
   const [mounted, setMounted] = useState(visible);
   const [tagName, setTagName] = useState("");
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
   const anim = useRef(new Animated.Value(visible ? 1 : 0)).current;
   const visibleRef = useRef(visible);
+
+  // Get current tag count
+  const currentTagCount = useMemo(() => {
+    if (userProfile?.tagList && Array.isArray(userProfile.tagList)) {
+      return userProfile.tagList.length;
+    }
+    return 0;
+  }, [userProfile?.tagList]);
 
   React.useEffect(() => {
     visibleRef.current = visible;
@@ -80,6 +90,12 @@ export default function CreateTagModal({ visible, onClose, onCreate }: Props) {
   const handleCreate = () => {
     const trimmed = tagName.trim();
     if (!trimmed) return;
+
+    // Check if user has reached max tags
+    if (currentTagCount >= MAX_TAGS) {
+      showBanner(`You've reached the maximum number of tags (${MAX_TAGS}). Please remove a tag before creating a new one.`, "error");
+      return;
+    }
     
     // Validate: only letters and spaces allowed
     if (!/^[a-zA-Z\s]+$/.test(trimmed)) {

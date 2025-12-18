@@ -74,6 +74,58 @@ const InsightsDrawerLabel = ({ color }: { color: string }) => {
   );
 };
 
+const FocusDrawerLabel = ({ color }: { color: string }) => (
+  <Text
+    style={{
+      fontFamily: "Nunito",
+      fontSize: 16,
+      fontWeight: '700',
+      color: color,
+    }}
+  >
+    Focus
+  </Text>
+);
+
+const MyPetsDrawerLabel = ({ color }: { color: string }) => (
+  <Text
+    style={{
+      fontFamily: "Nunito",
+      fontSize: 16,
+      fontWeight: '700',
+      color: color,
+    }}
+  >
+    My Pets
+  </Text>
+);
+
+const StoreDrawerLabel = ({ color }: { color: string }) => (
+  <Text
+    style={{
+      fontFamily: "Nunito",
+      fontSize: 16,
+      fontWeight: '700',
+      color: color,
+    }}
+  >
+    Store
+  </Text>
+);
+
+const SettingsDrawerLabel = ({ color }: { color: string }) => (
+  <Text
+    style={{
+      fontFamily: "Nunito",
+      fontSize: 16,
+      fontWeight: '700',
+      color: color,
+    }}
+  >
+    Settings
+  </Text>
+);
+
 const CustomDrawerContent = (props: any) => {
   const { userProfile, logout, appSettings } = useGlobalContext();
   const hasUnclaimedRewards = useHasUnclaimedRewards();
@@ -123,7 +175,7 @@ const CustomDrawerContent = (props: any) => {
           <View className="flex-row items-center mt-5">
             <Text
               className="text-xl font-bold text-white"
-              style={{ fontFamily: "Nunito" }}
+              style={{ fontFamily: "Nunito", fontWeight: "700" }}
             >
               {displayName}
             </Text>
@@ -213,6 +265,7 @@ const CustomDrawerContent = (props: any) => {
             style={{
               color: isLogoutConfirm ? CoralPalette.primary : CoralPalette.dark,
               fontFamily: "Nunito",
+              fontWeight: "500",
             }}
           >
             {isLoggingOut ? "Logging Out..." : isLogoutConfirm ? "Confirm" : "Log Out"}
@@ -255,7 +308,7 @@ const DrawerLayout = () => {
           title: 'Focus',
           headerTitle: () => null,
           // headerRight removed (coins)
-          drawerLabel: 'Focus',
+          drawerLabel: ({ color }) => <FocusDrawerLabel color={color} />,
           drawerIcon: ({ color, size }) => <Home color={color} size={size} />,
           headerRight: () => <CoinBadge />
         }}
@@ -273,6 +326,7 @@ const DrawerLayout = () => {
         name="pets"
         options={{
           title: 'My Pets',
+          drawerLabel: ({ color }) => <MyPetsDrawerLabel color={color} />,
           drawerIcon: ({ color, size }) => <Cat color={color} size={size} />,
           headerRight: () => <CoinBadge />
         }}
@@ -282,6 +336,7 @@ const DrawerLayout = () => {
         options={{
           title: 'Store',
           // headerRight removed (coins)
+          drawerLabel: ({ color }) => <StoreDrawerLabel color={color} />,
           drawerIcon: ({ color, size }) => <Store color={color} size={size} />,
            headerRight: () => <CoinBadge />
         }}
@@ -298,6 +353,7 @@ const DrawerLayout = () => {
         name="settings"
         options={{
           title: 'Settings',
+          drawerLabel: ({ color }) => <SettingsDrawerLabel color={color} />,
           drawerIcon: ({ color, size }) => <Settings color={color} size={size} />,
         }}
       />
