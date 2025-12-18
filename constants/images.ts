@@ -55,6 +55,7 @@ import xp from "@/assets/images/xp.png";
 import trophy from "@/assets/images/trophy.png";
 import fire from "@/assets/images/fire.png";
 import map_background from "@/assets/images/map_background.png";
+import store_background from "@/assets/images/store_background.png";
 import friends from "@/assets/images/friends.png";
 import tick from "@/assets/images/tick.png";
 
@@ -104,6 +105,7 @@ export default {
   trophy,
   fire,
   map_background,
+  store_background,
   friends,
   tick,
 };

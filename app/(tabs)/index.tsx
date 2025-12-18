@@ -187,8 +187,11 @@ export default function IndexScreen() {
         const awarded = await upload({
           userId: String(userProfile.userId),
           activity,
+          tagId: selectedTag?.id ?? null,
           startTs: new Date(startMs).toISOString(),
+          endTs: end.toISOString(),
           durationSec: Math.floor(elapsedSec),
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/London",
         });
         coinsEarned = awarded?.coinsAwarded ?? 0;
         xpEarned = awarded?.xpAwarded ?? 0;

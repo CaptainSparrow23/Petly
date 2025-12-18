@@ -120,7 +120,7 @@ export const PetPreviewCard = ({
   <View className="pt-5" style={{ backgroundColor: CoralPalette.white}}>
     <Text
       className="px-6 text-3xl font-bold"
-      style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}
+      style={{ color: CoralPalette.dark, fontFamily: "Nunito", fontWeight: "700" }}
       numberOfLines={1}
     >
       {pet?.name}
@@ -194,7 +194,7 @@ export const InsufficientCoinsCard = ({
 
   }}
  >
-  <Text className="text-2xl font-extrabold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>
+  <Text className="text-2xl font-extrabold" style={{ color: CoralPalette.dark, fontFamily: "Nunito", fontWeight: "800" }}>
    Not enough coins
   </Text>
   <Text className="mt-2 text-sm leading-5" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
@@ -214,7 +214,7 @@ export const InsufficientCoinsCard = ({
      borderColor: CoralPalette.border,
     }}
    >
-    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
+    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito", fontWeight: "500" }}>
      Back
     </Text>
    </TouchableOpacity>
@@ -231,7 +231,7 @@ export const InsufficientCoinsCard = ({
      opacity: 0.95,
     }}
    >
-    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>
+    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.white, fontFamily: "Nunito", fontWeight: "500" }}>
      Get more coins
     </Text>
    </TouchableOpacity>
@@ -263,7 +263,7 @@ export const PurchaseConfirmationCard = ({
 
   }}
  >
-  <Text className="text-2xl font-extrabold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>
+  <Text className="text-2xl font-extrabold" style={{ color: CoralPalette.dark, fontFamily: "Nunito", fontWeight: "800" }}>
    Are you sure?
   </Text>
   <Text className="mt-2 text-sm leading-5" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
@@ -285,7 +285,7 @@ export const PurchaseConfirmationCard = ({
      borderColor: CoralPalette.border,
     }}
    >
-    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>
+    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito", fontWeight: "500" }}>
      Cancel
     </Text>
    </TouchableOpacity>
@@ -303,7 +303,7 @@ export const PurchaseConfirmationCard = ({
      opacity: 0.95,
     }}
    >
-    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>
+    <Text className="text-center text-base font-medium" style={{ color: CoralPalette.white, fontFamily: "Nunito", fontWeight: "500" }}>
      {isConfirming ? "Confirming..." : "Confirm"}
     </Text>
    </TouchableOpacity>
@@ -329,7 +329,7 @@ export const PurchaseSuccessCard = ({
 
   }}
  >
-  <Text className="text-2xl font-extrabold" style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}>
+  <Text className="text-2xl font-extrabold" style={{ color: CoralPalette.dark, fontFamily: "Nunito", fontWeight: "800" }}>
    Purchase successful!
   </Text>
   <Text className="mt-2 text-sm leading-5" style={{ color: CoralPalette.mutedDark, fontFamily: "Nunito" }}>

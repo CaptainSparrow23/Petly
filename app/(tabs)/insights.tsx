@@ -4,6 +4,7 @@ import TodayFocusCard from "@/components/insights/TodayFocusCard";
 import StreakCard from "@/components/insights/StreakCard";
 import GoalsCard from "@/components/insights/GoalsCard";
 import FocusChart from "@/components/insights/FocusChart";
+import TagDistributionChart from "@/components/insights/TagDistributionChart";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useInsights } from "@/hooks/useInsights";
 import { CoralPalette } from "@/constants/colors";
@@ -12,8 +13,8 @@ import {
   StreakCardSkeleton,
   GoalsCardSkeleton,
   FocusChartSkeleton,
+  TagDistributionChartSkeleton,
 } from "@/components/other/Skeleton";
-import CoinBadge from "@/components/other/CoinBadge";
 
 export default function FocusScreen() {
   const { userProfile } = useGlobalContext();
@@ -60,11 +61,12 @@ export default function FocusScreen() {
       </View>
       <GoalsCardSkeleton />
       <FocusChartSkeleton />
+      <TagDistributionChartSkeleton />
     </ScrollView>
   );
 
   return (
-    <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
+    <View className="flex-1" style={{ backgroundColor: CoralPalette.greyLighter }}>
       {showBigLoader ? (
         <LoadingState />
       ) : (
@@ -90,6 +92,8 @@ export default function FocusScreen() {
           />
 
           <FocusChart title="Focused Time Distribution" />
+
+          <TagDistributionChart title="Tag Distribution" />
         </ScrollView>
       )}
     </View>

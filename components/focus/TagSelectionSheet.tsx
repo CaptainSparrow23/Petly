@@ -446,9 +446,9 @@ const TagSelectionSheet = ({
           <View
             style={{
               width: 50,
-              height: 4,
+              height: 6,
               borderRadius: 2,
-              backgroundColor: CoralPalette.greyVeryLight,
+              backgroundColor: CoralPalette.white,
               opacity: 0.4,
             }}
           />
@@ -457,15 +457,15 @@ const TagSelectionSheet = ({
         <View 
         style={{ 
           width: "100%", 
-          paddingHorizontal: 20, 
+          paddingHorizontal: 15,
           marginTop: 20,
-          paddingTop: 20,
+          paddingTop: 15,
           paddingBottom: 20,
       
 
 
           minHeight: 200,
-          backgroundColor: CoralPalette.greyLighter, // Reserve space to prevent layout shift
+          backgroundColor: CoralPalette.white, // Reserve space to prevent layout shift
         }}
       >
         <View className="w-full flex-row items-center justify-between mb-3" style={{ paddingLeft: 8 }}>
@@ -499,7 +499,9 @@ const TagSelectionSheet = ({
               onPressOut={() => setIsPlusButtonPressed(false)}
               className="flex-row items-center justify-center rounded-lg"
               style={{
-                backgroundColor: isPlusButtonPressed ? CoralPalette.white : CoralPalette.greyLight,
+                backgroundColor: isPlusButtonPressed ? CoralPalette.greyLight : CoralPalette.white,
+                borderWidth: 1,
+                borderColor: CoralPalette.greyLight,
                 minWidth: 35,
                 width: 35,
                 minHeight: 35,
@@ -535,11 +537,13 @@ const TagSelectionSheet = ({
                     className="flex-row items-center justify-center gap-2 py-1 px-1 rounded-lg"
                     style={{
                       backgroundColor: isSelected
-                        ? CoralPalette.white
-                        : CoralPalette.greyLight,
+                        ? CoralPalette.greyLight
+                        : CoralPalette.white,
                       minWidth: 90,
                       width: 90,
                       minHeight: 35,
+                      borderWidth: 1,
+                      borderColor: CoralPalette.greyLight,
                       height: 35,
                       justifyContent: "center",
                       alignItems: "center",
@@ -586,15 +590,15 @@ const TagSelectionSheet = ({
           />
 
         {/* Focus Time Section */}
-        <View className="w-full items-start mt-4 mb-2" style={{ paddingLeft: 8 }}>
+        <View className="w-full items-start mt-5" style={{ paddingLeft: 8 }}>
           <Text
-            className="text-lg font-semibold mb-2"
+            className="text-lg font-semibold"
             style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}
           >
-            Focus Time
+            Focused Time
           </Text>
           <View
-            className="rounded-2xl overflow-hidden"
+            className="rounded-xl overflow-hidden"
             style={{
               backgroundColor: CoralPalette.white,
               width: "100%",
@@ -640,7 +644,7 @@ const TagSelectionSheet = ({
           </View>
         </View>
 
-        <View className="w-full items-start mt-3 mb-2" style={{ paddingLeft: 8 }}>
+        <View className="w-full items-start mb-2 -mt-4" style={{ paddingLeft: 8 }}>
           <Text
             className="text-lg font-semibold"
             style={{ color: CoralPalette.dark, fontFamily: "Nunito" }}
@@ -667,8 +671,8 @@ const TagSelectionSheet = ({
                   className="items-center justify-center rounded-xl p-3"
                   style={{
                     backgroundColor: isSelected
-                      ? CoralPalette.white
-                      : CoralPalette.greyLighter,
+                      ? CoralPalette.greyLighter
+                      : CoralPalette.white,
                     minWidth: 80,
                     opacity: 1,
                   }}
@@ -710,7 +714,7 @@ const TagSelectionSheet = ({
      
 
        
-          backgroundColor: CoralPalette.white,
+          backgroundColor: CoralPalette.surfaceAlt,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
@@ -727,7 +731,7 @@ const TagSelectionSheet = ({
             width: 75,
             height:  75,
             borderRadius: 99,
-            backgroundColor: CoralPalette.surface,
+            backgroundColor: CoralPalette.white,
             borderWidth: 3,
             borderColor: CoralPalette.primaryMuted,
             alignItems: "center",
@@ -763,7 +767,7 @@ const TagSelectionSheet = ({
             </Text>
           </View>
           <View
-            style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}
+            style={{ flexDirection: "row", alignItems: "center", marginTop: 4, marginLeft: 4 }}
           >
             <View
               style={{
@@ -771,7 +775,7 @@ const TagSelectionSheet = ({
                 height: 6,
                 borderRadius: 3,
                 backgroundColor: selectedTag?.color || CoralPalette.primary,
-                marginRight: 6,
+                marginRight: 8,
               }}
             />
             <Text
