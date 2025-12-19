@@ -23,7 +23,7 @@ import { getPetAnimationConfig } from "@/constants/animations";
 import { CoralPalette } from "@/constants/colors";
 import Constants from "expo-constants";
 import PetsTab from "@/components/pets/PetsTab";
-import AccessoriesTab from "@/components/pets/AccessoriesTab";
+import AccessoriesTab, { AccessoryCategory } from "@/components/pets/AccessoriesTab";
 import FriendshipModal from "@/components/pets/FriendshipModal";
 import { petAnimations } from "@/constants/animations";
 
@@ -35,7 +35,7 @@ const FONT = { fontFamily: "Nunito" };
 const TOP_BUTTON_BASE_STYLE = {
   width: 70,
   height: 70,
-  backgroundColor: CoralPalette.surfaceAlt,
+  backgroundColor: CoralPalette.greyLighter,
   borderRadius: 100,
   shadowColor: "#000",
   shadowOpacity: 0.1,
@@ -49,8 +49,6 @@ const TOP_BUTTON_CONTAINER_STYLE = {
   right: 18,
   zIndex: 20,
 } as const;
-
-type AccessoryCategory = "hat" | "face" | "collar";
 
 const Profile = () => {
   const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
@@ -68,9 +66,6 @@ const Profile = () => {
   // Focused accessory states (local selection before saving)
   const [focusedHat, setFocusedHat] = useState<string | null>(
     userProfile?.selectedHat ?? null
-  );
-  const [focusedFace, setFocusedFace] = useState<string | null>(
-    userProfile?.selectedFace ?? null
   );
   const [focusedCollar, setFocusedCollar] = useState<string | null>(
     userProfile?.selectedCollar ?? null
@@ -102,13 +97,11 @@ const Profile = () => {
       (!focusedPet || focusedPet === userProfile.selectedPet)
     ) {
       setFocusedHat(userProfile.selectedHat ?? null);
-      setFocusedFace(userProfile.selectedFace ?? null);
       setFocusedCollar(userProfile.selectedCollar ?? null);
       setFocusedGadget(userProfile.selectedGadget ?? "gadget_laptop");
     }
   }, [
     userProfile?.selectedHat,
-    userProfile?.selectedFace,
     userProfile?.selectedCollar,
     userProfile?.selectedGadget,
     userProfile?.selectedPet,
@@ -119,17 +112,15 @@ const Profile = () => {
   const changeFlags = useMemo(() => {
     const petChanged = !!focusedPet && focusedPet !== userProfile?.selectedPet;
     const hatChanged = focusedHat !== (userProfile?.selectedHat ?? null);
-    const faceChanged = focusedFace !== (userProfile?.selectedFace ?? null);
     const collarChanged =
       focusedCollar !== (userProfile?.selectedCollar ?? null);
     const gadgetChanged =
       focusedGadget !== (userProfile?.selectedGadget ?? "gadget_laptop");
     const accessoryChanged =
-      hatChanged || faceChanged || collarChanged || gadgetChanged;
+      hatChanged || collarChanged || gadgetChanged;
     return {
       petChanged,
       hatChanged,
-      faceChanged,
       collarChanged,
       gadgetChanged,
       accessoryChanged,
@@ -137,12 +128,10 @@ const Profile = () => {
   }, [
     focusedPet,
     focusedHat,
-    focusedFace,
     focusedCollar,
     focusedGadget,
     userProfile?.selectedPet,
     userProfile?.selectedHat,
-    userProfile?.selectedFace,
     userProfile?.selectedCollar,
     userProfile?.selectedGadget,
   ]);
@@ -151,7 +140,6 @@ const Profile = () => {
     () =>
       changeFlags.petChanged ||
       changeFlags.hatChanged ||
-      changeFlags.faceChanged ||
       changeFlags.collarChanged ||
       changeFlags.gadgetChanged,
     [changeFlags]
@@ -192,7 +180,6 @@ const Profile = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   selectedHat: focusedHat,
-                  selectedFace: focusedFace,
                   selectedCollar: focusedCollar,
                   selectedGadget: focusedGadget,
                 }),
@@ -219,7 +206,6 @@ const Profile = () => {
       updateUserProfile({
         ...(changeFlags.petChanged && focusedPet ? { selectedPet: focusedPet } : {}),
         selectedHat: focusedHat,
-        selectedFace: focusedFace,
         selectedCollar: focusedCollar,
         selectedGadget: focusedGadget,
       });
@@ -228,7 +214,6 @@ const Profile = () => {
   }, [
     changeFlags,
     focusedCollar,
-    focusedFace,
     focusedGadget,
     focusedHat,
     focusedPet,
@@ -551,7 +536,6 @@ const Profile = () => {
                       focusInputName={config.focusInputName}
                       focusValue={0}
                       selectedHat={focusedHat}
-                      selectedFace={focusedFace}
                       selectedCollar={focusedCollar}
                       containerStyle={{ width: "100%", height: "100%" }}
                       animationStyle={{ width: "65%", height: "65%" }}
@@ -572,7 +556,7 @@ const Profile = () => {
             bottom: 0,
             paddingBottom: 0,
             paddingTop: 12,
-            backgroundColor: CoralPalette.surface,
+            backgroundColor: CoralPalette.greyLighter,
             transform: [{ translateY: petsTranslateY }],
             opacity: petsOpacity,
             borderTopLeftRadius: 24,
@@ -594,14 +578,14 @@ const Profile = () => {
 
           {/* Accessories Edit Mode */}
           <Animated.View
-            className="rounded-t-3xl shadow-lg pt-6"
+            className="rounded-t-3xl shadow-lg pt-4"
             style={{
               position: "absolute",
               top: "56%",
               left: 0,
               right: 0,
               bottom: -100,
-              backgroundColor: CoralPalette.surface,
+              backgroundColor: CoralPalette.greyLighter,
               transform: [{ translateY: sheetTranslateY }],
               opacity: sheetOpacity,
             }}
@@ -609,15 +593,12 @@ const Profile = () => {
           >
             <AccessoriesTab
               ownedHats={userProfile?.ownedHats || []}
-              ownedFaces={userProfile?.ownedFaces || []}
               ownedCollars={userProfile?.ownedCollars || []}
               ownedGadgets={userProfile?.ownedGadgets || []}
               focusedHat={focusedHat}
-              focusedFace={focusedFace}
               focusedCollar={focusedCollar}
               focusedGadget={focusedGadget}
               setFocusedHat={setFocusedHat}
-              setFocusedFace={setFocusedFace}
               setFocusedCollar={setFocusedCollar}
               setFocusedGadget={setFocusedGadget}
               activeCategory={activeAccessoryCategory}

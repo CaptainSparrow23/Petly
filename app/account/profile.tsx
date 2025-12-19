@@ -100,9 +100,8 @@ export default function Profile() {
   // Collection counts
   const petsCount = userProfile?.ownedPets?.length ?? 0;
   const hatsCount = userProfile?.ownedHats?.length ?? 0;
-  const facesCount = userProfile?.ownedFaces?.length ?? 0;
   const collarsCount = userProfile?.ownedCollars?.length ?? 0;
-  const accessoriesCount = hatsCount + facesCount + collarsCount;
+  const accessoriesCount = hatsCount + collarsCount;
   const gadgetsCount = userProfile?.ownedGadgets?.length ?? 0;
 
   // Pet friendships - get all owned pets with their friendship data

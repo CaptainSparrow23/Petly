@@ -13,13 +13,9 @@ const HAT_INPUT_MAP: Record<string, number> = {
   hat_bucket_hat_green: 7,
   hat_top_hat_red: 8,
   hat_top_hat_silk: 9,
-  hat_special_toque_blanche: 10,
+  hat_toque_blanche: 10,
   hat_flower_crown_spring: 11,
   hat_flower_crown_winter: 12,
-};
-
-const FACE_INPUT_MAP: Record<string, number> = {
-  face_sun_glasses: 1,
 };
 
 const COLLAR_INPUT_MAP: Record<string, number> = {
@@ -32,7 +28,8 @@ const COLLAR_INPUT_MAP: Record<string, number> = {
   collar_standard_ocean: 7,
   collar_bow_tie_red: 8,
   collar_bow_tie_silk: 9,
-  collar_special_chefs_coat: 10,
+  collar_chefs_coat: 10,
+  collar_wings_fairy: 11,
 };
 
 type Props = {
@@ -43,7 +40,6 @@ type Props = {
   focusInputName?: string;
   focusValue?: number;
   selectedHat?: string | null;
-  selectedFace?: string | null;
   selectedCollar?: string | null;
 };
 
@@ -55,7 +51,6 @@ const PetAnimation: React.FC<Props> = ({
   focusInputName,
   focusValue = 0,
   selectedHat = null,
-  selectedFace = null,
   selectedCollar = null,
 }) => {
   const riveRef = useRef<any>(null);
@@ -69,11 +64,11 @@ const PetAnimation: React.FC<Props> = ({
   }
 
   // Keep latest props in refs so we always apply current values
-  const propsRef = useRef({ stateMachineName, focusInputName, focusValue, selectedHat, selectedFace, selectedCollar });
-  propsRef.current = { stateMachineName, focusInputName, focusValue, selectedHat, selectedFace, selectedCollar };
+  const propsRef = useRef({ stateMachineName, focusInputName, focusValue, selectedHat, selectedCollar });
+  propsRef.current = { stateMachineName, focusInputName, focusValue, selectedHat, selectedCollar };
 
   const applyInputs = () => {
-    const { stateMachineName, focusInputName, focusValue, selectedHat, selectedFace, selectedCollar } = propsRef.current;
+    const { stateMachineName, focusInputName, focusValue, selectedHat, selectedCollar } = propsRef.current;
     if (!riveRef.current || !stateMachineName) return;
 
     try {
@@ -92,9 +87,6 @@ const PetAnimation: React.FC<Props> = ({
       console.log(`🎩 Hat: ${selectedHat} -> Rive input: ${hatValue}`);
       riveRef.current.setInputState(stateMachineName, "hat", hatValue);
 
-      const faceValue = selectedFace ? FACE_INPUT_MAP[selectedFace] ?? 0 : 0;
-      riveRef.current.setInputState(stateMachineName, "face", faceValue);
-
       const collarValue = selectedCollar ? COLLAR_INPUT_MAP[selectedCollar] ?? 0 : 0;
       riveRef.current.setInputState(stateMachineName, "collar", collarValue);
     } catch (e) {
@@ -107,7 +99,7 @@ const PetAnimation: React.FC<Props> = ({
     if (isReady.current) {
       applyInputs();
     }
-  }, [stateMachineName, focusInputName, focusValue, selectedHat, selectedFace, selectedCollar]);
+  }, [stateMachineName, focusInputName, focusValue, selectedHat, selectedCollar]);
 
   const handlePlay = () => {
     if (isReady.current) return;

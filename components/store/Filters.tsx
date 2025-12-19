@@ -1,97 +1,143 @@
-import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { Cpu, Crown, Tag, Glasses, Grid3x3 } from "lucide-react-native";
+import React, { useCallback, useMemo } from "react";
+import {
+  LayoutAnimation,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import type { StoreCategory } from "@/components/store/Tiles";
 import { CoralPalette } from "@/constants/colors";
 
-export type CategoryValue = StoreCategory | "all";
-
-const CHIP_ACTIVE_BG = CoralPalette.primary;
-const CHIP_ACTIVE_BORDER = CoralPalette.primary;
-const CHIP_ACTIVE_TEXT = CoralPalette.white;
-const CHIP_INACTIVE_BG = CoralPalette.surfaceAlt;
-const CHIP_INACTIVE_BORDER = CoralPalette.border;
-const CHIP_INACTIVE_TEXT = CoralPalette.mutedDark;
-
-interface FilterChipProps {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  Icon: React.ComponentType<{ size: number; color: string }>;
+// Enable LayoutAnimation on Android
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const FilterChip = ({
-  label,
-  active,
-  onPress,
-  Icon,
-}: FilterChipProps) => {
-  const background = active ? CHIP_ACTIVE_BG : CHIP_INACTIVE_BG;
-  const border = active ? CHIP_ACTIVE_BORDER : CHIP_INACTIVE_BORDER;
-  const textColor = active ? CHIP_ACTIVE_TEXT : CHIP_INACTIVE_TEXT;
+const FONT = { fontFamily: "Nunito" };
+const DEFAULT_PILL_WIDTH = 120;
+const CONTAINER_PADDING = 4;
+const BORDER_RADIUS = 5;
 
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.85}
-      style={{
-        backgroundColor: background,
-        borderColor: border,
-        borderWidth: 1,
-        elevation: active ? 2 : 0,
-        minWidth: 83,
-      }}
-      className="flex-row items-center justify-center mr-3 px-4 py-2.5 rounded-full"
-    >
-      <Icon size={16} color={textColor} />
-      <Text className="ml-1 text-sm font-bold" style={{ color: textColor }}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-};
+const categoryOptions = [
+  { value: "all", label: "All" },
+  { value: "Hat", label: "Hats" },
+  { value: "Collar", label: "Collars" },
+] as const satisfies readonly { value: StoreCategory | "all"; label: string }[];
 
-const categoryOptions: Array<{
-  value: CategoryValue;
-  label: string;
-  icon: FilterChipProps["Icon"];
-}> = [
-  { value: "all", label: "All", icon: Grid3x3 },
-  { value: "Hat", label: "Hats", icon: Crown },
-  { value: "Face", label: "Face", icon: Glasses },
-  { value: "Collar", label: "Collars", icon: Tag },
-  { value: "Gadget", label: "Gadgets", icon: Cpu },
-];
+export type CategoryValue = (typeof categoryOptions)[number]["value"];
 
 interface FiltersProps {
   selectedCategory?: CategoryValue;
   onCategoryChange?: (value: CategoryValue) => void;
 }
 
-const Filters = ({
-  selectedCategory = "all",
-  onCategoryChange,
-}: FiltersProps) => {
-  return (
-    <View className="w-full">
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingRight: 16, paddingLeft: 0, alignItems: "center" }}
-      >
-        {categoryOptions.map(({ value, label, icon: Icon }) => (
-          <FilterChip
-            key={value}
-            label={label}
-            Icon={Icon}
-            active={selectedCategory === value}
-            onPress={() => onCategoryChange?.(value)}
-          />
-        ))}
-      </ScrollView>
+const Filters = ({ selectedCategory = "all", onCategoryChange }: FiltersProps) => {
+  const { width: screenWidth } = useWindowDimensions();
 
+  const containerWidth = useMemo(() => {
+    // Account for parent container padding (12 * 2 = 24)
+    const availableWidth = Math.max(0, screenWidth - 24);
+    return availableWidth;
+  }, [screenWidth]);
+
+  const pillWidth = useMemo(() => {
+    const inner = containerWidth - CONTAINER_PADDING * 2;
+    if (inner <= 0) {
+      return DEFAULT_PILL_WIDTH;
+    }
+    return inner / categoryOptions.length;
+  }, [containerWidth]);
+
+  const currentIndex = useMemo(() => {
+    const index = categoryOptions.findIndex((opt) => opt.value === selectedCategory);
+    return index === -1 ? 0 : index;
+  }, [selectedCategory]);
+
+  const pillPosition = currentIndex * pillWidth;
+
+  const handlePress = useCallback(
+    (value: CategoryValue) => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      onCategoryChange?.(value);
+    },
+    [onCategoryChange]
+  );
+
+  return (
+    <View style={styles.root}>
+      <View style={[styles.container, { width: containerWidth}]}>
+        {/* Sliding background */}
+        <View
+          style={[
+            styles.slider,
+            {
+              width: pillWidth,
+              left: CONTAINER_PADDING + pillPosition,
+            },
+          ]}
+        />
+        {categoryOptions.map(({ value, label }) => (
+          <TouchableOpacity
+            key={value}
+            onPress={() => handlePress(value)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ selected: selectedCategory === value }}
+            style={[styles.pill, { width: pillWidth }]}
+          >
+            <Text
+              style={[
+                styles.pillText,
+                selectedCategory === value ? styles.pillTextSelected : styles.pillTextUnselected,
+                FONT,
+              ]}
+            >
+              {label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 };
 
-export default Filters;
+const styles = StyleSheet.create({
+  root: {
+    alignItems: "center",
+  },
+  container: {
+    flexDirection: "row",
+    padding: CONTAINER_PADDING,
+    backgroundColor: CoralPalette.white,
+    borderRadius: BORDER_RADIUS,
+    overflow: "hidden",
+  },
+  slider: {
+    position: "absolute",
+    top: CONTAINER_PADDING,
+    bottom: CONTAINER_PADDING,
+    backgroundColor: CoralPalette.primaryMuted,
+    borderRadius: BORDER_RADIUS,
+  },
+  pill: {
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: BORDER_RADIUS,
+  },
+  pillText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  pillTextSelected: {
+    color: CoralPalette.white,
+  },
+  pillTextUnselected: {
+    color: CoralPalette.mutedDark,
+  },
+});
+
+export default React.memo(Filters);

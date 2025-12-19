@@ -5,7 +5,6 @@ import {
  TouchableOpacity,
  View,
  TextInput,
- Alert,
  ActivityIndicator,
  Modal,
  FlatList,
@@ -13,13 +12,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { useFocusEffect } from "@react-navigation/native";
-import { ChevronLeft, Check, Edit2 } from "lucide-react-native";
+import { ChevronLeft, Edit2 } from "lucide-react-native";
 import { router } from "expo-router";
 import Constants from "expo-constants";
 import { ProfilePicture } from "@/components/other/ProfilePicture";
 import { CoralPalette } from "@/constants/colors";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
+const FONT = { fontFamily: "Nunito" };
 
 // Profile picture options
 const PROFILE_OPTIONS = [
@@ -31,31 +31,40 @@ const PROFILE_OPTIONS = [
 
 const EditProfile = () => {
  const { userProfile, updateUserProfile, refetchUserProfile, showBanner } = useGlobalContext();
- const [username, setUsername] = useState("");
- const [selectedProfileId, setSelectedProfileId] = useState<number>(1);
+ const initialUsername = userProfile?.username ?? "";
+ const initialProfileId = userProfile?.profileId ?? 1;
+
+ const [isInitialized, setIsInitialized] = useState(() => !!userProfile);
+ const [username, setUsername] = useState(initialUsername);
+ const [selectedProfileId, setSelectedProfileId] = useState<number>(initialProfileId);
  const [showProfilePicker, setShowProfilePicker] = useState(false);
  const [showUsernameModal, setShowUsernameModal] = useState(false);
- const [usernameDraft, setUsernameDraft] = useState("");
+ const [usernameDraft, setUsernameDraft] = useState(initialUsername);
  const [isSaving, setIsSaving] = useState(false);
- const [originalUsername, setOriginalUsername] = useState<string | null>(null);
- const [originalProfileId, setOriginalProfileId] = useState<number>(1);
+ const [originalUsername, setOriginalUsername] = useState(initialUsername);
+ const [originalProfileId, setOriginalProfileId] = useState<number>(initialProfileId);
 
  // Initialize state from global userProfile
  useEffect(() => {
-  if (userProfile) {
-   const currentUsername = userProfile.username || "";
-   const currentProfileId = userProfile.profileId || 1;
-   setUsername(currentUsername);
-   setOriginalUsername(currentUsername);
-   setSelectedProfileId(currentProfileId);
-   setOriginalProfileId(currentProfileId);
-   setUsernameDraft(currentUsername);
+  if (!userProfile) {
+   setIsInitialized(false);
+   return;
   }
- }, [userProfile]);
+
+  const currentUsername = userProfile.username ?? "";
+  const currentProfileId = userProfile.profileId ?? 1;
+
+  setUsername(currentUsername);
+  setOriginalUsername(currentUsername);
+  setSelectedProfileId(currentProfileId);
+  setOriginalProfileId(currentProfileId);
+  setUsernameDraft(currentUsername);
+  setIsInitialized(true);
+ }, [userProfile?.userId]);
 
  useFocusEffect(
   useCallback(() => {
-   if (!userProfile?.userId) return;
+   if (userProfile?.userId) return;
    refetchUserProfile().catch((err) => console.error("Failed to refetch profile", err));
   }, [userProfile?.userId, refetchUserProfile])
  );
@@ -117,16 +126,21 @@ const EditProfile = () => {
    const result = await response.json();
    console.log("✅ Profile updated successfully:", result.data);
 
+   const nextUsername = username.trim();
    updateUserProfile({
-    username: username.trim(),
+    username: nextUsername,
     profileId: selectedProfileId,
    });
 
-  showBanner({
-   title: "Profile updated",
-   preset: "done",
-   haptic: "success",
-  });
+   setOriginalUsername(nextUsername);
+   setOriginalProfileId(selectedProfileId);
+   setUsernameDraft(nextUsername);
+
+   showBanner({
+    title: "Profile updated",
+    preset: "done",
+    haptic: "success",
+   });
   } catch (error) {
    console.error("❌ Error updating profile:", error);
    const errorMessage =
@@ -144,8 +158,6 @@ const EditProfile = () => {
 const hasChanges =
  username.trim() !== originalUsername ||
  selectedProfileId !== originalProfileId;
-
-const FONT = { fontFamily: "Nunito" };
 
 const renderProfileOption = ({ item }: { item: { id: number; name: string } }) => {
   const isSelected = selectedProfileId === item.id;
@@ -172,6 +184,28 @@ const renderProfileOption = ({ item }: { item: { id: number; name: string } }) =
     </TouchableOpacity>
   );
 };
+
+  if (!isInitialized) {
+    return (
+      <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
+        <View className="relative flex-row mb-1 items-center justify-between px-4 py-4">
+          <TouchableOpacity onPress={() => router.back()}>
+            <ChevronLeft size={30} color={CoralPalette.dark} />
+          </TouchableOpacity>
+          <View className="absolute items-center justify-center left-0 right-0">
+            <Text className="text-[17px] font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
+              Profile
+            </Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={CoralPalette.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>

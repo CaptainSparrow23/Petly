@@ -7,19 +7,16 @@ import { CoralPalette } from "@/constants/colors";
 
 const FONT = { fontFamily: "Nunito" };
 
-export type AccessoryCategory = "hat" | "face" | "collar";
+export type AccessoryCategory = "hat" | "collar";
 
 interface AccessoriesTabProps {
   ownedHats: string[];
-  ownedFaces: string[];
   ownedCollars: string[];
   ownedGadgets: string[];
   focusedHat: string | null;
-  focusedFace: string | null;
   focusedCollar: string | null;
   focusedGadget: string | null;
   setFocusedHat: (hat: string | null) => void;
-  setFocusedFace: (face: string | null) => void;
   setFocusedCollar: (collar: string | null) => void;
   setFocusedGadget: (gadget: string | null) => void;
   activeCategory: AccessoryCategory;
@@ -28,15 +25,12 @@ interface AccessoriesTabProps {
 
 const AccessoriesTab = ({
   ownedHats,
-  ownedFaces,
   ownedCollars,
   ownedGadgets,
   focusedHat,
-  focusedFace,
   focusedCollar,
   focusedGadget,
   setFocusedHat,
-  setFocusedFace,
   setFocusedCollar,
   setFocusedGadget,
   activeCategory,
@@ -44,16 +38,15 @@ const AccessoriesTab = ({
 }: AccessoriesTabProps) => {
   // Sort arrays alphabetically
   const sortedHats = [...ownedHats].sort((a, b) => a.localeCompare(b));
-  const sortedFaces = [...ownedFaces].sort((a, b) => a.localeCompare(b));
   const sortedCollars = [...ownedCollars].sort((a, b) => a.localeCompare(b));
   const sortedGadgets = [...ownedGadgets].sort((a, b) => a.localeCompare(b));
 
   const pillAnim = useRef(new Animated.Value(0)).current;
-  const CATEGORY_WIDTH = 125;
+  const CATEGORY_WIDTH = 180;
 
   const handleCategoryChange = (category: AccessoryCategory) => {
     setActiveCategory(category);
-    const index = category === "hat" ? 0 : category === "face" ? 1 : 2;
+    const index = category === "hat" ? 0 : 1;
     Animated.spring(pillAnim, {
       toValue: index * CATEGORY_WIDTH,
       useNativeDriver: true,
@@ -64,7 +57,7 @@ const AccessoriesTab = ({
 
   // Animate pill position when activeCategory changes (from parent or local)
   React.useEffect(() => {
-    const index = activeCategory === "hat" ? 0 : activeCategory === "face" ? 1 : 2;
+    const index = activeCategory === "hat" ? 0 : 1;
     Animated.spring(pillAnim, {
       toValue: index * CATEGORY_WIDTH,
       useNativeDriver: true,
@@ -176,10 +169,10 @@ const AccessoriesTab = ({
   return (
     <View className="flex-1">
       {/* Pill Selector */}
-      <View className="px-4 mb-4 flex-row items-center justify-center">
+      <View className="px-4 mb-2 flex-row items-center justify-center">
         <View
           className="flex-row p-1"
-          style={{ backgroundColor: CoralPalette.surfaceAlt, borderRadius: 5 }}
+          style={{ backgroundColor: CoralPalette.white, borderRadius: 5 }}
         >
           {/* Animated sliding background */}
           <Animated.View
@@ -197,7 +190,7 @@ const AccessoriesTab = ({
           <TouchableOpacity
             onPress={() => handleCategoryChange("hat")}
             activeOpacity={0.8}
-            className="py-2 rounded-full items-center"
+            className="py-1.5 rounded-full items-center"
             style={{ width: CATEGORY_WIDTH }}
           >
             <Text
@@ -216,30 +209,9 @@ const AccessoriesTab = ({
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => handleCategoryChange("face")}
-            activeOpacity={0.8}
-            className="py-2 rounded-full items-center"
-            style={{ width: CATEGORY_WIDTH }}
-          >
-            <Text
-              className="text-sm font-bold"
-              style={[
-                {
-                  color:
-                    activeCategory === "face"
-                      ? CoralPalette.white
-                      : CoralPalette.mutedDark,
-                },
-                FONT,
-              ]}
-            >
-              Face
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             onPress={() => handleCategoryChange("collar")}
             activeOpacity={0.8}
-            className="py-2 rounded-full items-center"
+            className="py-1.5 rounded-full items-center"
             style={{ width: CATEGORY_WIDTH }}
           >
             <Text
@@ -272,13 +244,6 @@ const AccessoriesTab = ({
             focusedHat,
             setFocusedHat,
             "Hats"
-          )}
-        {activeCategory === "face" &&
-          renderAccessoryList(
-            sortedFaces,
-            focusedFace,
-            setFocusedFace,
-            "Face"
           )}
         {activeCategory === "collar" &&
           renderAccessoryList(

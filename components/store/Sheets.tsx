@@ -29,22 +29,20 @@ export const PetPreviewCard = ({
   const isLocked = isPet && unlockLevel !== null && userLevel < unlockLevel && !pet?.owned;
  // Determine which accessory to show based on item category
  const getAccessoryProps = () => {
-   if (!pet) return { selectedHat: null, selectedFace: null, selectedCollar: null };
+   if (!pet) return { selectedHat: null, selectedCollar: null };
    
    switch (pet.category) {
      case 'Hat':
-       return { selectedHat: pet.id, selectedFace: null, selectedCollar: null };
-     case 'Face':
-       return { selectedHat: null, selectedFace: pet.id, selectedCollar: null };
+       return { selectedHat: pet.id, selectedCollar: null };
      case 'Collar':
-       return { selectedHat: null, selectedFace: null, selectedCollar: pet.id };
+       return { selectedHat: null, selectedCollar: pet.id };
      default:
-       return { selectedHat: null, selectedFace: null, selectedCollar: null };
+       return { selectedHat: null, selectedCollar: null };
    }
  };
 
   const accessoryProps = getAccessoryProps();
- const isAccessory = pet?.category === 'Hat' || pet?.category === 'Face' || pet?.category === 'Collar';
+ const isAccessory = pet?.category === 'Hat' || pet?.category === 'Collar';
  const petAnimConfig = isAccessory ? getPetAnimationConfig(selectedPet) : getPetAnimationConfig(pet?.id);
 
  return (
@@ -99,7 +97,6 @@ export const PetPreviewCard = ({
         focusInputName={petAnimConfig.focusInputName}
         focusValue={0}
         selectedHat={accessoryProps.selectedHat}
-        selectedFace={accessoryProps.selectedFace}
         selectedCollar={accessoryProps.selectedCollar}
         containerStyle={{ flex: 1, position: "absolute", top: 25, left: 0, right: 0, bottom: 0 }}
         animationStyle={{ width: "70%", height: "70%" }}

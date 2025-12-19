@@ -23,8 +23,8 @@ import hat_bucket_hat_green from "@/assets/images/hat_bucket_hat_green.png";
 // Hats - top hats
 import hat_top_hat_red from "@/assets/images/hat_top_hat_red.png";
 import hat_top_hat_silk from "@/assets/images/hat_top_hat_silk.png";
-// Hats - special
-import hat_special_toque_blanche from "@/assets/images/hat_special_toque_blanche.png";
+// Hats - toque blanche
+import hat_toque_blanche from "@/assets/images/hat_toque_blanche.png";
 // Hats - flower crowns
 import hat_flower_crown_spring from "@/assets/images/hat_flower_crown_spring.png";
 import hat_flower_crown_winter from "@/assets/images/hat_flower_crown_winter.png";
@@ -40,14 +40,18 @@ import collar_standard_ocean from "@/assets/images/collar_standard_ocean.png";
 // Collars - bow ties
 import collar_bow_tie_red from "@/assets/images/collar_bow_tie_red.png";
 import collar_bow_tie_silk from "@/assets/images/collar_bow_tie_silk.png";
-// Collars - special
-import collar_special_chefs_coat from "@/assets/images/collar_special_chefs_coat.png";
+// Collars - chef's coat
+import collar_chefs_coat from "@/assets/images/collar_chefs_coat.png";
+// Collars - wings
+import collar_wings_fairy from "@/assets/images/collar_wings_fairy.png";
 // Faces
 import face_sun_glasses from "@/assets/images/face_sun_glasses.png";
 // Gadgets
 import gadget_laptop from "@/assets/images/gadget_laptop.png";
 import gadget_pot_and_stove from "@/assets/images/gadget_pot_and_stove.png";
 import gadget_cello_artisan from "@/assets/images/gadget_cello_artisan.png";
+// Featured Sets
+import featured_set_chef from "@/assets/images/featured_set_chef.png";
 // UI
 import clothes_hanger from "@/assets/images/clothes_hanger.png";
 import token from "@/assets/images/token.png";
@@ -82,7 +86,7 @@ export default {
   hat_bucket_hat_green,
   hat_top_hat_red,
   hat_top_hat_silk,
-  hat_special_toque_blanche,
+  hat_toque_blanche,
   hat_flower_crown_spring,
   hat_flower_crown_winter,
   collar_scarf_minty,
@@ -94,11 +98,13 @@ export default {
   collar_standard_ocean,
   collar_bow_tie_red,
   collar_bow_tie_silk,
-  collar_special_chefs_coat,
+  collar_chefs_coat,
+  collar_wings_fairy,
   face_sun_glasses,
   gadget_laptop,
   gadget_pot_and_stove,
   gadget_cello_artisan,
+  featured_set_chef,
   clothes_hanger,
   token,
   xp,

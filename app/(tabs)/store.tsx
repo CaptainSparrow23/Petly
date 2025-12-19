@@ -1,82 +1,172 @@
-import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
-import { Animated, Image, ImageBackground, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FlatList,
+  Text,
+  TouchableOpacity,
+  View,
+  Image,
+  StatusBar,
+  ScrollView,
+  Modal,
+  RefreshControl,
+  useWindowDimensions,
+} from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { SheetManager } from "react-native-actions-sheet";
+import { X, Plus } from "lucide-react-native";
 
-import { StoreItem } from "@/components/store/Tiles";
+import { Tile, type StoreCategory, type StoreItem } from "@/components/store/Tiles";
+import Filters, { CategoryValue } from "@/components/store/Filters";
 import { useStoreCatalog } from "@/hooks/useStore";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
+import { StoreTileSkeleton } from "@/components/other/Skeleton";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
 
-// --- Constants ---
-const TILE_GAP = 30;
-const BACKGROUND_ZOOM = 1.3;
-const TILE_SHADOW = {
-  shadowColor: "#000",
-  shadowOpacity: 0.06,
-  shadowRadius: 5,
-  shadowOffset: { width: 0, height: 3 },
-  elevation: 2,
-};
+type OwnedField = "ownedPets" | "ownedHats" | "ownedCollars" | "ownedGadgets";
+
+const EMPTY_OWNED_IDS: string[] = [];
 
 // Maps category to userProfile field
-const categoryToField: Record<string, 'ownedPets' | 'ownedHats' | 'ownedFaces' | 'ownedCollars' | 'ownedGadgets'> = {
-  Pet: 'ownedPets',
-  Hat: 'ownedHats',
-  Face: 'ownedFaces',
-  Collar: 'ownedCollars',
-  Gadget: 'ownedGadgets',
+const categoryToField: Record<StoreCategory, OwnedField> = {
+  Pet: "ownedPets",
+  Hat: "ownedHats",
+  Collar: "ownedCollars",
+  Gadget: "ownedGadgets",
 };
 
-// --- Types ---
-interface ComponentPosition {
-  x: number; // 0-1, left to right
-  y: number; // 0-1, top to bottom
+interface FeaturedSet {
+  id: string;
+  title: string;
+  description: string;
+  artKey: string;
+  items: StoreItem[];
 }
 
-// --- Configuration ---
-// Normalized positions (0-1) for tile rows on the background image
-const LIST_POSITIONS = {
-  hats: { x: 0.07, y: 0.265 } as ComponentPosition,
-  face: { x: 0.07, y: 0.43 } as ComponentPosition,
-  collars: { x: 0.07, y: 0.615 } as ComponentPosition,
+// Memoized Featured Tile to prevent re-renders when filters change
+type FeaturedTileProps = {
+  featuredSet?: FeaturedSet;
+  onPress: () => void;
 };
 
+const FeaturedTile = React.memo(function FeaturedTile({ featuredSet, onPress }: FeaturedTileProps) {
+  const { width: screenWidth } = useWindowDimensions();
+  
+  if (!featuredSet) return null;
+
+  const artSource = images[featuredSet.artKey as keyof typeof images];
+  if (!artSource) return null;
+
+  // Calculate responsive height: container width (screenWidth - 24 padding - 20 card padding) * aspect ratio
+  const containerWidth = screenWidth - 24 - 20; // paddingHorizontal 12*2 + card padding 10*2
+  const imageHeight = containerWidth * 0.53; // Maintain consistent aspect ratio
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      style={{
+        backgroundColor: CoralPalette.white,
+        borderRadius: 5,
+        padding: 10,
+        shadowColor: "#000",
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 5,
+      }}
+    >
+      <View style={{ borderRadius: 5, overflow: "hidden", height: imageHeight }}>
+        <Image 
+          source={artSource} 
+          style={{ 
+            width: "110%", 
+            height: imageHeight * 1.18,
+            transform: [{ translateY: -(imageHeight * 0.18) }]
+          }} 
+          resizeMode="cover" 
+        />
+      </View>
+      <Text 
+        numberOfLines={1}
+        ellipsizeMode="tail"
+        style={[{ color: CoralPalette.mutedDark, fontSize: 15, fontWeight: "400", marginTop: 8}, FONT]}
+      >
+        {featuredSet.title}
+      </Text>
+    </TouchableOpacity>
+  );
+});
+
 const Store = () => {
+  const { width: screenWidth } = useWindowDimensions();
   const { userProfile, updateUserProfile } = useGlobalContext();
-  const { width, height } = useWindowDimensions();
+  const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("all");
+  const [featuredSets, setFeaturedSets] = useState<FeaturedSet[]>([]);
+  const [expandedSet, setExpandedSet] = useState<FeaturedSet | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const storeWidth = width;
-  const storeHeight = height;
-  const itemWidth = Math.floor((storeWidth - 80) / 3.5);
+  // Fetch featured sets
+  useEffect(() => {
+    if (!API_BASE_URL) {
+      return;
+    }
 
-  const [recentlyPurchasedPetName, setRecentlyPurchasedPetName] = useState<string | null>(null);
+    const controller = new AbortController();
+    const fetchFeaturedSets = async (signal: AbortSignal) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/store/featured`, { signal });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
 
-  // Animation refs for tile pop-in animations
-  const tileScaleRefs = useRef<Record<string, Animated.Value>>({});
-  // Animation refs for tile press animations
-  const tilePressScaleRefs = useRef<Record<string, Animated.Value>>({});
+        const payload = await response.json().catch(() => null);
+        if (payload?.success && Array.isArray(payload?.data)) {
+          setFeaturedSets(payload.data);
+        }
+      } catch (error) {
+        if (signal.aborted) {
+          return;
+        }
+        console.warn("[Store] Error fetching featured sets:", error);
+      }
+    };
+
+    void fetchFeaturedSets(controller.signal);
+    return () => controller.abort();
+  }, []);
+
+  const ownedPets = userProfile?.ownedPets ?? EMPTY_OWNED_IDS;
+  const ownedHats = userProfile?.ownedHats ?? EMPTY_OWNED_IDS;
+  const ownedCollars = userProfile?.ownedCollars ?? EMPTY_OWNED_IDS;
+  const ownedGadgets = userProfile?.ownedGadgets ?? EMPTY_OWNED_IDS;
+
+  const ownedItems = useMemo(
+    () => ({
+      ownedPets,
+      ownedHats,
+      ownedCollars,
+      ownedGadgets,
+    }),
+    [ownedPets, ownedHats, ownedCollars, ownedGadgets]
+  );
+
+  const ownedIdSet = useMemo(() => {
+    const allOwned = [...ownedPets, ...ownedHats, ...ownedCollars, ...ownedGadgets];
+    return new Set(allOwned);
+  }, [ownedPets, ownedHats, ownedCollars, ownedGadgets]);
 
   const {
-    availablePets,
+    catalog,
     loading,
     error,
     refetch: refetchCatalog,
-  } = useStoreCatalog(
-    {
-      ownedPets: userProfile?.ownedPets,
-      ownedHats: userProfile?.ownedHats,
-      ownedFaces: userProfile?.ownedFaces,
-      ownedCollars: userProfile?.ownedCollars,
-      ownedGadgets: userProfile?.ownedGadgets,
-    },
-    { autoFetch: false }
-  );
+  } = useStoreCatalog(ownedItems, { autoFetch: false });
 
   // Refresh data when screen gains focus
   useFocusEffect(
@@ -85,16 +175,63 @@ const Store = () => {
     }, [refetchCatalog])
   );
 
-  // --- Handlers ---
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetchCatalog();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchCatalog]);
+
+  // Filter catalog: only hats and collars that are NOT featured, then apply category filter
+  const filteredCatalog = useMemo(() => {
+    const baseFiltered = catalog.filter(
+      (item) => (item.category === "Hat" || item.category === "Collar") && !item.featured
+    );
+    
+    if (selectedCategory === "all") {
+      return baseFiltered;
+    }
+    return baseFiltered.filter((item) => item.category === selectedCategory);
+  }, [catalog, selectedCategory]);
+
+  // --- Expand/Collapse Featured Set ---
+  const openFeaturedSet = useCallback((set: FeaturedSet) => {
+    setExpandedSet(set);
+  }, []);
+
+  const closeFeaturedSet = useCallback(() => {
+    setExpandedSet(null);
+  }, []);
+
+  // --- Purchase Handlers ---
+  const userId = userProfile?.userId;
+  const userCoins = userProfile?.coins ?? 0;
+
+  const ownedByField = useMemo<Record<OwnedField, string[]>>(
+    () => ({
+      ownedPets,
+      ownedHats,
+      ownedCollars,
+      ownedGadgets,
+    }),
+    [ownedPets, ownedHats, ownedCollars, ownedGadgets]
+  );
+
   const handleConfirmPurchase = useCallback(
-    async (pet: StoreItem) => {
+    async (item: StoreItem) => {
       try {
-        if (userProfile?.coins && userProfile.coins < pet.priceCoins) {
+        if (!API_BASE_URL || !userId) {
+          throw new Error("We couldn't complete your purchase. Please try again shortly.");
+        }
+
+        if (userCoins < item.priceCoins) {
           await SheetManager.hide("store-confirmation");
           setTimeout(() => {
             void SheetManager.show("store-insufficient", {
               payload: {
-                petName: pet.name,
+                petName: item.name,
                 onCloseRequest: () => void SheetManager.hide("store-insufficient"),
                 onGetMoreCoins: () => {},
                 onClosed: () => {},
@@ -104,17 +241,12 @@ const Store = () => {
           return;
         }
 
-        const userId = userProfile?.userId;
-        if (!API_BASE_URL || !userId) {
-          throw new Error("We couldn't complete your purchase. Please try again shortly.");
-        }
-
         const response = await fetch(
           `${API_BASE_URL}/api/store/purchase/${userId}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ petId: pet.id, priceCoins: pet.priceCoins }),
+            body: JSON.stringify({ petId: item.id, priceCoins: item.priceCoins }),
           }
         );
 
@@ -123,16 +255,14 @@ const Store = () => {
           throw new Error(payload?.error || payload?.message || "Purchase failed");
         }
 
-        setRecentlyPurchasedPetName(pet.name);
-
-        // update user profile locally based on item category
-        const ownedField = categoryToField[pet.category] || 'ownedPets';
-        const currentOwned = userProfile?.[ownedField] || [];
+        // Update user profile locally based on item category
+        const ownedField = categoryToField[item.category];
+        const currentOwned = ownedByField[ownedField];
         updateUserProfile({
-          coins: Math.max(0, (userProfile?.coins ?? 0) - pet.priceCoins),
-          [ownedField]: currentOwned.includes(pet.id)
+          coins: Math.max(0, userCoins - item.priceCoins),
+          [ownedField]: currentOwned.includes(item.id)
             ? currentOwned
-            : [...currentOwned, pet.id],
+            : [...currentOwned, item.id],
         });
 
         void refetchCatalog();
@@ -141,44 +271,43 @@ const Store = () => {
         setTimeout(() => {
           void SheetManager.show("store-success", {
             payload: {
-              petName: pet.name,
+              petName: item.name,
               onCloseRequest: () => void SheetManager.hide("store-success"),
               onClosed: () => {
                 void SheetManager.hide("store-preview");
-                setRecentlyPurchasedPetName(null);
               },
             },
           });
         }, 0);
-      } catch (error) {
+      } catch (err) {
         const message =
-          error instanceof Error
-            ? error.message
+          err instanceof Error
+            ? err.message
             : "We could not complete your purchase. Please try again.";
         console.warn("[Store]", message);
         throw new Error(message);
       }
     },
     [
-      userProfile?.coins,
-      userProfile?.ownedPets,
+      ownedByField,
       updateUserProfile,
       refetchCatalog,
-      userProfile?.userId,
+      userCoins,
+      userId,
     ]
   );
 
   const handlePurchasePress = useCallback(
-    (pet: StoreItem) => {
+    (item: StoreItem) => {
       // Pets can't be purchased - they're unlocked by level
-      if (pet.category === "Pet") {
+      if (item.category === "Pet") {
         return;
       }
       void SheetManager.show("store-confirmation", {
         payload: {
-          petName: pet.name,
-          petPrice: pet.priceCoins,
-          onConfirm: () => handleConfirmPurchase(pet),
+          petName: item.name,
+          petPrice: item.priceCoins,
+          onConfirm: () => handleConfirmPurchase(item),
           onCancel: () => void SheetManager.hide("store-confirmation"),
         },
       });
@@ -188,311 +317,327 @@ const Store = () => {
 
   const handleTilePress = useCallback(
     (item: StoreItem) => {
-      setRecentlyPurchasedPetName(null);
       void SheetManager.show("store-preview", {
         payload: {
           pet: item,
           onPurchase: handlePurchasePress,
-          onClosed: () => setRecentlyPurchasedPetName(null),
+          onClosed: () => {},
         },
       });
     },
     [handlePurchasePress]
   );
 
-  // --- Tile Rendering ---
-  const renderPositionedTile = useCallback(
-    (item: StoreItem, x: number, y: number) => {
-      // Get or create animation value (start at 0, will animate to 1)
-      if (!tileScaleRefs.current[item.id]) {
-        tileScaleRefs.current[item.id] = new Animated.Value(0);
-      }
-      if (!tilePressScaleRefs.current[item.id]) {
-        tilePressScaleRefs.current[item.id] = new Animated.Value(1);
-      }
-      const scaleAnim = tileScaleRefs.current[item.id];
-      const pressScaleAnim = tilePressScaleRefs.current[item.id];
-      const combinedScale = Animated.multiply(scaleAnim, pressScaleAnim);
+  // --- Featured Tile ---
+  const featuredSet = featuredSets[0];
+  
+  const handleFeaturedPress = useCallback(() => {
+    if (featuredSet) {
+      openFeaturedSet(featuredSet);
+    }
+  }, [featuredSet, openFeaturedSet]);
+
+  // --- List Header Component ---
+  const ListHeader = useMemo(
+    () => (
+      <View style={{ paddingHorizontal: 12 }}>
+        {/* Featured Section */}
+        <Text
+          style={{
+            fontSize: 22,
+            fontWeight: "700",
+            color: CoralPalette.dark,
+            fontFamily: "Nunito",
+            marginBottom: 2,
+            marginTop: 8,
+          }}
+        >
+          Featured
+        </Text>
+        <Text style={[{ color: CoralPalette.mutedDark, fontSize: 14, fontWeight: "400", marginBottom: 8}, FONT]}>
+        Discover limited-time sets that rotates monthly!
+        </Text>
+
+        {/* Featured Set Container - Memoized to prevent glitches */}
+        <FeaturedTile featuredSet={featuredSet} onPress={handleFeaturedPress} />
+
+        {/* Catalog Title */}
+        <Text
+          style={{
+            fontSize: 22,
+            fontWeight: "700",
+            color: CoralPalette.dark,
+            fontFamily: "Nunito",
+            marginTop: 12,
+            marginBottom: 2,
+          }}
+        >
+          Catalog
+        </Text>
+        <Text style={[{ color: CoralPalette.mutedDark, fontSize: 14, fontWeight: "400", marginBottom: 8}, FONT]}>
+        Browse our full collection of items 
+        </Text>
+
+        {/* Filter Chips */}
+        <View style={{ marginBottom: 10 }}>
+          <Filters selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
+        </View>
+      </View>
+    ),
+    [featuredSet, handleFeaturedPress, selectedCategory]
+  );
+
+  const tileWidth = useMemo(() => Math.max(0, Math.floor((screenWidth - 48) / 2)), [screenWidth]);
+  const userLevel = userProfile?.level ?? 1;
+
+  const artSource = useMemo(() => {
+    if (!expandedSet?.artKey) {
+      return null;
+    }
+    return images[expandedSet.artKey as keyof typeof images] ?? null;
+  }, [expandedSet?.artKey]);
+
+  const ListEmptyComponent = useMemo(() => {
+    if (loading && catalog.length === 0) {
+      return (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", padding: 8 }}>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <View key={index} style={{ width: "50%", padding: 8 }}>
+              <StoreTileSkeleton width={tileWidth} />
+            </View>
+          ))}
+        </View>
+      );
+    }
+
+    return (
+      <View style={{ padding: 24, alignItems: "center" }}>
+        <Text
+          style={[
+            {
+              fontSize: 14,
+              fontWeight: "700",
+              color: CoralPalette.mutedDark,
+              textAlign: "center",
+            },
+            FONT,
+          ]}
+        >
+          No items found.
+        </Text>
+      </View>
+    );
+  }, [catalog.length, loading, tileWidth]);
+
+  // --- Render Item ---
+  const renderItem = useCallback(
+    ({ item }: { item: StoreItem }) => {
+      const isOwned = ownedIdSet.has(item.id);
       
       return (
-        <Animated.View
-          key={item.id}
-          style={{
-            position: "absolute",
-            left: x,
-            top: y,
-            width: itemWidth,
-            marginHorizontal: 3,
-            marginVertical: 3,
-            transform: [{ scale: combinedScale }],
-          }}
-        >
-        <View
-          style={{
-            backgroundColor: CoralPalette.white,
-            borderRadius: 16,
-            padding: 10,
-            ...TILE_SHADOW,
-          }}
-        >
-          {item.owned && (
-            <View
-              style={{
-                position: "absolute",
-                top: 8,
-                left: 8,
-                paddingHorizontal: 6,
-                paddingVertical: 3,
-                borderRadius: 999,
-                backgroundColor: `${CoralPalette.primaryLight}55`,
-                zIndex: 1,
-              }}
-            >
-              <Text className="text-xs font-bold" style={[{ color: CoralPalette.primary, fontSize: 9 }, FONT]}>
-                Owned
-              </Text>
-            </View>
-          )}
-          
-          <View className="items-center justify-center" style={{ marginBottom: 8 }}>
-            <Image
-              source={images[item.id as keyof typeof images] ?? images.lighting}
-              resizeMode="contain"
-              style={{ width: 70, height: 70 }}
-            />
-          </View>
-
-          <View className="w-full">
-            <View className="flex-row items-center justify-center">
-              <View className="h-5 w-5 items-center justify-center">
-                <Image source={images.token} style={{ width: 14, height: 14 }} resizeMode="contain" />
-              </View>
-              <Text className="ml-1 text-sm font-semibold" style={[{ color: CoralPalette.dark, fontSize: 12 }, FONT]}>
-                {item.priceCoins.toLocaleString()}
-              </Text>
-            </View>
-          </View>
+        <View style={{ width: "50%", padding: 8 }}>
+          <Tile
+            item={{ ...item, owned: isOwned }}
+            onPress={() => handleTilePress(item)}
+            userLevel={userLevel}
+          />
         </View>
-        <TouchableOpacity
-          onPress={() => handleTilePress(item)}
-          onPressIn={() => {
-            Animated.spring(pressScaleAnim, {
-              toValue: 0.9,
-              useNativeDriver: true,
-            }).start();
-          }}
-          onPressOut={() => {
-            Animated.spring(pressScaleAnim, {
-              toValue: 1,
-              useNativeDriver: true,
-            }).start();
-          }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-          }}
-          activeOpacity={1}
-        />
-      </Animated.View>
       );
     },
-    [handleTilePress, itemWidth]
-  );
-
-  // --- Data Processing ---
-  const getRandomItems = useCallback((items: StoreItem[], count: number): StoreItem[] => {
-    const shuffled = [...items].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, Math.min(count, shuffled.length));
-  }, []);
-
-  const hatItems = useMemo(() => {
-    const hats = availablePets.filter((item) => item.category === "Hat");
-    return getRandomItems(hats, 3);
-  }, [availablePets, getRandomItems]);
-
-  const faceItems = useMemo(() => {
-    const faces = availablePets.filter((item) => item.category === "Face");
-    return getRandomItems(faces, 1);
-  }, [availablePets, getRandomItems]);
-
-  const collarItems = useMemo(() => {
-    const collars = availablePets.filter((item) => item.category === "Collar");
-    return getRandomItems(collars, 3);
-  }, [availablePets, getRandomItems]);
-
-  // --- Position Calculations ---
-  const getPixelPosition = useCallback(
-    (normalizedPos: ComponentPosition) => ({
-      x: normalizedPos.x * storeWidth,
-      y: normalizedPos.y * storeHeight,
-    }),
-    [storeWidth, storeHeight]
-  );
-
-  const hatsPosition = useMemo(() => getPixelPosition(LIST_POSITIONS.hats), [getPixelPosition]);
-  const facePosition = useMemo(() => getPixelPosition(LIST_POSITIONS.face), [getPixelPosition]);
-  const collarsPosition = useMemo(() => getPixelPosition(LIST_POSITIONS.collars), [getPixelPosition]);
-
-  const calculateTilePositions = useCallback(
-    (startPos: { x: number; y: number }, count: number) => {
-      return Array.from({ length: count }, (_, index) => ({
-        x: startPos.x + index * (itemWidth + TILE_GAP),
-        y: startPos.y,
-      }));
-    },
-    [itemWidth]
-  );
-
-  const hatTilePositions = useMemo(
-    () => calculateTilePositions(hatsPosition, hatItems.length),
-    [hatsPosition, hatItems.length, calculateTilePositions]
-  );
-
-  const faceTilePositions = useMemo(
-    () => calculateTilePositions(facePosition, faceItems.length),
-    [facePosition, faceItems.length, calculateTilePositions]
-  );
-
-  const collarTilePositions = useMemo(
-    () => calculateTilePositions(collarsPosition, collarItems.length),
-    [collarsPosition, collarItems.length, calculateTilePositions]
-  );
-
-  // Initialize animation values for all items when they're available
-  useEffect(() => {
-    if (loading) return;
-    
-    const allItems = [...hatItems, ...faceItems, ...collarItems];
-    allItems.forEach((item) => {
-      if (!tileScaleRefs.current[item.id]) {
-        tileScaleRefs.current[item.id] = new Animated.Value(0);
-      }
-      if (!tilePressScaleRefs.current[item.id]) {
-        tilePressScaleRefs.current[item.id] = new Animated.Value(1);
-      }
-    });
-  }, [loading, hatItems, faceItems, collarItems]);
-
-  // Animate tiles popping out when page is focused
-  useFocusEffect(
-    useCallback(() => {
-      if (loading) return; // Don't animate while loading
-
-      // Get all items to animate and shuffle for random pop-out order
-      const allItems = [...hatItems, ...faceItems, ...collarItems].sort(() => Math.random() - 0.5);
-      
-      if (allItems.length === 0) return;
-      
-      // Initialize animation values if they don't exist
-      allItems.forEach((item) => {
-        if (!tileScaleRefs.current[item.id]) {
-          tileScaleRefs.current[item.id] = new Animated.Value(0);
-        }
-        if (!tilePressScaleRefs.current[item.id]) {
-          tilePressScaleRefs.current[item.id] = new Animated.Value(1);
-        }
-      });
-      
-      // Animate each tile with staggered delay
-      allItems.forEach((item, index) => {
-        const scaleAnim = tileScaleRefs.current[item.id];
-        
-        // Reset to 0 and animate to 1 with staggered delay
-        scaleAnim.setValue(0);
-        const delay = index * 50; // Stagger each tile by 50ms
-        
-        setTimeout(() => {
-          Animated.spring(scaleAnim, {
-            toValue: 1,
-            tension: 40,
-            friction: 6,
-            useNativeDriver: true,
-          }).start();
-        }, delay);
-      });
-    }, [loading, hatItems, faceItems, collarItems])
+    [handleTilePress, ownedIdSet, userLevel]
   );
 
   // --- Error State ---
   if (error) {
     return (
-      <ImageBackground source={images.store_background} style={{ flex: 1 }} resizeMode="cover">
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-lg font-extrabold text-center" style={[{ color: CoralPalette.dark }, FONT]}>
-            We hit a snag
+      <View style={{ flex: 1, backgroundColor: CoralPalette.surface, justifyContent: "center", alignItems: "center", padding: 24 }}>
+        <Text style={{ fontSize: 18, fontWeight: "800", color: CoralPalette.dark, textAlign: "center", fontFamily: "Nunito" }}>
+          We hit a snag
+        </Text>
+        <Text style={{ fontSize: 14, marginTop: 8, color: CoralPalette.mutedDark, textAlign: "center", lineHeight: 20, fontFamily: "Nunito" }}>
+          {error}
+        </Text>
+        <TouchableOpacity
+          onPress={() => void refetchCatalog()}
+          activeOpacity={0.85}
+          style={{
+            marginTop: 16,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            borderRadius: 10,
+            backgroundColor: CoralPalette.primaryMuted,
+          }}
+        >
+          <Text style={[{ color: CoralPalette.white, fontWeight: "800" }, FONT]}>
+            Try again
           </Text>
-          <Text className="text-sm mt-2 text-center" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
-            {error}
-          </Text>
-        </View>
-      </ImageBackground>
+        </TouchableOpacity>
+      </View>
     );
   }
-  return (
-    <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <View style={{ width: storeWidth, height: storeHeight, overflow: "hidden", position: "relative" }}>
-          {/* Background */}
-          <ImageBackground
-            source={images.store_background}
-            style={{
-              position: "absolute",
-              width: storeWidth,
-              height: storeHeight,
-            }}
-            resizeMode="cover"
-            imageStyle={{
-              transform: [{ scale: BACKGROUND_ZOOM }, { translateY: height * 0.06 }],
-            }}
-          />
 
-          {/* Header */}
-          <View 
-            style={{
-              position: "absolute",
-              left: storeWidth * 0.05,
-              top: height * 0.08,
-              right: storeWidth * 0.05,
-            }}
-            pointerEvents="box-none"
+  return (
+    <View style={{ flex: 1, backgroundColor: CoralPalette.greyLighter }}>
+      <FlatList
+        data={filteredCatalog}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        contentContainerStyle={{ padding: 8 }}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={ListEmptyComponent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      />
+
+      {/* Expanded Featured Set Modal */}
+      <Modal
+        visible={expandedSet !== null}
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={closeFeaturedSet}
+      >
+        <View style={{ flex: 1, backgroundColor: CoralPalette.greyLight }}>
+          <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+          
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            bounces={false}
           >
-            <View className="flex-row items-start justify-between">
-              <View className="flex-1 pr-3">
-                <Text
-                  className="uppercase"
-                  style={[
-                    { fontSize: 40, fontWeight: "700", color: CoralPalette.primaryMuted, letterSpacing: 1 },
-                    FONT,
-                  ]}
+            {/* Hero Image */}
+       
+            <View style={{ width: screenWidth, height: screenWidth * 0.85 }}>
+              {artSource && (
+                <Image
+                  source={artSource}
+                  style={{ width: "110%", height: "80%" }}
+                  resizeMode="cover"
+                  
+                />
+              )}
+         
+         
+              
+              {/* Overlay controls */}
+              <SafeAreaView
+                edges={["top"]}
+                style={{
+                  position: "absolute",
+                  top: 50,
+                  left: 0,
+                  right: 0,
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  paddingHorizontal: 16,
+                  paddingTop: 8,
+                }}
+              >
+                {/* Close button */}
+                <TouchableOpacity
+                  onPress={closeFeaturedSet}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: "rgba(0,0,0,0.4)",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
                 >
-                  Petly store
-                </Text>
-                <Text className="text-md mt-1 ml-1" style={[{ color: CoralPalette.mutedDark, lineHeight: 20 }, FONT]}>
-                  Browse gifts for your companions
-                </Text>
+                  <X size={24} color={CoralPalette.white} />
+                </TouchableOpacity>
+
+                {/* Coins display */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "rgba(0,0,0,0.4)",
+                    borderRadius: 20,
+                    paddingHorizontal: 8,
+                    paddingVertical: 6,
+                  }}
+                >
+                  <Image
+                    source={images.token}
+                    style={{ width: 20, height: 20 }}
+                    resizeMode="contain"
+                  />
+                  <Text
+                    style={[
+                      {
+                        color: CoralPalette.white,
+                        fontSize: 16,
+                        fontWeight: "700",
+                        marginLeft: 6,
+                      },
+                      FONT,
+                    ]}
+                  >
+                    {userProfile?.coins?.toLocaleString() ?? 0}
+                  </Text>
+                  <View style={{ marginLeft: 2 }}>
+                    <Plus size={18} color={CoralPalette.white} />
+                  </View>
+                </View>
+              </SafeAreaView>
+            </View>
+
+            {/* Content */}
+            <View style={{ paddingHorizontal: 20,  paddingBottom: 100, marginTop: -55 }}>
+              {/* Title */}
+              <Text
+                style={[
+                  {
+                    fontSize: 22,
+                    fontWeight: "600",
+                    color: CoralPalette.dark,
+                    marginBottom: 10,
+                  },
+                  FONT,
+                ]}
+              >
+                {expandedSet?.title}
+              </Text>
+
+              {/* Description */}
+              <Text
+                style={[
+                  {
+                    fontSize: 14,
+                    color: CoralPalette.mutedDark,
+                    lineHeight: 22,
+                    marginBottom: 24,
+                  },
+                  FONT,
+                ]}
+              >
+                {expandedSet?.description}
+              </Text>
+
+              {/* Items Grid */}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -8 }}>
+                {expandedSet?.items.map((item) => {
+                  const isOwned = ownedIdSet.has(item.id);
+                  
+                  return (
+                    <View key={item.id} style={{ width: "50%", padding: 8 }}>
+                      <Tile
+                        item={{ ...item, owned: isOwned }}
+                        onPress={() => handleTilePress(item)}
+                        userLevel={userLevel}
+                      />
+                    </View>
+                  );
+                })}
               </View>
             </View>
-          </View>
-
-          {/* Hats Tiles */}
-          {!loading && hatItems.map((item, index) =>
-            renderPositionedTile(item, hatTilePositions[index].x, hatTilePositions[index].y)
-          )}
-
-          {/* Face Tiles */}
-          {!loading && faceItems.map((item, index) =>
-            renderPositionedTile(item, faceTilePositions[index].x, faceTilePositions[index].y)
-          )}
-
-          {/* Collars Tiles */}
-          {!loading && collarItems.map((item, index) =>
-            renderPositionedTile(item, collarTilePositions[index].x, collarTilePositions[index].y)
-          )}
+          </ScrollView>
         </View>
-      </View>
+      </Modal>
     </View>
   );
 };
