@@ -262,7 +262,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
       </View>
 
       {/* Chart Area */}
-      <View className="relative mt-2" style={{ minHeight: 250 }} onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}>
+      <View className="relative" style={{ minHeight: 250 }} onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}>
         {loading && chartPoints.length === 0 && (
           <View className="absolute inset-0 z-20 items-center justify-center" style={{ backgroundColor: `${CoralPalette.white}80` }}>
             <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>Loading...</Text>

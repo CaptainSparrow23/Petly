@@ -323,7 +323,7 @@ export default function TagDistributionChart({ title = "Tag Distribution" }: Tag
 
       {/* Chart Area - Always maintain size */}
       <View
-        className="relative -mt-7"
+        className="relative -mt-8"
         style={{ minHeight: 300, height: 300 }}
         onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}
       >
@@ -361,8 +361,11 @@ export default function TagDistributionChart({ title = "Tag Distribution" }: Tag
                   }}
                   text={({ datum }: any) => {
                     // Hide labels for placeholder or very small slices
-                    if (datum.x === "No Data" || parseFloat(datum.percentage) < 5) return "";
-                    return `${datum.percentage}%`;
+                    if (datum.x === "No Data") return "";
+                    const pct = Number(datum.percentage);
+                    // Guard against NaN, Infinity, or very small values (including floating-point artifacts)
+                    if (!Number.isFinite(pct) || pct < 5) return "";
+                    return `${pct.toFixed(1)}%`;
                   }}
                 />
               }

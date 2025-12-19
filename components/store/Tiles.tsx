@@ -20,7 +20,7 @@ const altAnimations: Record<string, number> = {
 
 const FONT = { fontFamily: "Nunito" };
 
-export type StoreCategory = "Pet" | "Hat" | "Face" | "Collar" | "Gadget";
+export type StoreCategory = "Pet" | "Hat" | "Collar" | "Gadget";
 
 export interface StoreItem {
  id: string;
@@ -31,6 +31,7 @@ export interface StoreItem {
  imageUrl?: string | null;
  description?: string;
  owned?: boolean;
+ featured?: boolean;
 }
 
 interface TileProps {
@@ -53,8 +54,8 @@ export const Tile: React.FC<TileProps> = ({ item, onPress, userLevel = 1 }) => {
   className="flex-1 w-full"
   style={{
     backgroundColor: CoralPalette.white,
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 7,
@@ -62,39 +63,19 @@ export const Tile: React.FC<TileProps> = ({ item, onPress, userLevel = 1 }) => {
     elevation: 2,
    }}
   >
-   {owned && (
-    <View
-     style={{
-      position: "absolute",
-      top: 12,
-      left: 12,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: 999,
-      backgroundColor: `${CoralPalette.primaryLight}55`,
-    }}
-    >
-     <Text className="text-xs font-bold" style={[{ color: CoralPalette.primary }, FONT]}>
-      Owned
-     </Text>
-    </View>
-   )}
 
    <View
-    className="relative items-center justify-center"
+    className="items-center justify-center"
     style={{
-     backgroundColor: CoralPalette.white,
-     borderRadius: 14,
-     paddingVertical: 10,
-
+     paddingVertical: 8,
     }}
    >
       {item.category === "Pet" && altAnimations[item.id] ? (
-        <View style={{ width: 400, height: 120, overflow: "hidden" }}>
+        <View style={{ width: 300, height: 90, overflow: "hidden" }}>
         <Rive
           source={altAnimations[item.id]}
           stateMachineName="State Machine 1"
-          style={{ width: 400, height: 250, transform: [{ translateY: -20 }] }}
+          style={{ width: 300, height: 188, transform: [{ translateY: -15 }] }}
           fit={Fit.Contain}
           autoplay
         />
@@ -103,17 +84,17 @@ export const Tile: React.FC<TileProps> = ({ item, onPress, userLevel = 1 }) => {
         <Image
           source={images[item.id as keyof typeof images] ?? images.lighting}
           resizeMode="contain"
-          style={{ width: 120, height: 120 }}
+          style={{ width: 90, height: 90 }}
         />
       )}
    </View>
 
-   <View className="w-full mt-5">
-    <Text className="text-xl font-extrabold ml-2" style={[{ color: CoralPalette.dark }, FONT]} numberOfLines={1}>
+   <View className="w-full mt-3">
+    <Text className="text-lg font-extrabold ml-2" style={[{ color: CoralPalette.dark }, FONT]} numberOfLines={1}>
      {name}
     </Text>
 
-    <View className="flex-row items-center mt-3 ml-2">
+    <View className="flex-row items-center mt-2 ml-2">
      {isPet && unlockLevel !== null ? (
        <>
          <Text className="text-sm font-semibold" style={[{ color: isLocked ? CoralPalette.mutedDark : CoralPalette.primary }, FONT]}>
@@ -122,10 +103,10 @@ export const Tile: React.FC<TileProps> = ({ item, onPress, userLevel = 1 }) => {
        </>
      ) : (
        <>
-         <View className="h-7 w-7 items-center justify-center">
-           <Image source={images.token} style={{ width: 20, height: 20 }} resizeMode="contain" />
+         <View className="h-6 w-6 items-center justify-center">
+           <Image source={images.token} style={{ width: 16, height: 16 }} resizeMode="contain" />
          </View>
-         <Text className="ml-2 text-lg font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
+         <Text className="ml-2 text-base font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
            {priceCoins.toLocaleString()}
          </Text>
        </>

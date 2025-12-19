@@ -503,7 +503,6 @@ export default function IndexScreen() {
       focusInputName={petAnimationConfig.focusInputName}
       focusValue={focusValue}
       selectedHat={userProfile?.selectedHat}
-      selectedFace={userProfile?.selectedFace}
       selectedCollar={userProfile?.selectedCollar}
       containerStyle={{ marginTop: 20, marginLeft: 5 }}
       animationStyle={{ width: "68%", height: "68%" }}
