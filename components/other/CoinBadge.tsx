@@ -13,7 +13,7 @@ export default function CoinBadge() {
     <View
       className="absolute top-3 right-0 z-20 mr-2 flex-row items-center rounded-full"
       style={{
-        backgroundColor: CoralPalette.surfaceAlt,
+        backgroundColor: CoralPalette.greyVeryLight,
         borderColor: CoralPalette.border,
         borderWidth: 1,
       }}

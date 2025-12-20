@@ -62,6 +62,8 @@ export default function RootLayout() {
             options={{
               animation: "none",
               gestureEnabled: false,
+              headerShown: false,
+              title: "",
             }}
           />
           <Stack.Screen

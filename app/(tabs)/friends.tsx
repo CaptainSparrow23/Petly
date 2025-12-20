@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   Animated,
+  Easing,
   Pressable,
   ScrollView,
   Text,
@@ -20,6 +21,9 @@ import { CoralPalette } from "@/constants/colors";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const nunitoFont = { fontFamily: "Nunito" };
+const TAB_PILL_RADIUS = 5;
+const TAB_PILL_PADDING = 5;
+const TAB_PILL_ITEM_PADDING_Y = 3;
 
 interface Friend {
   username: string | null;
@@ -205,11 +209,11 @@ const FriendCard = ({
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const animateScale = (toValue: number) => {
-    Animated.spring(scaleAnim, {
+    Animated.timing(scaleAnim, {
       toValue,
       useNativeDriver: true,
-      friction: 7,
-      tension: 120,
+      duration: 120,
+      easing: Easing.out(Easing.cubic),
     }).start();
   };
 
@@ -293,7 +297,7 @@ const RequestCard = ({
     <View
       className="rounded-2xl p-4 mb-3 shadow-sm"
       style={{
-        backgroundColor: CoralPalette.surfaceAlt,
+        backgroundColor: CoralPalette.white,
       }}
     >
       <View className="flex-row items-center justify-between">
@@ -434,19 +438,21 @@ const Friends = () => {
   );
 
   useEffect(() => {
-    Animated.spring(tabTranslate, {
+    Animated.timing(tabTranslate, {
       toValue: tab === "friends" ? 0 : 1,
       useNativeDriver: true,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
     }).start();
   }, [tab, tabTranslate]);
 
   const animatePlus = useCallback(
     (toValue: number) => {
-      Animated.spring(plusScale, {
+      Animated.timing(plusScale, {
         toValue,
         useNativeDriver: true,
-        friction: 7,
-        tension: 120,
+        duration: 150,
+        easing: Easing.out(Easing.cubic),
       }).start();
     },
     [plusScale]
@@ -491,9 +497,9 @@ const Friends = () => {
   );
 
   return (
-    <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
+    <View className="flex-1" style={{ backgroundColor: CoralPalette.greyLighter }}>
       {/* Top right buttons */}
-      <View className="absolute -top-14 right-0 z-10 pt-2 pr-6 flex-row gap-2">
+      <View className="absolute -top-16 right-0 z-10 pt-2 pr-6 flex-row gap-2">
         <Animated.View style={{ transform: [{ scale: plusScale }] }}>
           <Pressable
             onPress={handleAddFriend}
@@ -508,6 +514,7 @@ const Friends = () => {
       </View>
 
       <ScrollView
+        stickyHeaderIndices={[0]}
         className="flex-1 px-6"
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={
@@ -519,76 +526,90 @@ const Friends = () => {
           />
         }
       >
-        <View className="flex-row items-center gap-2 mt-6 mb-5">
-          <View
-            className="flex-row rounded-full flex-1"
-            style={{
-              backgroundColor: CoralPalette.white,
-              padding: 4,
-              position: "relative",
-            }}
-            onLayout={(e) =>
-              setTabPillDims({
-                width: e.nativeEvent.layout.width,
-                height: e.nativeEvent.layout.height,
-              })
-            }
-          >
-            {tabPillDims.width > 0 && (
-              <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: "absolute",
-                  top: 4,
-                  left: 4,
-                  width: Math.max(0, (tabPillDims.width - 8) / 2),
-                  height: Math.max(0, tabPillDims.height - 8),
-                  borderRadius: 999,
-                  backgroundColor: CoralPalette.primary,
-                  transform: [
+        <View
+          style={{
+            backgroundColor: CoralPalette.greyLighter,
+            paddingTop: 12,
+            paddingBottom: 12,
+            zIndex: 10,
+          }}
+        >
+          <View className="flex-row items-center gap-2">
+            <View
+              className="flex-row flex-1"
+              style={{
+                backgroundColor: CoralPalette.white,
+                borderRadius: TAB_PILL_RADIUS,
+      
+          
+                padding: TAB_PILL_PADDING,
+                position: "relative",
+              }}
+              onLayout={(e) =>
+                setTabPillDims({
+                  width: e.nativeEvent.layout.width,
+                  height: e.nativeEvent.layout.height,
+                })
+              }
+            >
+              {tabPillDims.width > 0 && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={{
+                    position: "absolute",
+                    top: TAB_PILL_PADDING,
+                    left: TAB_PILL_PADDING,
+                    width: Math.max(0, (tabPillDims.width - TAB_PILL_PADDING * 2) / 2),
+                    height: Math.max(0, tabPillDims.height - TAB_PILL_PADDING * 2),
+                    borderRadius: TAB_PILL_RADIUS,
+                    backgroundColor: CoralPalette.primary,
+                    transform: [
+                      {
+                        translateX: tabTranslate.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [
+                            0,
+                            Math.max(0, (tabPillDims.width - TAB_PILL_PADDING * 2) / 2),
+                          ],
+                        }),
+                      },
+                    ],
+                  }}
+                />
+              )}
+              <Pressable
+                className="flex-1 px-4"
+                onPress={() => handleSwitchTab("friends")}
+                style={{ paddingVertical: TAB_PILL_ITEM_PADDING_Y, borderRadius: TAB_PILL_RADIUS }}
+              >
+                <Text
+                  className={"text-center font-semibold"}
+                  style={[
+                    nunitoFont,
                     {
-                      translateX: tabTranslate.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [
-                          0,
-                          Math.max(0, (tabPillDims.width - 8) / 2),
-                        ],
-                      }),
+                      color: tab === "friends" ? "#fff" : CoralPalette.mutedDark,
                     },
-                  ],
-                }}
-              />
-            )}
-            <Pressable
-              className="flex-1 py-2.5 rounded-full px-4"
-              onPress={() => handleSwitchTab("friends")}
-            >
-              <Text
-                className={"text-center font-semibold"}
-                style={[
-                  nunitoFont,
-                  {
-                    color: tab === "friends" ? "#fff" : CoralPalette.mutedDark,
-                  },
-                ]}
+                  ]}
+                >
+                  Friends
+                </Text>
+              </Pressable>
+              <Pressable
+                className="flex-1 px-4"
+                onPress={() => handleSwitchTab("requests")}
+                style={{ paddingVertical: TAB_PILL_ITEM_PADDING_Y, borderRadius: TAB_PILL_RADIUS }}
               >
-                Friends
-              </Text>
-            </Pressable>
-            <Pressable
-              className="flex-1 py-2.5 rounded-full px-4"
-              onPress={() => handleSwitchTab("requests")}
-            >
-              <Text
-                className="text-center font-semibold"
-                style={[
-                  nunitoFont,
-                  { color: tab === "requests" ? "#fff" : CoralPalette.mutedDark },
-                ]}
-              >
-                Requests
-              </Text>
-            </Pressable>
+                <Text
+                  className="text-center font-semibold"
+                  style={[
+                    nunitoFont,
+                    { color: tab === "requests" ? "#fff" : CoralPalette.mutedDark },
+                  ]}
+                >
+                  Requests
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -637,8 +658,8 @@ const Friends = () => {
           <View
             className="rounded-3xl p-6 mt-10 items-center"
             style={{
-              backgroundColor: CoralPalette.surface,
-              borderColor: CoralPalette.surface,
+              backgroundColor: CoralPalette.greyLighter,
+              borderColor: CoralPalette.greyLighter,
               borderWidth: 1,
             }}
           >
@@ -678,7 +699,7 @@ const Friends = () => {
             right: 0,
             top: 0,
             bottom: 0,
-            backgroundColor: CoralPalette.primary,
+            backgroundColor: CoralPalette.primaryMuted,
           }}
         />
 

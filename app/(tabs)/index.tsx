@@ -153,7 +153,7 @@ export default function IndexScreen() {
   }, [userProfile?.tagList, userProfile?.selectedTag, activity]);
   const trackColor = CoralPalette.primary;
   const trackBgColor = "rgba(255,255,255,0.5)";
-  const centerFillColor = CoralPalette.surface;
+  const centerFillColor = CoralPalette.greyVeryLight;
   const countdownInvalid = mode === "countdown" && secondsLeft <= 0;
 
   const clearTicker = () => {
@@ -492,7 +492,8 @@ export default function IndexScreen() {
     if (!running) return 0;
     const gadget = userProfile?.selectedGadget;
     if (gadget === "gadget_laptop") return 1;
-    if (gadget === "gadget_pot_and_stove" || gadget === "gadget_cello_artisan") return 3;
+    if (gadget === "gadget_pot_and_stove") return 2;
+    if (gadget === "gadget_cello_artisan") return 3;
     return 1; // Default to laptop animation if no gadget selected
   }, [running, userProfile?.selectedGadget]);
 
@@ -569,7 +570,7 @@ export default function IndexScreen() {
       <View
         className="absolute -top-14 left-1/2 -translate-x-1/2 z-10 flex-row rounded-full overflow-hidden"
         style={{
-          backgroundColor: CoralPalette.surfaceAlt,
+          backgroundColor: CoralPalette.greyVeryLight,
           borderColor: CoralPalette.border,
           borderWidth: 1,
           
@@ -580,7 +581,7 @@ export default function IndexScreen() {
           onPressIn={() => handleModePressIn("countdown")}
           disabled={running}
           className="w-12 items-center py-3.5"
-          style={{ backgroundColor: mode === "countdown" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
+          style={{ backgroundColor: mode === "countdown" ? CoralPalette.primary : CoralPalette.greyVeryLight, opacity: running ? 0.6 : 1 }}
         >
           <Hourglass size={16} color={mode === "countdown" ? "#ffffff" : CoralPalette.primary} />
         </TouchableOpacity>
@@ -589,14 +590,14 @@ export default function IndexScreen() {
           onPressIn={() => handleModePressIn("timer")}
           disabled={running}
           className="w-12 items-center py-3.5"
-          style={{ backgroundColor: mode === "timer" ? CoralPalette.primary : "transparent", opacity: running ? 0.6 : 1 }}
+          style={{ backgroundColor: mode === "timer" ? CoralPalette.primary : CoralPalette.greyVeryLight, opacity: running ? 0.6 : 1 }}
         >
           <Timer size={16} color={mode === "timer" ? "#ffffff" : CoralPalette.primary} />
         </TouchableOpacity>
       </View>
 
       <View className="flex-1 mt-20 items-center justify-evenly">
-        <Text className="text-lg" style={{ color: CoralPalette.white, fontFamily: "Nunito" }}>
+        <Text className="text-lg" style={{ color: CoralPalette.greyVeryLight, fontFamily: "Nunito" }}>
           {infoText}
         </Text>
 
@@ -622,9 +623,9 @@ export default function IndexScreen() {
             onPress={handleOpenPicker}
             disabled={running}
             style={{
-              backgroundColor: CoralPalette.surfaceAlt,
-              borderColor: CoralPalette.border,
-              borderWidth: 1,
+              backgroundColor: CoralPalette.greyVeryLight,
+  
+             
             }}
           >
             <View
@@ -644,20 +645,21 @@ export default function IndexScreen() {
 
         <View className="w-full items-center justify-center relative">
           <Text
-            className="text-8xl tracking-widest opacity-0 color-secondary-500"
+            className="text-8xl tracking-widest opacity-0"
             style={{
               ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
               fontFamily: "Nunito",
               includeFontPadding: false,
               lineHeight: 120,
               fontSize: 90,
+              color: CoralPalette.greyVeryLight,
             }}
           >
             00:00
           </Text>
 
           <Text
-            className="tracking-widest text-white absolute left-0 right-0 text-center"
+          className="tracking-widest absolute left-0 right-0 text-center"
             selectable={false}
             style={{
               ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
@@ -666,6 +668,7 @@ export default function IndexScreen() {
               includeFontPadding: false,
               lineHeight: 120,
               fontSize: 90,
+              color: CoralPalette.greyVeryLight,
             }}
           >
             {`${mm}:${ss}`}

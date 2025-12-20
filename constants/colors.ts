@@ -39,6 +39,11 @@ export const CoralPalette = {
   // Coin colors
   coinBg: "#fac400ff",
   coinIcon: "#78350F",
+  // Category colors (store stamps)
+  deepRose: "#B84A62",
+  forestTeal: "#2D6A6A",
+  plumPurple: "#6B4984",
+  slateBlue: "#4A6B8A",
 };
 
 export const ThemeGradients = {
