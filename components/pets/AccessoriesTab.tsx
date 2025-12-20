@@ -93,7 +93,7 @@ const AccessoriesTab = ({
             style={{
               flexDirection: "row",
               paddingHorizontal: 16,
-              gap: 40,
+              gap: 30,
               marginBottom: 12,
               justifyContent: "flex-start",
             }}
@@ -110,21 +110,13 @@ const AccessoriesTab = ({
                   style={{
                     width: 90,
                     height: 90,
-                    borderRadius: 16,
-                    borderWidth: 2,
-                    borderColor: isNull
-                      ? (focused === null
-                          ? CoralPalette.primary
-                          : CoralPalette.border)
-                      : isFocused
-                      ? CoralPalette.primary
-                      : "transparent",
+                    borderRadius: 10,
                     backgroundColor: isNull
                       ? (focused === null
-                          ? `${CoralPalette.primary}25`
-                          : CoralPalette.surfaceAlt)
+                          ? CoralPalette.white
+                          : "transparent")
                       : isFocused
-                      ? `${CoralPalette.primary}25`
+                      ? CoralPalette.white
                       : "transparent",
                     alignItems: "center",
                     justifyContent: "center",

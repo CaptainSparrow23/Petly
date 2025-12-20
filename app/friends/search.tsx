@@ -237,10 +237,10 @@ const SearchFriends = () => {
 
  return (
   <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.primaryMuted }}>
-   <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
+   <View className="flex-1" style={{ backgroundColor: CoralPalette.greyLighter }}>
     {/* Header */}
     <View
-      className="flex-row items-center justify-between px-4 py-3"
+      className="flex-row items-center justify-between px-4 py-4"
      style={{ backgroundColor: CoralPalette.primaryMuted }}
     >
      <TouchableOpacity onPress={() => router.back()}>
@@ -252,7 +252,7 @@ const SearchFriends = () => {
 
     {/* Search Input */}
     <View className="px-4 py-4">
-     <View className="flex-row items-center rounded-xl px-4 py-3" style={{ backgroundColor: CoralPalette.surfaceAlt }}>
+     <View className="flex-row items-center rounded-xl px-4 py-3" style={{ backgroundColor: CoralPalette.white }}>
       <Search size={20} color={CoralPalette.mutedDark} />
       <TextInput
        ref={searchInputRef}

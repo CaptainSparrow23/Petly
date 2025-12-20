@@ -50,12 +50,12 @@ export default function TimeTracker({
     if (hideRing) {
       // Scale up slightly first, then down to 0.85 (no spring needed since it's behind the circle)
       bgScale.value = withSequence(
-        withTiming(1.1, { duration: 150 }),
-        withTiming(0.85, { duration: 200 })
+        withTiming(1.1, { duration: 200 }),
+        withTiming(0.85, { duration: 300 })
       );
     } else {
       bgScale.value = withTiming(1, {
-        duration: 200,
+        duration: 300,
       });
     }
   }, [hideRing, bgScale]);

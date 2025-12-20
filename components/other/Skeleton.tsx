@@ -70,19 +70,75 @@ export const StoreTileSkeleton: React.FC<{ width: number }> = ({ width }) => (
   <View
     style={{
       width,
-      backgroundColor: CoralPalette.surfaceAlt,
-      borderRadius: 16,
-      padding: 12,
-      borderWidth: 1,
-      borderColor: CoralPalette.border,
+      backgroundColor: CoralPalette.white,
+      borderRadius: 10,
+      borderWidth: 3,
+      borderColor: CoralPalette.primaryMuted,
+      shadowColor: "#191d31",
+      shadowOpacity: 0.15,
+      shadowRadius: 2,
+      shadowOffset: { width: 3, height: 5 },
+      elevation: 10,
+      overflow: "visible",
     }}
   >
-    {/* Image placeholder */}
-    <Skeleton width="100%" height={width - 24} radius={12} />
-    {/* Title */}
-    <Skeleton width="70%" height={16} radius={4} style={{ marginTop: 12 }} />
-    {/* Price */}
-    <Skeleton width="40%" height={14} radius={4} style={{ marginTop: 8 }} />
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: 9,
+        left: 9,
+        right: 9,
+        bottom: 9,
+        borderWidth: 1,
+        borderStyle: "dashed",
+        borderColor: CoralPalette.yellowDark,
+        borderRadius: 6,
+        opacity: 0.55,
+      }}
+    />
+
+    {/* Image placeholder - Top Section */}
+    <View 
+      style={{ 
+        width: "100%",
+        backgroundColor: CoralPalette.greyLighter,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingTop: 14,
+        paddingBottom: 12,
+        paddingHorizontal: 14,
+        minHeight: 120,
+        borderTopLeftRadius: 7,
+        borderTopRightRadius: 7,
+      }}
+    >
+      <Skeleton width={90} height={90} radius={8} />
+    </View>
+    {/* Content - Bottom Section */}
+    <View 
+      style={{ 
+        backgroundColor: CoralPalette.white,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        alignItems: "center",
+        borderBottomLeftRadius: 7,
+        borderBottomRightRadius: 7,
+      }}
+    >
+      {/* Title */}
+      <Skeleton width="75%" height={15} radius={4} style={{ marginBottom: 8 }} />
+      {/* Price */}
+      <View 
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+      >
+        <Skeleton width={50} height={16} radius={4} />
+        <Skeleton width={20} height={20} radius={4} style={{ marginLeft: 6 }} />
+      </View>
+    </View>
   </View>
 );
 
@@ -123,10 +179,10 @@ export const TodayFocusCardSkeleton: React.FC = () => (
     style={{
       width: "65%",
       backgroundColor: CoralPalette.white,
-      borderRadius: 24,
+      borderRadius: 5,
       padding: 16,
       borderWidth: 1,
-      borderColor: CoralPalette.border,
+      borderColor: CoralPalette.lightGrey,
     }}
   >
     <View style={{ alignItems: "flex-end" }}>
@@ -149,10 +205,10 @@ export const StreakCardSkeleton: React.FC = () => (
     style={{
       width: "31%",
       backgroundColor: CoralPalette.white,
-      borderRadius: 24,
+      borderRadius: 5,
       padding: 16,
       borderWidth: 1,
-      borderColor: CoralPalette.border,
+      borderColor: CoralPalette.lightGrey,
       alignItems: "flex-end",
       justifyContent: "space-between",
     }}
@@ -172,10 +228,10 @@ export const GoalsCardSkeleton: React.FC = () => (
   <View
     style={{
       backgroundColor: CoralPalette.white,
-      borderRadius: 24,
+      borderRadius: 5,
       padding: 20,
       borderWidth: 1,
-      borderColor: CoralPalette.border,
+      borderColor: CoralPalette.lightGrey,
       marginTop: 8,
     }}
   >

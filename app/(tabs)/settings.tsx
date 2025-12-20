@@ -24,11 +24,20 @@ import { CoralPalette } from "@/constants/colors";
 import Constants from "expo-constants";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
+const FONT = { fontFamily: "Nunito" };
+
+const CARD_SHADOW = {
+ shadowColor: "#191d31",
+ shadowOpacity: 0.25,
+ shadowOffset: { width: 3, height: 5 },
+ shadowRadius: 2,
+ elevation: 10,
+};
 
 const CardSeparator = () => (
  <View
   className="h-px mx-5"
-  style={{ backgroundColor: `${CoralPalette.border}55` }}
+  style={{ backgroundColor: CoralPalette.lightGrey }}
  />
 );
 
@@ -42,21 +51,25 @@ const SectionCard = ({ title, icon: Icon, children }: SectionCardProps) => {
  const rows = React.Children.toArray(children);
  return (
   <View
-   className="mb-6 rounded-3xl shadow-sm"
-   style={{
-    backgroundColor: CoralPalette.surfaceAlt,
-    borderColor: CoralPalette.border,
-    borderWidth: 1,
-   }}
+   className="mb-6"
+   style={[
+    {
+     borderRadius: 5,
+     backgroundColor: CoralPalette.white,
+     borderColor: CoralPalette.lightGrey,
+     borderWidth: 1,
+    },
+    CARD_SHADOW,
+   ]}
   >
    <View className="flex-row items-center px-5 pt-5 pb-3">
     <View
      className="mr-2 rounded-full p-2"
-     style={{ backgroundColor: CoralPalette.surfaceAlt }}
+     style={{ backgroundColor: CoralPalette.greyVeryLight }}
     >
      <Icon size={20} color={CoralPalette.primary} />
     </View>
-    <Text className="font-bold" style={{ color: CoralPalette.dark }}>
+    <Text className="font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
      {title}
     </Text>
    </View>
@@ -84,12 +97,12 @@ const LinkRow = ({ label, value, onPress }: RowProps) => (
   activeOpacity={onPress ? 0.7 : 1}
   className="flex-row items-center justify-between px-5 py-4"
  >
-  <Text className="text-base " style={{ color: CoralPalette.dark }}>
+  <Text className="text-base " style={[{ color: CoralPalette.dark }, FONT]}>
    {label}
   </Text>
   <View className="flex-row items-center gap-2">
    {value && (
-    <Text className="text-base " style={{ color: CoralPalette.mutedDark }}>
+    <Text className="text-base " style={[{ color: CoralPalette.mutedDark }, FONT]}>
      {value}
     </Text>
    )}
@@ -107,7 +120,7 @@ type ToggleRowProps = {
 
 const ToggleRow = ({ label, value, onValueChange, disabled }: ToggleRowProps) => (
  <View className="flex-row items-center justify-between px-5 py-4">
-  <Text className="text-base " style={{ color: CoralPalette.dark }}>
+  <Text className="text-base " style={[{ color: CoralPalette.dark }, FONT]}>
    {label}
   </Text>
   <Switch
@@ -128,12 +141,16 @@ const ProfileCard = () => {
 
  return (
   <TouchableOpacity
-   className="mb-6 rounded-3xl px-5 py-5 shadow-sm"
-   style={{
-    backgroundColor: CoralPalette.surfaceAlt,
-    borderColor: CoralPalette.border,
-    borderWidth: 1,
-   }}
+   className="mb-6 px-5 py-5"
+   style={[
+    {
+     borderRadius: 5,
+     backgroundColor: CoralPalette.white,
+     borderColor: CoralPalette.lightGrey,
+     borderWidth: 1,
+    },
+    CARD_SHADOW,
+   ]}
    activeOpacity={0.7}
    onPress={() => router.push("/settings/editProfile")}
   >
@@ -142,10 +159,10 @@ const ProfileCard = () => {
      <ProfilePicture profileId={profileId} size={56} />
     </View>
     <View className="ml-4 flex-1">
-     <Text className="text-lg font-bold" style={{ color: CoralPalette.dark }}>
+     <Text className="text-lg font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
       {displayName}
      </Text>
-     <Text className="text-base " style={{ color: CoralPalette.mutedDark }}>
+     <Text className="text-base " style={[{ color: CoralPalette.mutedDark }, FONT]}>
       {email}
      </Text>
     </View>
@@ -244,7 +261,7 @@ const Settings = () => {
  return (
   <ScrollView
    className="flex-1"
-   style={{ backgroundColor: CoralPalette.surface }}
+   style={{ backgroundColor: CoralPalette.greyLighter }}
    showsVerticalScrollIndicator={false}
    contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
   >

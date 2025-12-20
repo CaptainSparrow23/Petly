@@ -1,21 +1,16 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import {
-  LayoutAnimation,
+  Animated,
+  Easing,
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
-  UIManager,
   useWindowDimensions,
   View,
 } from "react-native";
 import type { StoreCategory } from "@/components/store/Tiles";
 import { CoralPalette } from "@/constants/colors";
-
-// Enable LayoutAnimation on Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const FONT = { fontFamily: "Nunito" };
 const DEFAULT_PILL_WIDTH = 120;
@@ -40,7 +35,7 @@ const Filters = ({ selectedCategory = "all", onCategoryChange }: FiltersProps) =
 
   const containerWidth = useMemo(() => {
     // Account for parent container padding (12 * 2 = 24)
-    const availableWidth = Math.max(0, screenWidth - 24);
+    const availableWidth = Math.max(0, screenWidth - 40);
     return availableWidth;
   }, [screenWidth]);
 
@@ -58,10 +53,26 @@ const Filters = ({ selectedCategory = "all", onCategoryChange }: FiltersProps) =
   }, [selectedCategory]);
 
   const pillPosition = currentIndex * pillWidth;
+  const sliderTranslateX = useRef(new Animated.Value(pillPosition)).current;
+  const didInitSlider = useRef(false);
+
+  useEffect(() => {
+    if (!didInitSlider.current) {
+      didInitSlider.current = true;
+      sliderTranslateX.setValue(pillPosition);
+      return;
+    }
+
+    Animated.timing(sliderTranslateX, {
+      toValue: pillPosition,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [pillPosition, sliderTranslateX]);
 
   const handlePress = useCallback(
     (value: CategoryValue) => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       onCategoryChange?.(value);
     },
     [onCategoryChange]
@@ -71,12 +82,13 @@ const Filters = ({ selectedCategory = "all", onCategoryChange }: FiltersProps) =
     <View style={styles.root}>
       <View style={[styles.container, { width: containerWidth}]}>
         {/* Sliding background */}
-        <View
+        <Animated.View
+          pointerEvents="none"
           style={[
             styles.slider,
             {
               width: pillWidth,
-              left: CONTAINER_PADDING + pillPosition,
+              transform: [{ translateX: sliderTranslateX }],
             },
           ]}
         />
@@ -114,12 +126,15 @@ const styles = StyleSheet.create({
     padding: CONTAINER_PADDING,
     backgroundColor: CoralPalette.white,
     borderRadius: BORDER_RADIUS,
+    borderWidth: 1,
+    borderColor: CoralPalette.lightGrey,
     overflow: "hidden",
   },
   slider: {
     position: "absolute",
     top: CONTAINER_PADDING,
     bottom: CONTAINER_PADDING,
+    left: CONTAINER_PADDING,
     backgroundColor: CoralPalette.primaryMuted,
     borderRadius: BORDER_RADIUS,
   },

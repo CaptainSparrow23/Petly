@@ -2,119 +2,301 @@ import React from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import images from "@/constants/images";
 import { CoralPalette } from "@/constants/colors";
-import Rive, { Fit } from "rive-react-native";
-import smurfAlt from "@/assets/animations/smurfAlt.riv";
-import chedrickAlt from "@/assets/animations/chedrickAlt.riv";
-import pebblesAlt from "@/assets/animations/pebblesAlt.riv";
-import goonerAlt from "@/assets/animations/goonerAlt.riv";
-import kittyAlt from "@/assets/animations/kittyAlt.riv";
-import { getPetUnlockLevel } from "@/utils/petUnlocks";
-
-const altAnimations: Record<string, number> = {
-  pet_smurf: smurfAlt,
-  pet_chedrick: chedrickAlt,
-  pet_pebbles: pebblesAlt,
-  pet_gooner: goonerAlt,
-  pet_kitty: kittyAlt,
-};
 
 const FONT = { fontFamily: "Nunito" };
 
+// Stamp-specific colors
+const stampColors = {
+  cream: "#FDF8F0",
+  paper: "#FAF6F1",
+  goldFoil: "#D4AF37",
+  inkBrown: "#3D2B1F",
+  mutedInk: "#5C4A3D",
+};
+
 export type StoreCategory = "Pet" | "Hat" | "Collar" | "Gadget";
 
+// Category tag colors (from CoralPalette)
+const CATEGORY_TAG_COLOR: Record<StoreCategory, string> = {
+  Pet: CoralPalette.forestTeal,
+  Hat: CoralPalette.deepRose,
+  Collar: CoralPalette.slateBlue,
+  Gadget: CoralPalette.plumPurple,
+};
+
+// Perforation dots for stamp edges (adjusted for larger stamp)
+const PERF_HORIZONTAL = Array.from({ length: 12 }, (_, i) => i);
+const PERF_VERTICAL = Array.from({ length: 15 }, (_, i) => i);
+
 export interface StoreItem {
- id: string;
- name: string;
- category: StoreCategory;
- priceCoins: number;
- imageKey?: string | null;
- imageUrl?: string | null;
- description?: string;
- owned?: boolean;
- featured?: boolean;
+  id: string;
+  name: string;
+  category: StoreCategory;
+  priceCoins: number;
+  imageKey?: string | null;
+  imageUrl?: string | null;
+  description?: string;
+  owned?: boolean;
+  featured?: boolean;
 }
 
 interface TileProps {
- item: StoreItem;
- onPress?: () => void;
- userLevel?: number;
+  item: StoreItem;
+  onPress?: (item: StoreItem) => void;
 }
 
-export const Tile: React.FC<TileProps> = ({ item, onPress, userLevel = 1 }) => {
- const { name, priceCoins, owned, category } = item;
- const isPet = category === "Pet";
- const unlockLevel = isPet ? getPetUnlockLevel(item.id) : null;
- const isLocked = isPet && unlockLevel !== null && (userLevel < unlockLevel || !owned);
+export const Tile = React.memo(function Tile({ item, onPress }: TileProps) {
+  const { name, priceCoins } = item;
+  const categoryTagColor = CATEGORY_TAG_COLOR[item.category];
 
- return (
- <TouchableOpacity
-   onPress={onPress}
-   accessibilityRole="button"
-   accessibilityLabel={`${name}, costs ${priceCoins} coins`}
-  className="flex-1 w-full"
-  style={{
-    backgroundColor: CoralPalette.white,
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 2,
-   }}
-  >
-
-   <View
-    className="items-center justify-center"
-    style={{
-     paddingVertical: 8,
-    }}
-   >
-      {item.category === "Pet" && altAnimations[item.id] ? (
-        <View style={{ width: 300, height: 90, overflow: "hidden" }}>
-        <Rive
-          source={altAnimations[item.id]}
-          stateMachineName="State Machine 1"
-          style={{ width: 300, height: 188, transform: [{ translateY: -15 }] }}
-          fit={Fit.Contain}
-          autoplay
-        />
+  return (
+    <TouchableOpacity
+      onPress={() => onPress?.(item)}
+      accessibilityRole="button"
+      accessibilityLabel={`${name}, costs ${priceCoins} coins`}
+      activeOpacity={0.92}
+      style={{ width: 165, alignSelf: "center" }}
+    >
+      {/* Stamp container */}
+      <View
+        style={{
+          backgroundColor: stampColors.cream,
+          borderRadius: 4,
+          borderWidth: 2.5,
+          borderColor: categoryTagColor,
+          shadowColor: "#000",
+          shadowOpacity: 0.18,
+          shadowRadius: 6,
+          shadowOffset: { width: 2, height: 3 },
+          elevation: 5,
+          overflow: "visible",
+          position: "relative",
+        }}
+      >
+        {/* Perforated edges - Top */}
+        <View
+          style={{
+            position: "absolute",
+            top: -4,
+            left: 4,
+            right: 4,
+            height: 8,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          {PERF_HORIZONTAL.map((i) => (
+            <View
+              key={`top-${i}`}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: "#E8E4DF",
+              }}
+            />
+          ))}
         </View>
-      ) : (
-        <Image
-          source={images[item.id as keyof typeof images] ?? images.lighting}
-          resizeMode="contain"
-          style={{ width: 90, height: 90 }}
+
+        {/* Perforated edges - Bottom */}
+        <View
+          style={{
+            position: "absolute",
+            bottom: -4,
+            left: 4,
+            right: 4,
+            height: 8,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          {PERF_HORIZONTAL.map((i) => (
+            <View
+              key={`bottom-${i}`}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: "#E8E4DF",
+              }}
+            />
+          ))}
+        </View>
+
+        {/* Perforated edges - Left */}
+        <View
+          style={{
+            position: "absolute",
+            left: -4,
+            top: 4,
+            bottom: 4,
+            width: 8,
+            flexDirection: "column",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          {PERF_VERTICAL.map((i) => (
+            <View
+              key={`left-${i}`}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: "#E8E4DF",
+              }}
+            />
+          ))}
+        </View>
+
+        {/* Perforated edges - Right */}
+        <View
+          style={{
+            position: "absolute",
+            right: -4,
+            top: 4,
+            bottom: 4,
+            width: 8,
+            flexDirection: "column",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          {PERF_VERTICAL.map((i) => (
+            <View
+              key={`right-${i}`}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: "#E8E4DF",
+              }}
+            />
+          ))}
+        </View>
+
+        {/* Inner decorative frame */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 6,
+            left: 6,
+            right: 6,
+            bottom: 6,
+            borderWidth: 1,
+            borderColor: stampColors.goldFoil,
+            opacity: 0.5,
+          }}
         />
-      )}
-   </View>
 
-   <View className="w-full mt-3">
-    <Text className="text-lg font-extrabold ml-2" style={[{ color: CoralPalette.dark }, FONT]} numberOfLines={1}>
-     {name}
-    </Text>
+        {/* Category tag - top right corner, slanted */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 7,
+            right: 7,
+   
+            backgroundColor: categoryTagColor,
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 3,
+            zIndex: 20,
+          }}
+        >
+          <Text
+            style={[
+              {
+                color: "#FFF",
+                fontSize: 9,
+                fontWeight: "800",
+                letterSpacing: 0.5,
+                textTransform: "uppercase",
+              },
+              FONT,
+            ]}
+          >
+            {item.category}
+          </Text>
+        </View>
 
-    <View className="flex-row items-center mt-2 ml-2">
-     {isPet && unlockLevel !== null ? (
-       <>
-         <Text className="text-sm font-semibold" style={[{ color: isLocked ? CoralPalette.mutedDark : CoralPalette.primary }, FONT]}>
-           {isLocked ? `Unlocks at Level ${unlockLevel}` : "Unlocked"}
-         </Text>
-       </>
-     ) : (
-       <>
-         <View className="h-6 w-6 items-center justify-center">
-           <Image source={images.token} style={{ width: 16, height: 16 }} resizeMode="contain" />
-         </View>
-         <Text className="ml-2 text-base font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
-           {priceCoins.toLocaleString()}
-         </Text>
-       </>
-     )}
-    </View>
-   </View>
-  </TouchableOpacity>
- );
-};
+        {/* Main content area */}
+        <View style={{ padding: 12 }}>
+          {/* Image container with vintage vignette style */}
+          <View
+            style={{
+              width: "100%",
+              aspectRatio: 1,
+              backgroundColor: stampColors.paper,
+              borderRadius: 3,
+              borderWidth: 1,
+              borderColor: "rgba(0,0,0,0.08)",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 10,
+              overflow: "hidden",
+            }}
+          >
+            <Image
+              source={images[item.id as keyof typeof images] ?? images.lighting}
+              resizeMode="contain"
+              style={{ width: 90, height: 90 }}
+            />
+          </View>
+
+          {/* Name */}
+          <Text
+            style={[
+              {
+                color: stampColors.inkBrown,
+                fontSize: 12,
+                fontWeight: "700",
+                textAlign: "center",
+                letterSpacing: 0.5,
+                textTransform: "uppercase",
+                lineHeight: 15,
+              },
+              FONT,
+            ]}
+            numberOfLines={2}
+          >
+            {name}
+          </Text>
+        </View>
+      </View>
+
+      {/* Price below stamp */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          marginTop: 8,
+        }}
+      >
+        <Image
+          source={images.token}
+          style={{ width: 15, height: 15, marginRight: 4 }}
+          resizeMode="contain"
+        />
+        <Text
+          style={[
+            {
+              color: stampColors.mutedInk,
+              fontSize: 14,
+              fontWeight: "700",
+            },
+            FONT,
+          ]}
+        >
+          {priceCoins.toLocaleString()}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 export default Tile;

@@ -35,7 +35,7 @@ const FONT = { fontFamily: "Nunito" };
 const TOP_BUTTON_BASE_STYLE = {
   width: 70,
   height: 70,
-  backgroundColor: CoralPalette.greyLighter,
+  backgroundColor: CoralPalette.white,
   borderRadius: 100,
   shadowColor: "#000",
   shadowOpacity: 0.1,
@@ -417,12 +417,12 @@ const Profile = () => {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
+    <View className="flex-1" style={{ backgroundColor: CoralPalette.white }}>
       <ImageBackground
         source={images.roomBackGround}
-        style={{ flex: 1 }}
+        style={{ flex: 1, height: '90%' }}
         resizeMode="cover"
-        imageStyle={{ transform: [{ translateY: 0 }] }}
+        imageStyle={{ transform: [{ translateY: -40 }] }}
       >
         {/* Top right - Friendship level indicator */}
         {currentPetId && (
@@ -530,6 +530,7 @@ const Profile = () => {
                       pointerEvents: isActive ? "auto" : "none",
                     }}
                   >
+                    <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 20 }}>
                     <PetAnimation
                       source={config.source}
                       stateMachineName={config.stateMachineName}
@@ -540,6 +541,7 @@ const Profile = () => {
                       containerStyle={{ width: "100%", height: "100%" }}
                       animationStyle={{ width: "65%", height: "65%" }}
                     />
+                    </View>
                   </View>
                 );
               });
@@ -556,11 +558,11 @@ const Profile = () => {
             bottom: 0,
             paddingBottom: 0,
             paddingTop: 12,
-            backgroundColor: CoralPalette.greyLighter,
+            backgroundColor: CoralPalette.greyVeryLight,
             transform: [{ translateY: petsTranslateY }],
             opacity: petsOpacity,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            borderTopLeftRadius: 10,
+            borderTopRightRadius: 10,
             shadowColor: "#000",
             shadowOpacity: 0.1,
             shadowOffset: { width: 0, height: -2 },
@@ -588,6 +590,8 @@ const Profile = () => {
               backgroundColor: CoralPalette.greyLighter,
               transform: [{ translateY: sheetTranslateY }],
               opacity: sheetOpacity,
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
             }}
             pointerEvents={editing ? "auto" : "none"}
           >

@@ -79,7 +79,7 @@ export default function FocusScreen() {
           }
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          <View className="mt-6 mb-4 flex-row gap-4">
+          <View className="mt-4 mb-4 flex-row gap-4">
      
             <TodayFocusCard />
             {/* StreakCard no longer handles loading; parent chooses when to show loader */}

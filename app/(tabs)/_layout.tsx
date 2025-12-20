@@ -335,10 +335,10 @@ const DrawerLayout = () => {
         name="store"
         options={{
           title: 'Store',
-          // headerRight removed (coins)
+          headerTitle: 'Store',
           drawerLabel: ({ color }) => <StoreDrawerLabel color={color} />,
           drawerIcon: ({ color, size }) => <Store color={color} size={size} />,
-           headerRight: () => <CoinBadge />
+          headerRight: () => <CoinBadge />
         }}
       />
       <Drawer.Screen
