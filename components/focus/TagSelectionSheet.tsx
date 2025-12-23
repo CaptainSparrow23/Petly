@@ -170,7 +170,6 @@ const TagSelectionSheet = ({
         }
 
         updateUserProfile({ selectedGadget: gadgetId });
-        showBanner("Gadget updated", "success");
       } catch (error) {
         console.error("Failed to update gadget:", error);
         showBanner("Could not update gadget. Please try again.", "error");
@@ -335,10 +334,17 @@ const TagSelectionSheet = ({
     [tagToRemove, userProfile?.userId, API_BASE_URL, availableTags, selectedTagId, payload, updateUserProfile, showBanner]
   );
 
+  const MAX_TAGS = 5;
+
   const handleCreateTag = useCallback(
     async (tagName: string, color: string) => {
       if (!userProfile?.userId || !API_BASE_URL) {
         showBanner("Unable to create tag. Please try again.", "error");
+        return;
+      }
+
+      if (availableTags.length >= MAX_TAGS) {
+        showBanner(`Maximum of ${MAX_TAGS} tags allowed.`, "error");
         return;
       }
 
@@ -493,33 +499,35 @@ const TagSelectionSheet = ({
           initialNumToRender={availableTags.length}
           removeClippedSubviews={false}
           ListHeaderComponent={
-            <Pressable
-              onPress={() => setShowCreateTagModal(true)}
-              onPressIn={() => setIsPlusButtonPressed(true)}
-              onPressOut={() => setIsPlusButtonPressed(false)}
-              className="flex-row items-center justify-center rounded-lg"
-              style={{
-                backgroundColor: isPlusButtonPressed ? CoralPalette.greyLight : CoralPalette.white,
-                borderWidth: 1,
-                borderColor: CoralPalette.greyLight,
-                minWidth: 35,
-                width: 35,
-                minHeight: 35,
-                height: 35,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Text
-                className="text-2xl font-medium"
+            availableTags.length >= MAX_TAGS ? null : (
+              <Pressable
+                onPress={() => setShowCreateTagModal(true)}
+                onPressIn={() => setIsPlusButtonPressed(true)}
+                onPressOut={() => setIsPlusButtonPressed(false)}
+                className="flex-row items-center justify-center rounded-lg"
                 style={{
-                  color: CoralPalette.dark,
-                  fontFamily: "Nunito",
+                  backgroundColor: isPlusButtonPressed ? CoralPalette.greyLight : CoralPalette.white,
+                  borderWidth: 1,
+                  borderColor: CoralPalette.greyLight,
+                  minWidth: 35,
+                  width: 35,
+                  minHeight: 35,
+                  height: 35,
+                  justifyContent: "center",
+                  alignItems: "center",
                 }}
               >
-                +
-              </Text>
-            </Pressable>
+                <Text
+                  className="text-2xl font-medium"
+                  style={{
+                    color: CoralPalette.dark,
+                    fontFamily: "Nunito",
+                  }}
+                >
+                  +
+                </Text>
+              </Pressable>
+            )
           }
           renderItem={({ item }) => {
               const isSelected = selectedTagId === item.id;
@@ -675,6 +683,8 @@ const TagSelectionSheet = ({
                       : CoralPalette.white,
                     minWidth: 80,
                     opacity: 1,
+                    borderWidth: 1,
+                    borderColor: CoralPalette.greyLight,
                   }}
                 >
                   <Image

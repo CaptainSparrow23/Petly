@@ -8,10 +8,11 @@ import {
   AppStateStatus,
   StatusBar,
   Animated,
+  Easing,
 } from "react-native";
 import { Timer, Hourglass } from "lucide-react-native";
-import { DrawerActions } from "@react-navigation/native";
-import { useFocusEffect, useNavigation } from "expo-router";
+
+import {  useNavigation } from "expo-router";
 import { MenuButton } from "@/components/other/MenuButton";
 import { SheetManager } from "react-native-actions-sheet";
 import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
@@ -54,6 +55,11 @@ export default function IndexScreen() {
   const [previewSeconds, setPreviewSeconds] = useState<number | null>(null);
   const lastPreviewSnap = useRef<number | null>(null);
   const buttonScale = useRef(new Animated.Value(1)).current;
+  
+  // Animation values for smooth timer transitions
+  const timerOpacity = useRef(new Animated.Value(1)).current;
+  const timerScale = useRef(new Animated.Value(1)).current;
+  const prevDisplayedTime = useRef<string>("");
 
   const { loggedIn } = useLocalSearchParams();
   const { showBanner, userProfile, refetchUserProfile, appSettings } = useGlobalContext();
@@ -388,6 +394,70 @@ export default function IndexScreen() {
     else setSecondsElapsed(0);
   }, [mode, lastCountdownTargetSec]);
 
+  // Animate timer fade when switching modes
+  useEffect(() => {
+    Animated.sequence([
+      // Fade out
+      Animated.parallel([
+        Animated.timing(timerOpacity, {
+          toValue: 0.3,
+          duration: 100,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.ease),
+        }),
+        Animated.timing(timerScale, {
+          toValue: 0.98,
+          duration: 100,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.ease),
+        }),
+      ]),
+      // Fade back in
+      Animated.parallel([
+        Animated.timing(timerOpacity, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.ease),
+        }),
+        Animated.timing(timerScale, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.ease),
+        }),
+      ]),
+    ]).start();
+  }, [mode]);
+
+  // Animate timer when session starts
+  useEffect(() => {
+    if (running) {
+      // Pop animation when starting
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(timerScale, {
+            toValue: 1.08,
+            duration: 150,
+            useNativeDriver: true,
+            easing: Easing.out(Easing.back(2)),
+          }),
+          Animated.timing(timerOpacity, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.spring(timerScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 10,
+        }),
+      ]).start();
+    }
+  }, [running]);
+
   useEffect(() => {
     if (lastCountdownTargetSec > maxSessionSeconds) {
       setLastCountdownTargetSec(maxSessionSeconds);
@@ -481,6 +551,29 @@ export default function IndexScreen() {
   const seconds = Math.floor(displaySeconds % 60);
   const mm = totalMinutes.toString().padStart(2, "0");
   const ss = seconds.toString().padStart(2, "0");
+  const currentTimeString = `${mm}:${ss}`;
+
+  // Subtle tick animation when timer updates during running
+  useEffect(() => {
+    if (running && prevDisplayedTime.current !== currentTimeString) {
+      prevDisplayedTime.current = currentTimeString;
+      // Quick scale pulse on tick
+      Animated.sequence([
+        Animated.timing(timerScale, {
+          toValue: 1.01,
+          duration: 80,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.ease),
+        }),
+        Animated.timing(timerScale, {
+          toValue: 1,
+          duration: 120,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+      ]).start();
+    }
+  }, [currentTimeString, running]);
 
   const petAnimationConfig = useMemo(
     () => getPetAnimationConfig(userProfile?.selectedPet),
@@ -573,7 +666,6 @@ export default function IndexScreen() {
           backgroundColor: CoralPalette.greyVeryLight,
           borderColor: CoralPalette.border,
           borderWidth: 1,
-          
         }}
       >
         <TouchableOpacity
@@ -658,8 +750,8 @@ export default function IndexScreen() {
             00:00
           </Text>
 
-          <Text
-          className="tracking-widest absolute left-0 right-0 text-center"
+          <Animated.Text
+            className="tracking-widest absolute left-0 right-0 text-center"
             selectable={false}
             style={{
               ...(Platform.OS === "ios" ? { fontVariant: ["tabular-nums"] as any } : {}),
@@ -669,10 +761,12 @@ export default function IndexScreen() {
               lineHeight: 120,
               fontSize: 90,
               color: CoralPalette.greyVeryLight,
+              opacity: timerOpacity,
+              transform: [{ scale: timerScale }],
             }}
           >
-            {`${mm}:${ss}`}
-          </Text>
+            {currentTimeString}
+          </Animated.Text>
         </View>
 
         <Animated.View

@@ -29,7 +29,7 @@ const FONT = { fontFamily: "Nunito" };
 const CARD_SHADOW = {
  shadowColor: "#191d31",
  shadowOpacity: 0.25,
- shadowOffset: { width: 3, height: 5 },
+ shadowOffset: { width: 0, height: 3 },
  shadowRadius: 2,
  elevation: 10,
 };

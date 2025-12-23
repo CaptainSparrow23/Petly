@@ -1,5 +1,5 @@
 import React from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import images from "@/constants/images";
 import { CoralPalette } from "@/constants/colors";
 
@@ -48,6 +48,11 @@ interface TileProps {
 export const Tile = React.memo(function Tile({ item, onPress }: TileProps) {
   const { name, priceCoins } = item;
   const categoryTagColor = CATEGORY_TAG_COLOR[item.category];
+  const { width: screenWidth } = useWindowDimensions();
+  
+  // Calculate tile width: (screen - container padding - gaps) / 2 columns
+  // Container padding: 8*2 = 16, item padding: 10*4 = 40, total = 56
+  const tileWidth = (screenWidth - 90) / 2;
 
   return (
     <TouchableOpacity
@@ -55,7 +60,7 @@ export const Tile = React.memo(function Tile({ item, onPress }: TileProps) {
       accessibilityRole="button"
       accessibilityLabel={`${name}, costs ${priceCoins} coins`}
       activeOpacity={0.92}
-      style={{ width: 165, alignSelf: "center" }}
+      style={{ width: tileWidth, alignSelf: "center" }}
     >
       {/* Stamp container */}
       <View
@@ -274,7 +279,7 @@ export const Tile = React.memo(function Tile({ item, onPress }: TileProps) {
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
-          marginTop: 8,
+          marginTop: 12,
         }}
       >
         <Image

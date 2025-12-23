@@ -27,7 +27,7 @@ const PreviewSheet = ({
   payload,
 }: SheetProps<"store-preview">) => {
   const sheetRef = useSheetRef(sheetId);
-  const { userProfile } = useGlobalContext();
+  const { userProfile, appSettings } = useGlobalContext();
   const handlePurchase = useMemo(() => {
     if (!payload?.pet) {
       return undefined;
@@ -48,6 +48,7 @@ const PreviewSheet = ({
         <PetPreviewCard
           pet={payload?.pet ?? null}
           selectedPet={userProfile?.selectedPet}
+          selectedBackground={appSettings.selectedBackground}
           onPurchase={handlePurchase ?? (() => undefined)}
           isPurchasing={false}
           purchaseError={null}

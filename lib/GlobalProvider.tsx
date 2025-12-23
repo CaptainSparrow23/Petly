@@ -75,6 +75,7 @@ interface UserProfile {
         {
             totalXP: number;
             totalFocusSeconds?: number;
+            updatedAt?: string | null;
             level: number;
             xpForCurrentLevel: number;
             xpForNextLevel: number;
@@ -122,6 +123,7 @@ type AppSettings = {
     displayFocusInHours: boolean;
     vibrations: boolean;
     notifications: boolean;
+    selectedBackground: string;
 };
 
 const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -130,6 +132,7 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
     displayFocusInHours: false,
     vibrations: true,
     notifications: true,
+    selectedBackground: "background_winter",
 };
 
 const SETTINGS_STORAGE_KEY = "petly_app_settings";
@@ -219,10 +222,13 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
 
                 const petFriendships: Record<string, any> = {};
                 if (profile.petFriendships) {
+                    // Debug logging - remove after testing
+                    console.log("🔍 Raw petFriendships from backend:", JSON.stringify(profile.petFriendships));
                     Object.entries(profile.petFriendships as Record<string, any>).forEach(([petId, val]) => {
                         petFriendships[petId] = {
                             ...computeLevelMeta((val as any)?.totalXP, 4),
                             totalFocusSeconds: toNumber((val as any)?.totalFocusSeconds, 0),
+                            updatedAt: (val as any)?.updatedAt ?? null,
                         };
                     });
                 }

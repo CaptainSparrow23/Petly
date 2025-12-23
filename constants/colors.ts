@@ -44,6 +44,12 @@ export const CoralPalette = {
   forestTeal: "#2D6A6A",
   plumPurple: "#6B4984",
   slateBlue: "#4A6B8A",
+  // Clipboard colors (pet cards)
+  clipboardBrown: "#8B6914",
+  clipboardBrownDark: "#6B5010",
+  clipboardPaper: "#FFFEF8",
+  clipboardBorder: "#E8E4D9",
+  clipboardLine: "#F0EDE4",
 };
 
 export const ThemeGradients = {

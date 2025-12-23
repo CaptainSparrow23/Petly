@@ -16,6 +16,7 @@ const HAT_INPUT_MAP: Record<string, number> = {
   hat_toque_blanche: 10,
   hat_flower_crown_spring: 11,
   hat_flower_crown_winter: 12,
+  hat_wig_composer: 13,
 };
 
 const COLLAR_INPUT_MAP: Record<string, number> = {
@@ -30,6 +31,12 @@ const COLLAR_INPUT_MAP: Record<string, number> = {
   collar_bow_tie_silk: 9,
   collar_chefs_coat: 10,
   collar_wings_fairy: 11,
+  collar_bandana_navy: 12,
+  collar_bandana_red: 13,
+  collar_standard_dream: 14,
+  collar_bandana_desert: 15,
+  collar_bandana_forest: 16,
+  collar_attire_composer: 17,
 };
 
 type Props = {

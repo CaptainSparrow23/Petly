@@ -9,6 +9,7 @@ import {
   Alert,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { Check, Mail, Plus, UsersRound, X } from "lucide-react-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
@@ -16,7 +17,6 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import Svg, { Path } from "react-native-svg";
 import { ProfilePicture } from "@/components/other/ProfilePicture";
-import { FriendItemSkeleton } from "@/components/other/Skeleton";
 import { CoralPalette } from "@/constants/colors";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
@@ -483,16 +483,8 @@ const Friends = () => {
   }, [fetchFriends, refetchUserProfile]);
 
   const LoadingState = () => (
-    <View style={{ paddingTop: 8 }}>
-      {[1, 2, 3].map((i) => (
-        <View
-          key={i}
-          className="rounded-2xl mb-3"
-          style={{ backgroundColor: CoralPalette.white }}
-        >
-          <FriendItemSkeleton />
-        </View>
-      ))}
+    <View style={{ paddingTop: 40, alignItems: "center" }}>
+      <ActivityIndicator size="large" color={CoralPalette.primary} />
     </View>
   );
 

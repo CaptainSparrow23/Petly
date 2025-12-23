@@ -52,7 +52,6 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            animation: "none",
             presentation: "card",
             gestureEnabled: false,
           }}
@@ -93,6 +92,15 @@ export default function RootLayout() {
           />
           <Stack.Screen
             name="friends"
+            options={{
+              animation: "slide_from_right",
+              gestureEnabled: true,
+              gestureDirection: "horizontal",
+              fullScreenGestureEnabled: true,
+            }}
+          />
+          <Stack.Screen
+            name="store"
             options={{
               animation: "slide_from_right",
               gestureEnabled: true,

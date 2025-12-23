@@ -10,26 +10,79 @@ import {
   View,
   ImageBackground,
   TouchableOpacity,
-  ActivityIndicator,
   Animated,
+  Image,
+  FlatList,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import images from "@/constants/images";
+import { ImageSourcePropType, ImageStyle, ViewStyle } from "react-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { Check, X, HeartHandshake, Shirt, Image as ImageIcon} from "lucide-react-native";
 import { usePets } from "@/hooks/usePets";
 import PetAnimation from "@/components/focus/PetAnimation";
-import { getPetAnimationConfig } from "@/constants/animations";
 import { CoralPalette } from "@/constants/colors";
 import Constants from "expo-constants";
 import PetsTab from "@/components/pets/PetsTab";
 import AccessoriesTab, { AccessoryCategory } from "@/components/pets/AccessoriesTab";
 import FriendshipModal from "@/components/pets/FriendshipModal";
 import { petAnimations } from "@/constants/animations";
+import { PetsTabSkeleton } from "@/components/other/Skeleton";
+import BaseModal from "@/components/common/BaseModal";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
 const FONT = { fontFamily: "Nunito" };
+
+// Background configuration type
+type BackgroundConfig = {
+  source: ImageSourcePropType;
+  containerStyle: ViewStyle;
+  imageStyle: ImageStyle;
+  thumbnailStyle?: ImageStyle;
+  label: string;
+};
+
+// Individual styles for each background
+const BACKGROUND_CONFIGS: Record<string, BackgroundConfig> = {
+  background_room: {
+    source: images.background_room,
+    containerStyle: { flex: 1, height: '125%' },
+    imageStyle: { transform: [{ translateY: -110 }] },
+    thumbnailStyle: { transform: [{ translateY: 0 }] },
+    label: 'Room',
+  },
+  background_beach: {
+    source: images.background_beach,
+    containerStyle: { flex: 1, height: '130%' },
+    imageStyle: { transform: [{ translateY: -180 }] },
+    thumbnailStyle: { transform: [{ translateY: 0 }] },
+    label: 'Beach',
+  },
+  background_park: {
+    source: images.background_park,
+    containerStyle: { flex: 1, height: '100%' },
+    imageStyle: { transform: [{ translateY: -140 }] },
+    thumbnailStyle: { transform: [{ translateY: -30 }] },
+    label: 'Park',
+  },
+  background_winter: {
+    source: images.background_winter,
+    containerStyle: { flex: 1, height: '125%' },
+    imageStyle: { transform: [{ translateY: -130 }] },
+    thumbnailStyle: { transform: [{ translateY: 0 }] },
+    label: 'Winter',
+  },
+  background_kitchen: {
+    source: images.background_kitchen,
+    containerStyle: { flex: 1, height: '100%' },
+    imageStyle: { transform: [{ translateY: -200 }] },
+    thumbnailStyle: { transform: [{ translateY: -40 }] },
+    label: 'Kitchen',
+  },
+};
+
+const BACKGROUND_KEYS = Object.keys(BACKGROUND_CONFIGS);
 
 // Shared button styling constants
 const TOP_BUTTON_BASE_STYLE = {
@@ -51,7 +104,7 @@ const TOP_BUTTON_CONTAINER_STYLE = {
 } as const;
 
 const Profile = () => {
-  const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
+  const { userProfile, showBanner, updateUserProfile, appSettings, updateAppSettings } = useGlobalContext();
   const [activeAccessoryCategory, setActiveAccessoryCategory] = useState<AccessoryCategory>("hat");
   const modeAnim = useRef(new Animated.Value(0)).current; // 0 = pets view, 1 = edit
   const friendAnim = useRef(new Animated.Value(0)).current; // 0 = visible, 1 = hidden (for focus pop)
@@ -61,7 +114,8 @@ const Profile = () => {
   const imageButtonScale = useRef(new Animated.Value(1)).current; // For image button animation
   const [editing, setEditing] = useState(false);
   const [friendshipModalVisible, setFriendshipModalVisible] = useState(false);
-  const friendshipModalAnim = useRef(new Animated.Value(0)).current;
+  const [backgroundModalVisible, setBackgroundModalVisible] = useState(false);
+  const selectedBackgroundKey = appSettings.selectedBackground;
 
   // Focused accessory states (local selection before saving)
   const [focusedHat, setFocusedHat] = useState<string | null>(
@@ -262,24 +316,15 @@ const Profile = () => {
   const friendshipButtonHandlers = createButtonPressHandlers(friendshipButtonScale);
   const imageButtonHandlers = createButtonPressHandlers(imageButtonScale);
 
-  const openFriendshipModal = () => {
-    setFriendshipModalVisible(true);
-    Animated.spring(friendshipModalAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 11,
-    }).start();
-  };
+  const openFriendshipModal = () => setFriendshipModalVisible(true);
+  const closeFriendshipModal = () => setFriendshipModalVisible(false);
 
-  const closeFriendshipModal = () => {
-    Animated.timing(friendshipModalAnim, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setFriendshipModalVisible(false);
-    });
+  const openBackgroundModal = () => setBackgroundModalVisible(true);
+  const closeBackgroundModal = () => setBackgroundModalVisible(false);
+
+  const selectBackground = (key: string) => {
+    updateAppSettings({ selectedBackground: key });
+    closeBackgroundModal();
   };
 
 
@@ -305,8 +350,8 @@ const Profile = () => {
       // Exit edit instantly (no downward animation)
       setEditing(false);
       setFriendshipModalVisible(false);
+      setBackgroundModalVisible(false);
       modeAnim.setValue(0);
-      friendshipModalAnim.setValue(0);
 
       // Play a quick pop for the pets view
       friendAnim.setValue(1);
@@ -316,7 +361,7 @@ const Profile = () => {
         tension: 70,
         friction: 9,
       }).start();
-    }, [modeAnim, friendshipModalAnim, friendAnim, petsLoading, error])
+    }, [modeAnim, friendAnim, petsLoading, error])
   );
 
   const animateConfirmButton = useCallback(() => {
@@ -337,7 +382,6 @@ const Profile = () => {
   }, [confirmButtonScale]);
 
   const confirmEditing = async () => {
-    animateConfirmButton();
     await handleSaveSelection();
     setEditing(false);
     animateMode(0);
@@ -377,19 +421,15 @@ const Profile = () => {
     outputRange: [0, 0, 1],
   });
 
+  // Get the current background configuration
+  const currentBackground = BACKGROUND_CONFIGS[selectedBackgroundKey];
+
   if (petsLoading) {
     return (
-      <View
-        className="flex-1 items-center justify-center"
-        style={{ backgroundColor: CoralPalette.surface }}
-      >
-        <ActivityIndicator size="large" color={CoralPalette.primary} />
-        <Text
-          className="mt-3 text-base font-semibold"
-          style={[{ color: CoralPalette.dark }, FONT]}
-        >
-          Loading your pets...
-        </Text>
+      <View className="flex-1" style={{ backgroundColor: CoralPalette.greyVeryLight }}>
+        <View style={{ flex: 1, paddingTop: 12 }}>
+          <PetsTabSkeleton />
+        </View>
       </View>
     );
   }
@@ -419,10 +459,10 @@ const Profile = () => {
   return (
     <View className="flex-1" style={{ backgroundColor: CoralPalette.white }}>
       <ImageBackground
-        source={images.roomBackGround}
-        style={{ flex: 1, height: '90%' }}
+        source={currentBackground.source}
+        style={currentBackground.containerStyle}
         resizeMode="cover"
-        imageStyle={{ transform: [{ translateY: -40 }] }}
+        imageStyle={currentBackground.imageStyle}
       >
         {/* Top right - Friendship level indicator */}
         {currentPetId && (
@@ -455,6 +495,7 @@ const Profile = () => {
           }}
         >
           <TouchableOpacity
+            onPress={openBackgroundModal}
             onPressIn={imageButtonHandlers.onPressIn}
             onPressOut={imageButtonHandlers.onPressOut}
             activeOpacity={1}
@@ -465,16 +506,32 @@ const Profile = () => {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Top right button - edit mode toggle or cancel */}
+        {/* Top right button - unified wardrobe/confirm/cancel button */}
         <Animated.View
           style={{
             ...TOP_BUTTON_CONTAINER_STYLE,
             top: 18,
-            transform: [{ scale: editButtonScale }],
+            transform: [{ scale: editing ? (changeFlags.accessoryChanged ? confirmButtonScale : editButtonScale) : (changeFlags.petChanged ? confirmButtonScale : editButtonScale) }],
           }}
         >
           <TouchableOpacity
-            onPress={editing ? cancelEditing : startEditing}
+            onPress={() => {
+              if (editing) {
+                // In edit mode: save if changes, otherwise cancel
+                if (changeFlags.accessoryChanged) {
+                  confirmEditing();
+                } else {
+                  cancelEditing();
+                }
+              } else {
+                // In pets tab: save pet if changed, otherwise open wardrobe
+                if (changeFlags.petChanged) {
+                  confirmEditing();
+                } else {
+                  startEditing();
+                }
+              }
+            }}
             onPressIn={editButtonHandlers.onPressIn}
             onPressOut={editButtonHandlers.onPressOut}
             activeOpacity={1}
@@ -483,30 +540,40 @@ const Profile = () => {
               ...TOP_BUTTON_BASE_STYLE,
               alignItems: "center",
               justifyContent: "center",
-              borderColor: editing ? CoralPalette.border : "transparent",
-              borderWidth: editing ? 1 : 0,
+              borderColor: (editing ? changeFlags.accessoryChanged : changeFlags.petChanged) ? CoralPalette.green : "transparent",
+              borderWidth: (editing ? changeFlags.accessoryChanged : changeFlags.petChanged) ? 2 : 0,
             }}
           >
             {editing ? (
-              <X size={30} color={CoralPalette.mutedDark} strokeWidth={3} />
+              // Edit mode: Check if accessory changed, X if not
+              changeFlags.accessoryChanged ? (
+                <Check size={30} color={CoralPalette.green} strokeWidth={3} />
+              ) : (
+                <X size={30} color={CoralPalette.mutedDark} strokeWidth={3} />
+              )
             ) : (
-             <Shirt size={30} color={CoralPalette.primaryMuted} strokeWidth={3} />
+              // Pets tab: Check if pet changed, Shirt if not
+              changeFlags.petChanged ? (
+                <Check size={30} color={CoralPalette.green} strokeWidth={3} />
+              ) : (
+                <Shirt size={30} color={CoralPalette.primaryMuted} strokeWidth={3} />
+              )
             )}
           </TouchableOpacity>
         </Animated.View>
 
         <View className="flex-1">
-          {/* Render only owned pet animations, but only show the active one */}
+          {/* Pet and shadow container */}
           <View
             pointerEvents="none"
             style={{
               position: "absolute",
-              top: -165,
-              left: 0,
+              top: '15%',
+              left: 3,
               right: 0,
-              bottom: 0,
+              bottom: '40%',
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "flex-end",
             }}
           >
             {(() => {
@@ -528,19 +595,35 @@ const Profile = () => {
                       height: "100%",
                       opacity: isActive ? 1 : 0,
                       pointerEvents: isActive ? "auto" : "none",
+                      alignItems: "center",
+                      justifyContent: "flex-end",
                     }}
                   >
-                    <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 20 }}>
-                    <PetAnimation
-                      source={config.source}
-                      stateMachineName={config.stateMachineName}
-                      focusInputName={config.focusInputName}
-                      focusValue={0}
-                      selectedHat={focusedHat}
-                      selectedCollar={focusedCollar}
-                      containerStyle={{ width: "100%", height: "100%" }}
-                      animationStyle={{ width: "65%", height: "65%" }}
+                    {/* Shadow - renders behind the pet */}
+                    <View
+                      style={{
+                        position: "relative",
+                        top: '90%',
+                        width: 120,
+                        height: 120,
+                        borderRadius: 60,
+                        backgroundColor: 'rgba(0,0,0,0.35)',
+                        transform: [{ scaleX: 0.9 }, { scaleY: 0.22 }],
+                        zIndex: 1,
+                      }}
                     />
+                    {/* Pet animation - renders above shadow */}
+                    <View style={{ width: "100%", height: "100%", zIndex: 2 }}>
+                      <PetAnimation
+                        source={config.source}
+                        stateMachineName={config.stateMachineName}
+                        focusInputName={config.focusInputName}
+                        focusValue={0}
+                        selectedHat={focusedHat}
+                        selectedCollar={focusedCollar}
+                        containerStyle={{ width: "100%", height: "100%" }}
+                        animationStyle={{ width: "65%", height: "65%" }}
+                      />
                     </View>
                   </View>
                 );
@@ -575,6 +658,8 @@ const Profile = () => {
             pets={pets}
             focusedPet={focusedPet}
             setFocusedPet={setFocusedPet}
+            selectedPet={userProfile?.selectedPet}
+            petFriendships={userProfile?.petFriendships}
           />
         </Animated.View>
 
@@ -610,38 +695,6 @@ const Profile = () => {
             />
           </Animated.View>
 
-          {/* Confirm button - bottom right, on top of views */}
-          {hasUnsavedChange && (
-            <Animated.View
-              style={{
-                position: "absolute",
-                bottom: 30,
-                right: 30,
-                zIndex: 30,
-                transform: [{ scale: confirmButtonScale }],
-              }}
-            >
-              <TouchableOpacity
-                onPress={confirmEditing}
-                activeOpacity={0.85}
-                className="rounded-full"
-                style={{
-                  backgroundColor: CoralPalette.white,
-                  width: 70,
-                  height: 70,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  shadowColor: "#000",
-                  shadowOpacity: 0.2,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowRadius: 8,
-                  elevation: 8,
-                }}
-              >
-                <Check size={40} color={CoralPalette.primaryMuted} strokeWidth={4} />
-              </TouchableOpacity>
-            </Animated.View>
-          )}
         </View>
       </ImageBackground>
 
@@ -649,10 +702,96 @@ const Profile = () => {
       <FriendshipModal
         visible={friendshipModalVisible}
         onClose={closeFriendshipModal}
-        animValue={friendshipModalAnim}
         userProfile={userProfile}
         pets={pets}
       />
+
+      {/* Background Selection Modal */}
+      <BaseModal
+        visible={backgroundModalVisible}
+        onClose={closeBackgroundModal}
+        title="Choose Background"
+        animationType="scale"
+        contentStyle={{
+          width: '85%',
+          maxWidth: 340,
+          backgroundColor: CoralPalette.white,
+          borderRadius: 20,
+        }}
+      >
+        <FlatList
+          data={BACKGROUND_KEYS}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item}
+          contentContainerStyle={{ paddingHorizontal: 4 }}
+          renderItem={({ item: key }) => {
+            const config = BACKGROUND_CONFIGS[key];
+            const isSelected = key === selectedBackgroundKey;
+            return (
+              <TouchableOpacity
+                onPress={() => selectBackground(key)}
+                style={{
+                  width: 80,
+                  alignItems: 'center',
+                  marginHorizontal: 6,
+                }}
+              >
+                {/* Square image container */}
+                <View
+                  style={{
+                    width: 70,
+                    height: 70,
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    borderWidth: isSelected ? 3 : 2,
+                    borderColor: isSelected ? CoralPalette.primary : CoralPalette.greyLight,
+                  }}
+                >
+                  <Image
+                    source={config.source}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                  {/* Selected checkmark */}
+                  {isSelected && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        backgroundColor: CoralPalette.primary,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Check size={12} color="#fff" strokeWidth={3} />
+                    </View>
+                  )}
+                </View>
+                {/* Label underneath */}
+                <Text 
+                  style={[
+                    { 
+                      marginTop: 6, 
+                      fontSize: 12, 
+                      fontWeight: isSelected ? '700' : '500',
+                      color: isSelected ? CoralPalette.primary : CoralPalette.mutedDark,
+                      textAlign: 'center',
+                    }, 
+                    FONT
+                  ]}
+                >
+                  {config.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      </BaseModal>
     </View>
   );
 };

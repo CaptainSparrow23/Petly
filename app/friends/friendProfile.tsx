@@ -4,12 +4,100 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
+import Svg, { Path } from "react-native-svg";
 import { ProfilePicture } from "@/components/other/ProfilePicture";
 import { CoralPalette } from "@/constants/colors";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
+
+const CARD_SHADOW = {
+  shadowColor: "#000",
+  shadowOpacity: 0.12,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 3,
+};
+
+const DropdownBadge = ({
+  labelBottom,
+  top,
+  labelTop,
+  width = 60,
+  height = 70,
+  fontSize = 18,
+  smallFontSize = 11,
+}: {
+  labelBottom: string;
+  labelTop: string;
+  width?: number;
+  height?: number;
+  fontSize?: number;
+  smallFontSize?: number;
+  top: number;
+}) => {
+  const rectH = Math.max(24, Math.max(32, height - 16));
+  const pointY = height;
+  const midX = width / 2;
+
+  return (
+    <View
+      style={{ position: "absolute", top: 0, right: 20, alignSelf: "center" }}
+    >
+      <View
+        style={{
+          width,
+          height,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+          <Path
+            d={`M 0 0 L ${width} 0 L ${width} ${rectH} L ${midX} ${pointY} L 0 ${rectH} Z`}
+            fill={CoralPalette.primaryMuted}
+          />
+        </Svg>
+        <View
+          style={{
+            position: "absolute",
+            top: top,
+            alignItems: "center",
+          }}
+        >
+          <Text
+            className="font-bold"
+            style={[
+              FONT,
+              {
+                fontSize,
+                color: CoralPalette.surface,
+                lineHeight: fontSize + 2,
+                fontWeight: "800",
+              },
+            ]}
+          >
+            {labelTop}
+          </Text>
+          <Text
+            style={[
+              FONT,
+              {
+                fontSize: smallFontSize,
+                color: CoralPalette.surfaceAlt,
+                marginTop: 1,
+                fontWeight: "600",
+              },
+            ]}
+          >
+            {labelBottom}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+};
 
 export default function FriendProfile() {
   const { userId } = useLocalSearchParams<{ userId?: string }>();
@@ -73,32 +161,38 @@ export default function FriendProfile() {
     } finally {
       setRemoving(false);
     }
-  }, [API_BASE_URL, showBanner, userId, userProfile?.userId]);
+  }, [showBanner, userId, userProfile?.userId]);
+
+  const totalFocusHours = ((profile?.totalFocusSeconds ?? 0) / 3600).toFixed(0);
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.surface }}>
-      <View className="flex-row items-center justify-between px-4 py-4">
-        <TouchableOpacity onPress={() => router.back()}>
-          <ChevronLeft size={24} color={CoralPalette.dark} />
-        </TouchableOpacity>
-        <Text className="text-[17px] ml-14 font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
-          Profile
-        </Text>
-        <TouchableOpacity
-          disabled={removing}
-          onPress={handleRemoveFriend}
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            borderRadius: 999,
-            backgroundColor: CoralPalette.surface,
-
-          }}
-        >
-          <Text style={[{ fontSize: 14, color: CoralPalette.primary, fontFamily: "Nunito", fontWeight: "700", opacity: removing ? 0.7 : 1,}]}>
-            Remove
+    <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.greyLighter }}>
+      {/* Header with primaryMuted background */}
+      <View style={{ backgroundColor: CoralPalette.primaryMuted }}>
+        <View className="flex-row items-center justify-between px-4 py-4">
+          <TouchableOpacity 
+            onPress={() => router.back()}
+            style={{ width: 70 }}
+          >
+            <ChevronLeft size={24} color={CoralPalette.white} />
+          </TouchableOpacity>
+          <Text className="text-[17px] font-bold" style={[{ color: CoralPalette.white }, FONT]}>
+            Profile
           </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            disabled={removing}
+            onPress={handleRemoveFriend}
+            style={{
+              width: 70,
+              alignItems: "flex-end",
+              opacity: removing ? 0.7 : 1,
+            }}
+          >
+            <Text style={[{ fontSize: 14, color: CoralPalette.white, fontWeight: "700" }, FONT]}>
+              Remove
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -106,42 +200,73 @@ export default function FriendProfile() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
       >
+        {/* Profile Card */}
         <View
-          className="rounded-3xl px-8 py-8 mt-16 shadow-sm"
-          style={{ backgroundColor: CoralPalette.surfaceAlt, borderColor: CoralPalette.border, borderWidth: 1 }}
+          className="rounded-2xl mt-16"
+          style={[{ backgroundColor: CoralPalette.white }, CARD_SHADOW]}
         >
-          <View className="items-center">
-            <View className="-mt-24">
+          {/* Today's Focus Badge */}
+          <DropdownBadge
+            labelTop={`${profile?.timeActiveTodayMinutes ?? 0}m`}
+            labelBottom="today"
+            width={50}
+            height={65}
+            fontSize={15}
+            smallFontSize={11}
+            top={10}
+          />
+
+          {/* Profile Info */}
+          <View className="items-center px-6 pt-6 pb-5">
+            <View className="-mt-20">
               <View
-                className="relative rounded-full overflow-hidden border-4 border-white"
-                style={{ width: 120, height: 120 }}
+                className="rounded-full overflow-hidden border-4"
+                style={{ width: 100, height: 100, borderColor: CoralPalette.white }}
               >
-                <ProfilePicture profileId={profile?.profileId || 1} size={120} />
+                <ProfilePicture profileId={profile?.profileId || 1} size={100} />
               </View>
             </View>
-            <Text className="mt-1 text-2xl font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
+            <Text className="mt-3 text-xl font-bold" style={[{ color: CoralPalette.dark }, FONT]}>
               {profile?.displayName || "Petly Explorer"}
             </Text>
-            <Text className="mt-2 text-lg" style={[{ color: CoralPalette.mutedDark }, FONT]}>
-              @{profile?.username || "not set"}
-            </Text>
+            {profile?.username && (
+              <Text className="mt-1 text-sm" style={[{ color: CoralPalette.mutedDark }, FONT]}>
+                @{profile.username}
+              </Text>
+            )}
           </View>
 
-          <View className="flex-row items-center justify-between mt-6">
-            <View className="flex-1 items-center justify-center">
-              <Text className="text-base" style={[{ color: CoralPalette.dark }, FONT]}>
+          {/* Stats Row - inside the same card */}
+          <View 
+            className="flex-row border-t mx-4 pt-4 pb-4"
+            style={{ borderColor: CoralPalette.greyLight }}
+          >
+            {/* Streak */}
+            <View className="flex-1 items-center">
+              <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>
                 Highest Streak
               </Text>
-              <Text className="mt-2 text-4xl font-bold" style={[{ color: CoralPalette.primary }, FONT]}>
-                {`${profile?.highestStreak ?? 0}`}
+              <Text className="mt-1 text-3xl font-bold" style={[{ color: CoralPalette.primary }, FONT]}>
+                {profile?.highestStreak ?? 0}
+              </Text>
+              <Text className="text-xs" style={[{ color: CoralPalette.mutedDark }, FONT]}>
+                days
               </Text>
             </View>
-            <View className="flex-1 items-center justify-center">
-              <Text className="text-base" style={[{ color: CoralPalette.dark }, FONT]}>
-                Total Focus Hours
+
+            {/* Divider */}
+            <View style={{ width: 1, backgroundColor: CoralPalette.greyLight }} />
+
+            {/* Focus Hours */}
+            <View className="flex-1 items-center">
+              <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>
+                Total Focus
               </Text>
-              <Text className="mt-2 text-4xl font-bold" style={[{ color: CoralPalette.primary }, FONT]}>
-                {((profile?.totalFocusSeconds ?? 0) / 3600).toFixed(0)}
+              <Text className="mt-1 text-3xl font-bold" style={[{ color: CoralPalette.primary }, FONT]}>
+                {totalFocusHours}
+              </Text>
+              <Text className="text-xs" style={[{ color: CoralPalette.mutedDark }, FONT]}>
+                hours
               </Text>
             </View>
           </View>
@@ -149,4 +274,4 @@ export default function FriendProfile() {
       </ScrollView>
     </SafeAreaView>
   );
-};
+}
