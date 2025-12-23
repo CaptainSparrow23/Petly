@@ -163,7 +163,7 @@ const CustomDrawerContent = (props: any) => {
             if (appSettings.vibrations) {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
             }
-            router.push('/settings/editProfile');
+            router.push('/account/profile');
           }}
           activeOpacity={0.7}
         >
