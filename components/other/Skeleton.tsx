@@ -172,27 +172,142 @@ export const AccessoryItemSkeleton: React.FC = () => (
 );
 
 /**
+ * Skeleton for pet card in pets tab
+ */
+export const PetCardSkeleton: React.FC = () => (
+  <View
+    style={{
+      width: "48%",
+      backgroundColor: CoralPalette.white,
+      borderRadius: 12,
+      padding: 14,
+      shadowColor: "#191d31",
+      shadowOpacity: 0.15,
+      shadowOffset: { width: 0, height: 3 },
+      shadowRadius: 4,
+      elevation: 6,
+    }}
+  >
+    {/* Pet Image */}
+    <View style={{ alignItems: "center", marginBottom: 10 }}>
+      <Skeleton width={70} height={85} radius={8} />
+    </View>
+    {/* Name */}
+    <Skeleton width="70%" height={16} radius={4} style={{ alignSelf: "center" }} />
+    {/* Personality */}
+    <Skeleton width="60%" height={11} radius={4} style={{ alignSelf: "center", marginTop: 6 }} />
+  </View>
+);
+
+/**
+ * Skeleton for Pet Summary Card in pets tab
+ */
+export const PetSummaryCardSkeleton: React.FC = () => (
+  <View
+    style={{
+      backgroundColor: CoralPalette.white,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: CoralPalette.lightGrey,
+      shadowColor: "#191d31",
+      shadowOpacity: 0.15,
+      shadowOffset: { width: 0, height: 3 },
+      shadowRadius: 4,
+      elevation: 6,
+    }}
+  >
+    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+      <View style={{ flex: 1 }}>
+        <Skeleton width={90} height={12} radius={4} />
+        <Skeleton width={120} height={22} radius={4} style={{ marginTop: 6 }} />
+        <Skeleton width={140} height={12} radius={4} style={{ marginTop: 6 }} />
+      </View>
+      <Skeleton width={55} height={65} radius={8} style={{ marginLeft: 8 }} />
+    </View>
+  </View>
+);
+
+/**
+ * Full Pets Tab skeleton with summary card and pet grid
+ */
+export const PetsTabSkeleton: React.FC = () => (
+  <View style={{ paddingHorizontal: 18, paddingTop: 12 }}>
+    {/* Summary Card Skeleton */}
+    <PetSummaryCardSkeleton />
+    
+    {/* Section Header */}
+    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <Skeleton width={120} height={16} radius={4} />
+      <Skeleton width={70} height={22} radius={12} />
+    </View>
+    
+    {/* Pet Cards Grid */}
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 14 }}>
+      <PetCardSkeleton />
+      <PetCardSkeleton />
+    </View>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 14 }}>
+      <PetCardSkeleton />
+      <PetCardSkeleton />
+    </View>
+  </View>
+);
+
+/**
  * Skeleton for Today's Focus card on insights page
  */
 export const TodayFocusCardSkeleton: React.FC = () => (
   <View
     style={{
-      width: "65%",
-      backgroundColor: CoralPalette.white,
-      borderRadius: 5,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: CoralPalette.lightGrey,
+      borderRadius: 16,
+      overflow: "hidden",
+      shadowColor: CoralPalette.primary,
+      shadowOpacity: 0.3,
+      shadowOffset: { width: 0, height: 6 },
+      shadowRadius: 12,
+      elevation: 12,
     }}
   >
-    <View style={{ alignItems: "flex-end" }}>
-      <Skeleton width={100} height={16} radius={4} />
-    </View>
-    <View style={{ alignItems: "flex-end", marginTop: 8 }}>
-      <Skeleton width={80} height={40} radius={8} />
-    </View>
-    <View style={{ alignItems: "flex-end", marginTop: 8 }}>
-      <Skeleton width={120} height={14} radius={4} />
+    <View
+      style={{
+        width: "100%",
+        backgroundColor: CoralPalette.primaryMuted,
+        padding: 20,
+        height: 150,
+        position: "relative",
+      }}
+    >
+      {/* Decorative circles - matching actual card */}
+      <View
+        style={{
+          position: "absolute",
+          top: -30,
+          right: -30,
+          width: 120,
+          height: 120,
+          borderRadius: 60,
+          backgroundColor: "rgba(255,255,255,0.1)",
+        }}
+      />
+      <View
+        style={{
+          position: "absolute",
+          bottom: -40,
+          left: -20,
+          width: 100,
+          height: 100,
+          borderRadius: 50,
+          backgroundColor: "rgba(255,255,255,0.08)",
+        }}
+      />
+      {/* Content */}
+      <View style={{ zIndex: 1 }}>
+        <Skeleton width={100} height={14} radius={4} style={{ backgroundColor: "rgba(255,255,255,0.3)" }} />
+        <Skeleton width={120} height={36} radius={6} style={{ marginTop: 4, backgroundColor: "rgba(255,255,255,0.4)" }} />
+        <Skeleton width={160} height={28} radius={14} style={{ marginTop: 8, backgroundColor: "rgba(255,255,255,0.25)" }} />
+      </View>
     </View>
   </View>
 );
@@ -222,47 +337,39 @@ export const StreakCardSkeleton: React.FC = () => (
 );
 
 /**
- * Skeleton for Goals card on insights page
+ * Skeleton for Goals card on insights page (two cards side by side)
  */
 export const GoalsCardSkeleton: React.FC = () => (
-  <View
-    style={{
-      backgroundColor: CoralPalette.white,
-      borderRadius: 5,
-      padding: 20,
-      borderWidth: 1,
-      borderColor: CoralPalette.lightGrey,
-      marginTop: 8,
-    }}
-  >
-    {/* Header */}
-    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-      <Skeleton width={60} height={18} radius={4} />
-      <Skeleton width={70} height={30} radius={15} />
+  <View style={{ flexDirection: "row", gap: 12 }}>
+    {/* Daily Goal Card Skeleton - Green theme */}
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#FAFFFE",
+        borderRadius: 20,
+        padding: 18,
+        alignItems: "center",
+      }}
+    >
+      <Skeleton width={70} height={12} radius={4} style={{ backgroundColor: `${CoralPalette.green}30` }} />
+      <Skeleton width={90} height={10} radius={4} style={{ marginTop: 4, backgroundColor: CoralPalette.greyLight }} />
+      <Skeleton width={110} height={110} radius={55} style={{ marginTop: 14, backgroundColor: "#E8F5E9" }} />
+      <Skeleton width={70} height={24} radius={12} style={{ marginTop: 14, backgroundColor: `${CoralPalette.green}25` }} />
     </View>
-    {/* Daily goal */}
-    <View style={{ marginTop: 16 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <Skeleton width={100} height={14} radius={4} />
-        <Skeleton width={60} height={14} radius={4} />
-      </View>
-      <Skeleton width="100%" height={10} radius={5} style={{ marginTop: 8 }} />
-      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
-        <Skeleton width={80} height={12} radius={4} />
-        <Skeleton width={40} height={12} radius={4} />
-      </View>
-    </View>
-    {/* Weekly goal */}
-    <View style={{ marginTop: 16 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <Skeleton width={110} height={14} radius={4} />
-        <Skeleton width={60} height={14} radius={4} />
-      </View>
-      <Skeleton width="100%" height={10} radius={5} style={{ marginTop: 8 }} />
-      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
-        <Skeleton width={80} height={12} radius={4} />
-        <Skeleton width={40} height={12} radius={4} />
-      </View>
+    {/* Weekly Goal Card Skeleton - Purple theme */}
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#FDFAFF",
+        borderRadius: 20,
+        padding: 18,
+        alignItems: "center",
+      }}
+    >
+      <Skeleton width={80} height={12} radius={4} style={{ backgroundColor: `${CoralPalette.purple}30` }} />
+      <Skeleton width={100} height={10} radius={4} style={{ marginTop: 4, backgroundColor: CoralPalette.greyLight }} />
+      <Skeleton width={110} height={110} radius={55} style={{ marginTop: 14, backgroundColor: "#F3E8FF" }} />
+      <Skeleton width={70} height={24} radius={12} style={{ marginTop: 14, backgroundColor: `${CoralPalette.purple}25` }} />
     </View>
   </View>
 );
@@ -274,28 +381,41 @@ export const FocusChartSkeleton: React.FC = () => (
   <View
     style={{
       backgroundColor: CoralPalette.white,
-      borderRadius: 5,
-      padding: 20,
+      borderRadius: 20,
       borderWidth: 1,
-      borderColor: CoralPalette.lightGrey,
-      marginTop: 16,
+      borderColor: `${CoralPalette.blue}20`,
+      overflow: "hidden",
     }}
   >
-    {/* Header row */}
-    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-      <Skeleton width={180} height={18} radius={4} />
-      <Skeleton width={80} height={28} radius={14} />
-    </View>
-    {/* Total time */}
-    <View style={{ marginTop: -12, marginBottom: 8 }}>
-      <Skeleton width={150} height={14} radius={4} />
+    {/* Header */}
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 18,
+        paddingBottom: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: CoralPalette.greyLight,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Skeleton width={40} height={40} radius={12} style={{ backgroundColor: `${CoralPalette.blue}15` }} />
+        <View style={{ marginLeft: 12 }}>
+          <Skeleton width={160} height={16} radius={4} />
+          <Skeleton width={100} height={12} radius={4} style={{ marginTop: 6 }} />
+        </View>
+      </View>
+      <Skeleton width={90} height={36} radius={10} style={{ backgroundColor: `${CoralPalette.blue}12` }} />
     </View>
     {/* Chart area */}
-    <View style={{ marginTop: 8, height: 250, justifyContent: "flex-end" }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-around", alignItems: "flex-end", height: 200 }}>
-        {[60, 90, 40, 120, 80, 100, 70, 50].map((h, i) => (
-          <Skeleton key={i} width={20} height={h} radius={4} />
-        ))}
+    <View style={{ padding: 16, paddingTop: 8 }}>
+      <View style={{ height: 250, justifyContent: "flex-end" }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-around", alignItems: "flex-end", height: 200 }}>
+          {[60, 90, 40, 120, 80, 100, 70, 50].map((h, i) => (
+            <Skeleton key={i} width={20} height={h} radius={4} style={{ backgroundColor: `${CoralPalette.blue}20` }} />
+          ))}
+        </View>
       </View>
     </View>
   </View>
@@ -308,34 +428,55 @@ export const TagDistributionChartSkeleton: React.FC = () => (
   <View
     style={{
       backgroundColor: CoralPalette.white,
-      borderRadius: 5,
-      padding: 20,
+      borderRadius: 20,
       borderWidth: 1,
-      borderColor: CoralPalette.lightGrey,
-      marginTop: 16,
+      borderColor: `${CoralPalette.purple}20`,
+      overflow: "hidden",
     }}
   >
-    {/* Header row */}
-    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-      <Skeleton width={140} height={18} radius={4} />
-      <Skeleton width={80} height={28} radius={14} />
-    </View>
-    {/* Total time */}
-    <View style={{ marginBottom: 8 }}>
-      <Skeleton width={150} height={14} radius={4} />
+    {/* Header */}
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 18,
+        paddingBottom: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: CoralPalette.greyLight,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Skeleton width={40} height={40} radius={12} style={{ backgroundColor: `${CoralPalette.purple}15` }} />
+        <View style={{ marginLeft: 12 }}>
+          <Skeleton width={140} height={16} radius={4} />
+          <Skeleton width={100} height={12} radius={4} style={{ marginTop: 6 }} />
+        </View>
+      </View>
+      <Skeleton width={90} height={36} radius={10} style={{ backgroundColor: `${CoralPalette.purple}12` }} />
     </View>
     {/* Chart area - pie chart */}
-    <View style={{ marginTop: -28, height: 300, alignItems: "center", justifyContent: "center" }}>
-      <Skeleton width={280} height={280} radius={140} />
-    </View>
-    {/* Legend area */}
-    <View style={{ marginTop: 16, gap: 8 }}>
-      {[1, 2, 3, 4].map((i) => (
-        <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Skeleton width={12} height={12} radius={6} />
-          <Skeleton width={100} height={14} radius={4} />
-        </View>
-      ))}
+    <View style={{ padding: 16, paddingTop: 0 }}>
+      <View style={{ height: 260, alignItems: "center", justifyContent: "center" }}>
+        <Skeleton width={200} height={200} radius={100} style={{ backgroundColor: `${CoralPalette.purple}15` }} />
+      </View>
+      {/* Legend area */}
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: 8,
+          marginTop: 8,
+          paddingTop: 12,
+          borderTopWidth: 1,
+          borderTopColor: CoralPalette.greyLight,
+        }}
+      >
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} width={80} height={28} radius={14} />
+        ))}
+      </View>
     </View>
   </View>
 );

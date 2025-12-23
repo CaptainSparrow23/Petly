@@ -1,23 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
+import Animated, {
+  Easing,
+  useAnimatedProps,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Check, Gift } from 'lucide-react-native';
 import { useGlobalContext } from '@/lib/GlobalProvider';
 import { CoralPalette } from '@/constants/colors';
-import images from '@/constants/images';
 import Constants from 'expo-constants';
 
 const FONT = { fontFamily: 'Nunito' };
-const CARD_SHADOW = {
-  shadowColor: '#191d31',
-  shadowOpacity: 0.25,
-  shadowOffset: { width: 3, height: 5 },
-  shadowRadius: 2,
-  elevation: 10,
-};
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string | undefined;
+
+// Animated circle component
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface GoalsCardProps {
   todayTotalMinutes?: number;
@@ -36,13 +37,331 @@ const getWeekString = (): string => {
   return `${date.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
 };
 
+// Circle Progress Ring Component
+const CircleProgress = ({
+  progress,
+  size,
+  strokeWidth,
+  progressColor,
+  backgroundColor,
+}: {
+  progress: { value: number };
+  size: number;
+  strokeWidth: number;
+  progressColor: string;
+  backgroundColor: string;
+}) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  const animatedProps = useAnimatedProps(() => {
+    const clampedProgress = Math.min(100, Math.max(0, progress.value));
+    const strokeDashoffset = circumference * (1 - clampedProgress / 100);
+    return {
+      strokeDashoffset,
+    };
+  });
+
+  return (
+    <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+      {/* Background circle */}
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke={backgroundColor}
+        strokeWidth={strokeWidth}
+        fill="none"
+      />
+      {/* Progress circle */}
+      <AnimatedCircle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke={progressColor}
+        strokeWidth={strokeWidth}
+        fill="none"
+        strokeDasharray={circumference}
+        animatedProps={animatedProps}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+};
+
+// Single Goal Card Component
+const GoalCard = ({
+  title,
+  subtitle,
+  targetMinutes,
+  currentMinutes,
+  rewardXp,
+  isClaimable,
+  isClaimed,
+  isReached,
+  progressColor,
+  progressBgColor,
+  cardBgColor,
+  onClaim,
+  claiming,
+  showHours,
+}: {
+  title: string;
+  subtitle: string;
+  targetMinutes: number;
+  currentMinutes: number;
+  rewardXp: number;
+  isClaimable: boolean;
+  isClaimed: boolean;
+  isReached: boolean;
+  progressColor: string;
+  progressBgColor: string;
+  cardBgColor: string;
+  onClaim: () => void;
+  claiming: boolean;
+  showHours: boolean;
+}) => {
+  const progressValue = useSharedValue(0);
+  const progress = Math.min(100, Math.round((currentMinutes / targetMinutes) * 100));
+
+  const animateProgress = useCallback(() => {
+    progressValue.value = 0;
+    progressValue.value = withTiming(progress, {
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [progress, progressValue]);
+
+  useEffect(() => {
+    animateProgress();
+  }, [animateProgress]);
+
+  useFocusEffect(
+    useCallback(() => {
+      animateProgress();
+      return () => {};
+    }, [animateProgress])
+  );
+
+  const formatTarget = () => {
+    if (showHours) {
+      const hours = targetMinutes / 60;
+      return hours >= 1 ? `${hours.toFixed(hours % 1 === 0 ? 0 : 1)}h` : `${targetMinutes}m`;
+    }
+    return `${targetMinutes}m`;
+  };
+
+  const CIRCLE_SIZE = 110;
+  const STROKE_WIDTH = 12;
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: cardBgColor,
+        borderRadius: 20,
+        padding: 18,
+        alignItems: 'center',
+        position: 'relative',
+        borderWidth: 1,
+        borderColor: `${progressColor}25`,
+        shadowColor: progressColor,
+        shadowOpacity: 0.15,
+        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: 12,
+        elevation: 8,
+      }}
+    >
+      {/* Green tick badge when claimed */}
+      {isClaimed && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: '#22c55e',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            shadowColor: '#22c55e',
+            shadowOpacity: 0.4,
+            shadowOffset: { width: 0, height: 2 },
+            shadowRadius: 4,
+            elevation: 4,
+          }}
+        >
+          <Check size={16} color="#fff" strokeWidth={3} />
+        </View>
+      )}
+
+      {/* Claimable notification dot */}
+      {isClaimable && !isClaimed && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+            backgroundColor: '#FF3B30',
+            zIndex: 10,
+            shadowColor: '#FF3B30',
+            shadowOpacity: 0.5,
+            shadowOffset: { width: 0, height: 2 },
+            shadowRadius: 4,
+            elevation: 4,
+          }}
+        />
+      )}
+
+      {/* Title */}
+      <Text
+        style={[
+          {
+            color: progressColor,
+            fontSize: 12,
+            fontWeight: '700',
+            letterSpacing: 0.5,
+            textTransform: 'uppercase',
+          },
+          FONT,
+        ]}
+      >
+        {title}
+      </Text>
+
+      {/* Subtitle */}
+      <Text
+        style={[
+          {
+            color: CoralPalette.mutedDark,
+            fontSize: 11,
+            marginTop: 2,
+            marginBottom: 14,
+          },
+          FONT,
+        ]}
+      >
+        {subtitle}
+      </Text>
+
+      {/* Circular Progress */}
+      <View style={{ position: 'relative', width: CIRCLE_SIZE, height: CIRCLE_SIZE }}>
+        <CircleProgress
+          progress={progressValue}
+          size={CIRCLE_SIZE}
+          strokeWidth={STROKE_WIDTH}
+          progressColor={progressColor}
+          backgroundColor={progressBgColor}
+        />
+
+        {/* Center Content */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {isClaimable && !isClaimed ? (
+            // Claim button in center
+            <TouchableOpacity
+              onPress={onClaim}
+              disabled={claiming}
+              style={{
+                backgroundColor: progressColor,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 16,
+                shadowColor: progressColor,
+                shadowOpacity: 0.4,
+                shadowOffset: { width: 0, height: 3 },
+                shadowRadius: 6,
+                elevation: 6,
+              }}
+            >
+              {claiming ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Gift size={14} color="#fff" />
+                  <Text style={[{ color: '#fff', fontWeight: '800', fontSize: 13 }, FONT]}>
+                    Claim
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ) : (
+            // Percentage display
+            <Text
+              style={[
+                {
+                  color: progressColor,
+                  fontSize: 28,
+                  fontWeight: '800',
+                },
+                FONT,
+              ]}
+            >
+              {progress}%
+            </Text>
+          )}
+        </View>
+      </View>
+
+      {/* XP Reward */}
+      <View
+        style={{
+          marginTop: 14,
+          opacity: isReached || isClaimed ? 1 : 0.5,
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: isClaimed ? '#22c55e' : `${progressColor}20`,
+            paddingHorizontal: 12,
+            paddingVertical: 5,
+            borderRadius: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <Text
+            style={[
+              {
+                color: isClaimed ? '#fff' : progressColor,
+                fontSize: 12,
+                fontWeight: '800',
+              },
+              FONT,
+            ]}
+          >
+            +{rewardXp} XP
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 export default function GoalsCard({
   todayTotalMinutes = 0,
   currentWeekTotal = 0,
 }: GoalsCardProps) {
-  const { appSettings, updateUserProfile, userProfile, showBanner, refetchUserProfile } = useGlobalContext();
-  const [claiming, setClaiming] = useState(false);
-  
+  const { appSettings, updateUserProfile, userProfile, showBanner, refetchUserProfile } =
+    useGlobalContext();
+  const [claimingDaily, setClaimingDaily] = useState(false);
+  const [claimingWeekly, setClaimingWeekly] = useState(false);
+
   const dailyGoal = 60;
   const weeklyGoal = 300;
   const dailyRewardXp = 25;
@@ -53,7 +372,7 @@ export default function GoalsCard({
   const dailyGoalReached = todayTotalMinutes >= dailyGoal;
   const weeklyGoalReached = currentWeekTotal >= weeklyGoal;
 
-  // Check if already claimed (comparing dates/weeks)
+  // Check if already claimed
   const todayStr = getTodayString();
   const weekStr = getWeekString();
   const dailyClaimed = userProfile?.lastDailyGoalClaim === todayStr;
@@ -62,35 +381,10 @@ export default function GoalsCard({
   // Determine claimable status
   const dailyClaimable = dailyGoalReached && !dailyClaimed;
   const weeklyClaimable = weeklyGoalReached && !weeklyClaimed;
-  const canClaim = dailyClaimable || weeklyClaimable;
 
-  // Calculate progress values (needed before animateBars)
-  const dailyProgress = Math.min(100, Math.round((todayTotalMinutes / dailyGoal) * 100));
-  const weeklyProgress = Math.min(100, Math.round((currentWeekTotal / weeklyGoal) * 100));
-
-  // Animated progress (Reanimated)
-  const dailyAnim = useSharedValue(0);
-  const weeklyAnim = useSharedValue(0);
-
-  const animateBars = useCallback(() => {
-    dailyAnim.value = 0;
-    weeklyAnim.value = 0;
-    dailyAnim.value = withTiming(dailyProgress, { duration: 500, easing: Easing.out(Easing.cubic) });
-    weeklyAnim.value = withTiming(weeklyProgress, { duration: 500, easing: Easing.out(Easing.cubic) });
-  }, [dailyAnim, weeklyAnim, dailyProgress, weeklyProgress]);
-
-  useEffect(() => {
-    animateBars();
-  }, [animateBars]);
-
-  useFocusEffect(
-    useCallback(() => {
-      animateBars();
-      return () => {};
-    }, [animateBars])
-  );
-
-  const claimGoalReward = async (goalType: 'daily' | 'weekly'): Promise<{ success: boolean; xp?: number }> => {
+  const claimGoalReward = async (
+    goalType: 'daily' | 'weekly'
+  ): Promise<{ success: boolean; xp?: number }> => {
     if (!userProfile?.userId || !API_BASE_URL) {
       return { success: false };
     }
@@ -110,207 +404,103 @@ export default function GoalsCard({
     }
   };
 
-  const handleClaim = async () => {
-    if (claiming || !canClaim) return;
-    setClaiming(true);
-
-    let totalRewardXp = 0;
+  const handleClaimDaily = async () => {
+    if (claimingDaily || !dailyClaimable) return;
+    setClaimingDaily(true);
 
     try {
-      // Claim daily if available
-      if (dailyClaimable) {
-        const result = await claimGoalReward('daily');
-        if (result.success && result.xp !== undefined) {
-          totalRewardXp += dailyRewardXp;
-        }
-      }
-
-      // Claim weekly if available
-      if (weeklyClaimable) {
-        const result = await claimGoalReward('weekly');
-        if (result.success && result.xp !== undefined) {
-          totalRewardXp += weeklyRewardXp;
-        }
-      }
-
-      if (totalRewardXp > 0) {
-        // Optimistically mark as claimed locally
+      const result = await claimGoalReward('daily');
+      if (result.success) {
         updateUserProfile({
-          lastDailyGoalClaim: dailyClaimable ? todayStr : userProfile?.lastDailyGoalClaim ?? null,
-          lastWeeklyGoalClaim: weeklyClaimable ? weekStr : userProfile?.lastWeeklyGoalClaim ?? null,
+          lastDailyGoalClaim: todayStr,
         });
-
-        // Refetch profile so XP/level updates everywhere
         refetchUserProfile?.();
-
-        showBanner({ 
-          title: 'Rewards claimed!', 
-          message: `+${totalRewardXp} XP`, 
-          preset: 'done', 
+        showBanner({
+          title: 'Daily goal claimed!',
+          message: `+${dailyRewardXp} XP`,
+          preset: 'done',
           haptic: 'success',
         });
       }
-    } catch (error) {
-      showBanner({ 
-        title: 'Failed to claim', 
-        message: 'Please try again', 
-        preset: 'error', 
+    } catch {
+      showBanner({
+        title: 'Failed to claim',
+        message: 'Please try again',
+        preset: 'error',
         haptic: 'error',
       });
     } finally {
-      setClaiming(false);
+      setClaimingDaily(false);
     }
   };
 
-  const formatMinutesLabel = (minutes: number) => {
-    if (!showHours) return `${minutes} mins`;
-    const hours = minutes / 60;
-    if (hours >= 10) return `${hours.toFixed(0)} hrs`;
-    return `${hours.toFixed(1)} hrs`;
-  };
+  const handleClaimWeekly = async () => {
+    if (claimingWeekly || !weeklyClaimable) return;
+    setClaimingWeekly(true);
 
-  const AnimatedProgressFill = ({ progressAnim, color }: { progressAnim: typeof dailyAnim; color: string }) => {
-    const animStyle = useAnimatedStyle(() => ({
-      width: `${Math.max(0, Math.min(100, progressAnim.value))}%`,
-      height: '100%',
-      backgroundColor: color,
-      borderRadius: 999,
-    }));
-    return <Animated.View style={animStyle} />;
+    try {
+      const result = await claimGoalReward('weekly');
+      if (result.success) {
+        updateUserProfile({
+          lastWeeklyGoalClaim: weekStr,
+        });
+        refetchUserProfile?.();
+        showBanner({
+          title: 'Weekly goal claimed!',
+          message: `+${weeklyRewardXp} XP`,
+          preset: 'done',
+          haptic: 'success',
+        });
+      }
+    } catch {
+      showBanner({
+        title: 'Failed to claim',
+        message: 'Please try again',
+        preset: 'error',
+        haptic: 'error',
+      });
+    } finally {
+      setClaimingWeekly(false);
+    }
   };
-
-  const renderProgress = (
-    label: string,
-    targetLabel: string,
-    progressPercent: number,
-    accent: string,
-    rewardXp: number,
-    isReached: boolean,
-    isClaimed: boolean,
-    progressAnim?: typeof dailyAnim
-  ) => (
-    <View className="mt-4">
-      <View className="flex-row justify-between items-center">
-        <Text style={[{ color: CoralPalette.mutedDark }, FONT]}>{label}</Text>
-        <Text style={[{ color: CoralPalette.dark, fontWeight: '600' }, FONT]}>{targetLabel}</Text>
-      </View>
-      <View
-        className="mt-2 h-2.5 w-full overflow-hidden rounded-full"
-        style={{ backgroundColor: `${CoralPalette.border}55` }}
-      >
-        {progressAnim ? (
-          <AnimatedProgressFill progressAnim={progressAnim} color={accent} />
-        ) : (
-          <View
-            className="h-full rounded-full"
-            style={{ width: `${progressPercent}%`, backgroundColor: accent }}
-          />
-        )}
-      </View>
-      <View className="mt-2 flex-row items-center justify-between">
-        <Text className="text-xs" style={[{ color: CoralPalette.mutedDark }, FONT]}>
-          {progressPercent}% complete
-        </Text>
-        <View className="relative h-6 w-16 justify-center items-end">
-          {isClaimed ? (
-            // Green tick when claimed - same spot as XP bubble
-            <View className="absolute right-0 flex-row items-center">
-              <MaterialCommunityIcons name="check" size={20} color="#22c55e" />
-            </View>
-          ) : (
-            // XP bubble - grayed out if not reached, colored if reached
-            <View className="absolute right-0 flex-row items-center">
-              <View className="h-5 w-5 items-center justify-center">
-                <Image
-                  source={images.xp}
-                  style={{ width: 14, height: 14, opacity: isReached ? 1 : 0.5 }}
-                  resizeMode="contain"
-                />
-              </View>
-              <Text
-                style={[
-                  {
-                    color: isReached ? CoralPalette.dark : CoralPalette.mutedDark,
-                    marginLeft: 6,
-                    fontWeight: '600',
-                    opacity: isReached ? 1 : 0.5,
-                  },
-                  FONT,
-                ]}
-              >
-                {rewardXp}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-    </View>
-  );
 
   return (
-    <>
-      <View
-        className="p-5"
-        style={[
-          { borderRadius: 5, backgroundColor: CoralPalette.white, borderColor: CoralPalette.lightGrey, borderWidth: 1 },
-          CARD_SHADOW,
-        ]}
-      >
-        <View className="flex-row justify-between items-center relative">
-          <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: '700' }, FONT]}>Goals</Text>
-          {canClaim && (
-            <View
-              style={{
-                position: 'absolute',
-                top: -4,
-                right: -4,
-                width: 12,
-                height: 12,
-                borderRadius: 6,
-                backgroundColor: '#FF3B30',
-                zIndex: 10,
-              }}
-            />
-          )}
-          <View className="min-w-[70px] h-[30px]">
-            {canClaim && (
-              <TouchableOpacity
-                onPress={handleClaim}
-                disabled={claiming}
-                className="rounded-full px-4 py-1.5 items-center justify-center h-full"
-                style={{ backgroundColor: CoralPalette.primary }}
-              >
-                {claiming ? (
-                  <ActivityIndicator size="small" color={CoralPalette.white} style={{ height: 18 }} />
-                ) : (
-                  <Text style={[{ color: CoralPalette.white, fontWeight: '600' }, FONT]}>Claim</Text>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
+    <View style={{ flexDirection: 'row', gap: 12 }}>
+      {/* Daily Goal Card - Green theme */}
+      <GoalCard
+        title="Daily Goal"
+        subtitle="Focus 1 hour today"
+        targetMinutes={dailyGoal}
+        currentMinutes={todayTotalMinutes}
+        rewardXp={dailyRewardXp}
+        isClaimable={dailyClaimable}
+        isClaimed={dailyClaimed}
+        isReached={dailyGoalReached}
+        progressColor={CoralPalette.green}
+        progressBgColor="#E8F5E9"
+        cardBgColor="#FAFFFE"
+        onClaim={handleClaimDaily}
+        claiming={claimingDaily}
+        showHours={showHours}
+      />
 
-        {renderProgress(
-          'Daily focus goal',
-          formatMinutesLabel(dailyGoal),
-          dailyProgress,
-          CoralPalette.primary,
-          dailyRewardXp,
-          dailyGoalReached,
-          dailyClaimed,
-          dailyAnim
-        )}
-        {renderProgress(
-          'Weekly focus goal',
-          formatMinutesLabel(weeklyGoal),
-          weeklyProgress,
-          CoralPalette.primary,
-          weeklyRewardXp,
-          weeklyGoalReached,
-          weeklyClaimed,
-          weeklyAnim
-        )}
-      </View>
-    </>
+      {/* Weekly Goal Card - Purple theme */}
+      <GoalCard
+        title="Weekly Goal"
+        subtitle="Focus 5 hours this week"
+        targetMinutes={weeklyGoal}
+        currentMinutes={currentWeekTotal}
+        rewardXp={weeklyRewardXp}
+        isClaimable={weeklyClaimable}
+        isClaimed={weeklyClaimed}
+        isReached={weeklyGoalReached}
+        progressColor={CoralPalette.purple}
+        progressBgColor="#F3E8FF"
+        cardBgColor="#FDFAFF"
+        onClaim={handleClaimWeekly}
+        claiming={claimingWeekly}
+        showHours={showHours}
+      />
+    </View>
   );
 }

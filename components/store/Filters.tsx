@@ -13,8 +13,8 @@ import type { StoreCategory } from "@/components/store/Tiles";
 import { CoralPalette } from "@/constants/colors";
 
 const FONT = { fontFamily: "Nunito" };
-const DEFAULT_PILL_WIDTH = 120;
-const CONTAINER_PADDING = 4;
+const DEFAULT_PILL_WIDTH = 140;
+const CONTAINER_PADDING = 3;
 const BORDER_RADIUS = 5;
 
 const categoryOptions = [
@@ -135,17 +135,17 @@ const styles = StyleSheet.create({
     top: CONTAINER_PADDING,
     bottom: CONTAINER_PADDING,
     left: CONTAINER_PADDING,
-    backgroundColor: CoralPalette.primaryMuted,
+    backgroundColor: CoralPalette.primary,
     borderRadius: BORDER_RADIUS,
   },
   pill: {
-    paddingVertical: 8,
+    paddingVertical: 3,
     alignItems: "center",
     borderRadius: BORDER_RADIUS,
   },
   pillText: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   pillTextSelected: {
     color: CoralPalette.white,

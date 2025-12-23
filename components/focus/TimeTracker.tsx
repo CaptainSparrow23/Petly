@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, GestureResponderEvent, PanResponder } from "react-native";
 import Svg, { Circle } from "react-native-svg";
-import Animated, { useAnimatedProps, useSharedValue, withSpring, withTiming, withSequence } from "react-native-reanimated";
+import Animated, { useAnimatedProps, useSharedValue, withTiming, withSequence } from "react-native-reanimated";
 import { CoralPalette } from "@/constants/colors";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -166,7 +166,7 @@ export default function TimeTracker({
     [disabled, isTouchOnRing, getTouchAngle, updateAngleSmooth, snapAngle, onChange, onPreviewProgress]
   );
 
-  // handle position
+  // handle position (for gesture tracking)
   const handleRad = ((angle - 90) * Math.PI) / 180;
   const handleX = center + radius * Math.cos(handleRad);
   const handleY = center + radius * Math.sin(handleRad);
@@ -208,9 +208,16 @@ export default function TimeTracker({
           opacity={hideRing ? 0 : 1}
         />
         {/* handle */}
-        {showHandle ? (
-          <Circle cx={handleX} cy={handleY} r={HANDLE_RADIUS} fill={trackColor} stroke={trackColor} strokeWidth={3} />
-        ) : null}
+        {showHandle && (
+          <Circle 
+            cx={handleX}
+            cy={handleY}
+            r={HANDLE_RADIUS}
+            fill={trackColor} 
+            stroke={trackColor} 
+            strokeWidth={3} 
+          />
+        )}
       </Svg>
 
       {centerContent ? (

@@ -11,13 +11,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { 
   ChevronLeft, 
-  Settings, 
-  Trophy, 
   Package, 
-  Heart,
   Flame,
-  Zap,
-  Award,
   ChevronRight,
   Clock
 } from "lucide-react-native";
@@ -142,17 +137,12 @@ export default function Profile() {
           <ChevronLeft size={30} color={CoralPalette.dark} />
         </TouchableOpacity>
         <Text
-          className="text-xl font-bold pr-2"
+          className="text-xl font-bold"
           style={[{ color: CoralPalette.dark }, FONT]}
         >
           Account
         </Text>
-        <TouchableOpacity 
-          onPress={() => router.push('/settings/editProfile')} 
-          activeOpacity={0.7}
-        >
-          <Settings size={24} color={CoralPalette.dark} />
-        </TouchableOpacity>
+        <View style={{ width: 30 }} />
       </View>
 
     
@@ -458,7 +448,7 @@ export default function Profile() {
           <View className="flex-row" style={{ gap: 12 }}>
             {/* Pets */}
             <View
-              className="p-4 flex-1"
+              className="px-3 py-4 flex-1"
               style={{
                 backgroundColor: CoralPalette.white,
                 borderWidth: 1,
@@ -466,32 +456,32 @@ export default function Profile() {
                 borderRadius: 10,
               }}
             >
-              <View className="flex-row items-center mb-2">
+              <View className="flex-row items-center justify-center mb-2">
                 <Package size={20} color={CoralPalette.primary} fill={CoralPalette.primary} />
                 <Text
-                  className="ml-2 text-sm font-semibold"
+                  className="ml-1 text-sm font-semibold"
                   style={[{ color: CoralPalette.mutedDark }, FONT]}
                 >
                   Pets
                 </Text>
-                </View>
-                <Text
-                className="ml-1 text-3xl font-black"
-                style={[{ color: CoralPalette.dark }, FONT]}
+              </View>
+              <Text
+                className="text-3xl font-black"
+                style={[{ color: CoralPalette.dark, textAlign: 'right' }, FONT]}
               >
                 {petsCount}
               </Text>
               <Text
-                className="ml-1 text-xs"
-                style={[{ color: CoralPalette.mutedDark }, FONT]}
+                className="text-xs"
+                style={[{ color: CoralPalette.mutedDark, textAlign: 'right' }, FONT]}
               >
-               owned
+                owned
               </Text>
             </View>
 
             {/* Accessories */}
             <View
-              className="p-4 flex-1"
+              className="px-3 py-4 flex-1"
               style={{
                 backgroundColor: CoralPalette.white,
                 borderWidth: 1,
@@ -499,24 +489,24 @@ export default function Profile() {
                 borderRadius: 10,
               }}
             >
-              <View className="flex-row items-center mb-2">
+              <View className="flex-row items-center justify-center mb-2">
                 <Package size={20} color={CoralPalette.primary} fill={CoralPalette.primary} />
                 <Text
-                  className="ml-2 text-sm font-semibold"
+                  className="ml-1 text-xs font-semibold"
                   style={[{ color: CoralPalette.mutedDark }, FONT]}
                 >
                   Accessories
                 </Text>
               </View>
               <Text
-                className="ml-1 text-3xl font-black"
-                style={[{ color: CoralPalette.dark }, FONT]}
+                className="text-3xl font-black"
+                style={[{ color: CoralPalette.dark, textAlign: 'right' }, FONT]}
               >
                 {accessoriesCount}
               </Text>
               <Text
-                className="ml-1 text-xs"
-                style={[{ color: CoralPalette.mutedDark }, FONT]}
+                className="text-xs"
+                style={[{ color: CoralPalette.mutedDark, textAlign: 'right' }, FONT]}
               >
                 owned
               </Text>
@@ -524,7 +514,7 @@ export default function Profile() {
 
             {/* Gadgets */}
             <View
-              className="p-4 flex-1"
+              className="px-3 py-4 flex-1"
               style={{
                 backgroundColor: CoralPalette.white,
                 borderWidth: 1,
@@ -532,24 +522,24 @@ export default function Profile() {
                 borderRadius: 10,
               }}
             >
-              <View className="flex-row items-center mb-2">
+              <View className="flex-row items-center justify-center mb-2">
                 <Package size={20} color={CoralPalette.primary} fill={CoralPalette.primary} />
                 <Text
-                  className="ml-2 text-sm font-semibold"
+                  className="ml-1 text-sm font-semibold"
                   style={[{ color: CoralPalette.mutedDark }, FONT]}
                 >
                   Gadgets
                 </Text>
               </View>
               <Text
-                className="ml-1 text-3xl font-black"
-                style={[{ color: CoralPalette.dark }, FONT]}
+                className="text-3xl font-black"
+                style={[{ color: CoralPalette.dark, textAlign: 'right' }, FONT]}
               >
                 {gadgetsCount}
               </Text>
               <Text
-                className="ml-1 text-xs"
-                style={[{ color: CoralPalette.mutedDark }, FONT]}
+                className="text-xs"
+                style={[{ color: CoralPalette.mutedDark, textAlign: 'right' }, FONT]}
               >
                 owned
               </Text>

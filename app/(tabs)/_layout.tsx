@@ -163,7 +163,7 @@ const CustomDrawerContent = (props: any) => {
             if (appSettings.vibrations) {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
             }
-            router.push('/account/profile');
+            router.push('/settings/editProfile');
           }}
           activeOpacity={0.7}
         >
@@ -335,10 +335,9 @@ const DrawerLayout = () => {
         name="store"
         options={{
           title: 'Store',
-          headerTitle: 'Store',
           drawerLabel: ({ color }) => <StoreDrawerLabel color={color} />,
           drawerIcon: ({ color, size }) => <Store color={color} size={size} />,
-          headerRight: () => <CoinBadge />
+          headerRight: () => <CoinBadge />,
         }}
       />
       <Drawer.Screen

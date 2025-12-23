@@ -1,12 +1,13 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, Modal, Platform } from "react-native";
-import { VictoryPie, VictoryLabel } from "victory-native";
+import { View, Text, TouchableOpacity, Platform } from "react-native";
+import { VictoryPie } from "victory-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import { Picker } from "@react-native-picker/picker";
-import { useFocusEffect } from "expo-router";
 import { getApiBaseUrl } from "@/utils/api";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
+import { PieChart, ChevronDown, Clock } from "lucide-react-native";
+import BaseModal from "@/components/common/BaseModal";
 
 // --- Types ---
 type TagDistribution = {
@@ -23,11 +24,11 @@ type TagDistributionChartProps = { title?: string };
 const FONT = { fontFamily: "Nunito" };
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const CARD_SHADOW = {
-  shadowColor: "#191d31",
-  shadowOpacity: 0.25,
-  shadowOffset: { width: 3, height: 5 },
-  shadowRadius: 2,
-  elevation: 10,
+  shadowColor: CoralPalette.primary,
+  shadowOpacity: 0.15,
+  shadowOffset: { width: 0, height: 4 },
+  shadowRadius: 12,
+  elevation: 8,
 };
 
 // Color palette for tags (will cycle through if more tags than colors)
@@ -35,12 +36,12 @@ const TAG_COLORS = [
   CoralPalette.primary,
   CoralPalette.green,
   CoralPalette.blue,
-  CoralPalette.purple,
+  CoralPalette.primaryMuted,
   CoralPalette.yellow,
   CoralPalette.primaryMuted,
   CoralPalette.greenLight,
   CoralPalette.blueLight,
-  CoralPalette.purpleLight,
+  CoralPalette.primaryLight,
   CoralPalette.yellowLight,
 ];
 
@@ -214,12 +215,6 @@ export default function TagDistributionChart({ title = "Tag Distribution" }: Tag
     fetchData();
   }, [fetchData]);
 
-  useFocusEffect(
-    useCallback(() => {
-      setChartAnimKey((k) => k + 1);
-    }, [])
-  );
-
   const totalSeconds = useMemo(() => distribution.reduce((acc, curr) => acc + (curr.totalSeconds || 0), 0), [distribution]);
 
   const otherSeconds = useMemo(() => {
@@ -295,144 +290,212 @@ export default function TagDistributionChart({ title = "Tag Distribution" }: Tag
 
   return (
     <View
-      className="relative  p-5"
       style={[
-        { borderRadius: 5, backgroundColor: CoralPalette.white, borderColor: CoralPalette.lightGrey, borderWidth: 1 },
+        {
+          borderRadius: 20,
+          backgroundColor: CoralPalette.white,
+          borderColor: `${CoralPalette.primary}20`,
+          borderWidth: 1,
+          overflow: "hidden",
+        },
         CARD_SHADOW,
       ]}
     >
       {/* Header */}
-      <View className="mb-1 flex-row justify-between items-center">
-        <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}>{title}</Text>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: 18,
+          paddingBottom: 14,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: `${CoralPalette.primary}15`,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 12,
+            }}
+          >
+            <PieChart size={20} color={CoralPalette.primary} strokeWidth={2.5} />
+          </View>
+          <View>
+            <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}>{title}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+              <Clock size={12} color={CoralPalette.mutedDark} strokeWidth={2} />
+              <Text style={[{ color: CoralPalette.mutedDark, fontSize: 12, fontWeight: "600", marginLeft: 4 }, FONT]}>
+                {formattedTime}
+              </Text>
+            </View>
+          </View>
+        </View>
         <TouchableOpacity
-          className="rounded-lg px-3 py-1"
-          style={{ backgroundColor: `${CoralPalette.primaryLight}55` }}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: `${CoralPalette.primary}12`,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: `${CoralPalette.primary}25`,
+          }}
           onPress={() => setModalVisible(true)}
         >
-          <Text className="text-sm font-medium" style={[{ color: CoralPalette.primary }, FONT]}>
+          <Text style={[{ color: CoralPalette.primary, fontSize: 13, fontWeight: "700" }, FONT]}>
             {getLabel(view)}
           </Text>
+          <ChevronDown size={16} color={CoralPalette.primary} strokeWidth={2.5} style={{ marginLeft: 4 }} />
         </TouchableOpacity>
       </View>
 
-      <View>
-        <Text style={[{ color: CoralPalette.mutedDark, fontSize: 12, fontWeight: "600" }, FONT]}>
-          Total Focused Time: {formattedTime}
-        </Text>
-      </View>
+      {/* Chart Area - Horizontal layout with pie on left, legend on right */}
+      <View style={{ padding: 25, paddingTop: 8 }} onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}>
+        <View style={{ flexDirection: "row", alignItems: "center", minHeight: 180 }}>
+          {/* Pie Chart - Left side */}
+          <View style={{ width: 160, height: 160, position: "relative" }}>
+            {chartWidth > 0 && (
+              <VictoryPie
+                key={chartKey}
+                data={victoryData}
+                width={160}
+                height={160}
+                innerRadius={45}
+                padding={0}
+                labels={() => ""}
+                style={{
+                  data: {
+                    fill: ({ datum }: any) => datum.color,
+                  },
+                }}
+                animate={!loading && hasData ? { duration: 500, onLoad: { duration: 500 } } : false}
+              />
+            )}
 
-      {/* Chart Area - Always maintain size */}
-      <View
-        className="relative -mt-8"
-        style={{ minHeight: 300, height: 300 }}
-        onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}
-      >
-        {/* Always render the chart to maintain container size */}
-        {chartWidth > 0 && (
-          <View className="items-center" style={{ height: 280 }}>
-            <VictoryPie
-              key={chartKey}
-              data={victoryData}
-              width={Math.min(chartWidth - 40, 280)}
-              height={280}
-              innerRadius={70}
-              labelRadius={(props: any) => {
-                const innerRadius = typeof props?.innerRadius === 'number' ? props.innerRadius : 70;
-                return innerRadius + 30;
-              }}
-              style={{
-                data: {
-                  fill: ({ datum }: any) => datum.color,
-                },
-                labels: {
-                  fill: CoralPalette.dark,
-                  fontSize: 12,
-                  fontFamily: "Nunito",
-                  fontWeight: "600",
-                },
-              }}
-              labelComponent={
-                <VictoryLabel
+            {/* Loading overlay */}
+            {loading && distribution.length === 0 && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: 20,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: `${CoralPalette.white}E6`,
+                  borderRadius: 12,
+                }}
+              >
+                <Text style={[{ color: CoralPalette.mutedDark, fontSize: 12, fontWeight: "600" }, FONT]}>
+                  Loading...
+                </Text>
+              </View>
+            )}
+
+            {/* No data overlay */}
+            {!loading && !hasData && distribution.length === 0 && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: 10,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <View
                   style={{
-                    fill: CoralPalette.dark,
-                    fontSize: 11,
-                    fontFamily: "Nunito",
-                    fontWeight: "600",
+                    backgroundColor: CoralPalette.greyLight,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 8,
                   }}
-                  text={({ datum }: any) => {
-                    // Hide labels for placeholder or very small slices
-                    if (datum.x === "No Data") return "";
-                    const pct = Number(datum.percentage);
-                    // Guard against NaN, Infinity, or very small values (including floating-point artifacts)
-                    if (!Number.isFinite(pct) || pct < 5) return "";
-                    return `${pct.toFixed(1)}%`;
+                >
+                  <Text style={[{ color: CoralPalette.mutedDark, fontSize: 11, fontWeight: "600" }, FONT]}>
+                    No data
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Legend - Right side */}
+          {userTags.length > 0 && (
+            <View
+              style={{
+                flex: 1,
+                marginLeft: 30,
+                gap: 6,
+              }}
+            >
+              {completeLegendData.map((item) => (
+                <View
+                  key={item.tagId}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
                   }}
-                />
-              }
-              animate={!loading && hasData ? { duration: 500, onLoad: { duration: 500 } } : false}
-            />
-          </View>
-        )}
-
-        {/* Loading overlay - shows on top of chart */}
-        {loading && distribution.length === 0 && (
-          <View
-            className="absolute inset-0 z-20 items-center justify-center"
-            style={{ backgroundColor: `${CoralPalette.white}E6` }}
-          >
-            <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>
-              Loading...
-            </Text>
-          </View>
-        )}
-
-        {/* No data overlay - shows on top of empty chart */}
-        {!loading && !hasData && distribution.length === 0 && (
-          <View className="absolute inset-0 z-10 mb-4 items-center justify-center pointer-events-none">
-            <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>
-              No data to display
-            </Text>
-          </View>
-        )}
-
-        {/* Legend - Show all user tags, even with 0% */}
-        {userTags.length > 0 && (
-          <View className="-mt-5 flex-row flex-wrap justify-center gap-3">
-            {completeLegendData.map((item) => {
-              return (
-                <View key={item.tagId} className="flex-row items-center gap-2">
+                >
                   <View
                     style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 6,
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
                       backgroundColor: item.color,
-                      opacity: item.hasData ? 1 : 0.5,
+                      marginRight: 8,
+                      opacity: item.hasData ? 1 : 0.4,
                     }}
                   />
                   <Text
                     style={[
                       {
+                        width: 50,
                         color: item.hasData ? CoralPalette.dark : CoralPalette.mutedDark,
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: "600",
                       },
                       FONT,
                     ]}
+                    numberOfLines={1}
                   >
-                    {item.tag} ({item.percentage}%)
+                    {item.tag}
+                  </Text>
+                  <Text
+                    style={[
+                      {
+                        color: item.hasData ? item.color : CoralPalette.mutedDark,
+                        fontSize: 12,
+                        fontWeight: "700",
+                      },
+                      FONT,
+                    ]}
+                  >
+                    {item.percentage}%
                   </Text>
                 </View>
-              );
-            })}
-          </View>
-        )}
+              ))}
+            </View>
+          )}
+        </View>
       </View>
 
       {error && (
-        <Text className="text-center text-xs mt-2 text-red-500" style={FONT}>
-          {error}
-        </Text>
+        <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+          <Text style={[{ color: "#ef4444", fontSize: 12, textAlign: "center" }, FONT]}>
+            {error}
+          </Text>
+        </View>
       )}
 
       <FilterModal
@@ -544,132 +607,139 @@ function FilterModal({
   }, [tabLayouts]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 bg-black/40 justify-center items-center">
-        <View className="w-[90%] max-w-md p-7" style={{ borderRadius: 30, backgroundColor: CoralPalette.white }}>
-          {/* Tabs */}
-          <View
-            ref={tabContainerRef}
-            className="flex-row p-1 mb-3 relative"
-            style={{ borderRadius: 5, backgroundColor: CoralPalette.greyVeryLight }}
-            onLayout={(e) => {
-              const containerWidth = e.nativeEvent.layout.width;
-              const padding = 4;
-              const tabWidth = (containerWidth - padding * 2) / 4;
-              setTabLayouts({
-                day: { x: padding, width: tabWidth },
-                month: { x: padding + tabWidth, width: tabWidth },
-                year: { x: padding + tabWidth * 2, width: tabWidth },
-                all: { x: padding + tabWidth * 3, width: tabWidth },
-              });
-            }}
+    <BaseModal
+      visible={visible}
+      onClose={onClose}
+      animationType="fade"
+      contentStyle={{
+        width: '90%',
+        maxWidth: 400,
+        borderRadius: 30,
+        backgroundColor: CoralPalette.white,
+        padding: 28,
+      }}
+    >
+      {/* Tabs */}
+      <View
+        ref={tabContainerRef}
+        className="flex-row p-1 mb-3 relative"
+        style={{ borderRadius: 5, backgroundColor: CoralPalette.greyVeryLight }}
+        onLayout={(e) => {
+          const containerWidth = e.nativeEvent.layout.width;
+          const padding = 4;
+          const tabWidth = (containerWidth - padding * 2) / 4;
+          setTabLayouts({
+            day: { x: padding, width: tabWidth },
+            month: { x: padding + tabWidth, width: tabWidth },
+            year: { x: padding + tabWidth * 2, width: tabWidth },
+            all: { x: padding + tabWidth * 3, width: tabWidth },
+          });
+        }}
+      >
+        {tabLayouts["day"] && (
+          <Animated.View
+            style={[
+              {
+                position: "absolute",
+                left: tabLayouts["day"].x,
+                top: 4,
+                bottom: 4,
+                backgroundColor: CoralPalette.primary,
+                borderRadius: 5,
+              },
+              animatedPillStyle,
+            ]}
+          />
+        )}
+        {(["day", "month", "year", "all"] as const).map((m) => (
+          <TouchableOpacity
+            key={m}
+            className="flex-1 py-2 z-10"
+            onPress={() => setDraft((p) => ({ ...p, mode: m }))}
+            style={{ borderRadius: 5 }}
           >
-            {tabLayouts["day"] && (
-              <Animated.View
-                style={[
-                  {
-                    position: "absolute",
-                    left: tabLayouts["day"].x,
-                    top: 4,
-                    bottom: 4,
-                    backgroundColor: CoralPalette.primary,
-                    borderRadius: 5,
-                  },
-                  animatedPillStyle,
-                ]}
-              />
-            )}
-            {(["day", "month", "year", "all"] as const).map((m) => (
-              <TouchableOpacity
-                key={m}
-                className="flex-1 py-2 z-10"
-                onPress={() => setDraft((p) => ({ ...p, mode: m }))}
-                style={{ borderRadius: 5 }}
-              >
-                <Text
-                  className="text-center text-sm font-semibold"
-                  style={[{ color: draft.mode === m ? "#fff" : CoralPalette.dark }, FONT]}
-                >
-                  {m === "all" ? "All" : m.charAt(0).toUpperCase() + m.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text className="text-center text-xl font-bold py-2" style={[{ color: CoralPalette.dark }, FONT]}>
-            {getLabel(draft)}
-          </Text>
-
-          {/* Pickers - Always render container to prevent height snap */}
-          <View className="rounded-2xl overflow-hidden" style={{ backgroundColor: CoralPalette.white, minHeight: 150 }}>
-            {draft.mode === "day" && (
-              <Picker
-                selectedValue={draft.day}
-                onValueChange={(d) => setDraft((p) => ({ ...p, day: d }))}
-                style={pickerStyle}
-                itemStyle={pickerItemStyle}
-              >
-                {days.map((d) => (
-                  <Picker.Item
-                    key={d}
-                    label={
-                      d === todayDate && draft.month === todayMonth && draft.year === todayYear ? "Today" : `${d}`
-                    }
-                    value={d}
-                    color={CoralPalette.dark}
-                  />
-                ))}
-              </Picker>
-            )}
-            {draft.mode === "month" && (
-              <Picker
-                selectedValue={draft.month}
-                onValueChange={(m) => setDraft((p) => ({ ...p, month: m }))}
-                style={pickerStyle}
-                itemStyle={pickerItemStyle}
-              >
-                {months.map((m) => (
-                  <Picker.Item key={m.value} label={m.label} value={m.value} color={CoralPalette.dark} />
-                ))}
-              </Picker>
-            )}
-            {draft.mode === "year" && (
-              <Picker
-                selectedValue={draft.year}
-                onValueChange={(y) => setDraft((p) => ({ ...p, year: y }))}
-                style={pickerStyle}
-                itemStyle={pickerItemStyle}
-              >
-                {years.map((y) => (
-                  <Picker.Item key={y} label={`${y}`} value={y} color={CoralPalette.dark} />
-                ))}
-              </Picker>
-            )}
-          </View>
-
-          {/* Buttons */}
-          <View className="flex-row gap-3 -mt-6">
-            <TouchableOpacity
-              className="flex-1 rounded-2xl py-3 items-center"
-              style={{ backgroundColor: CoralPalette.greyLighter }}
-              onPress={onClose}
+            <Text
+              className="text-center text-sm font-semibold"
+              style={[{ color: draft.mode === m ? "#fff" : CoralPalette.dark }, FONT]}
             >
-              <Text className="text-base font-semibold text-black" style={FONT}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-1 rounded-2xl py-3 items-center"
-              style={{ backgroundColor: CoralPalette.primary }}
-              onPress={() => onConfirm(draft)}
-            >
-              <Text className="text-base font-bold text-white" style={FONT}>
-                Confirm
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+              {m === "all" ? "All" : m.charAt(0).toUpperCase() + m.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
-    </Modal>
+
+      <Text className="text-center text-xl font-bold py-2" style={[{ color: CoralPalette.dark }, FONT]}>
+        {getLabel(draft)}
+      </Text>
+
+      {/* Pickers - Always render container to prevent height snap */}
+      <View className="rounded-2xl overflow-hidden" style={{ backgroundColor: CoralPalette.white, minHeight: 150 }}>
+        {draft.mode === "day" && (
+          <Picker
+            selectedValue={draft.day}
+            onValueChange={(d) => setDraft((p) => ({ ...p, day: d }))}
+            style={pickerStyle}
+            itemStyle={pickerItemStyle}
+          >
+            {days.map((d) => (
+              <Picker.Item
+                key={d}
+                label={
+                  d === todayDate && draft.month === todayMonth && draft.year === todayYear ? "Today" : `${d}`
+                }
+                value={d}
+                color={CoralPalette.dark}
+              />
+            ))}
+          </Picker>
+        )}
+        {draft.mode === "month" && (
+          <Picker
+            selectedValue={draft.month}
+            onValueChange={(m) => setDraft((p) => ({ ...p, month: m }))}
+            style={pickerStyle}
+            itemStyle={pickerItemStyle}
+          >
+            {months.map((m) => (
+              <Picker.Item key={m.value} label={m.label} value={m.value} color={CoralPalette.dark} />
+            ))}
+          </Picker>
+        )}
+        {draft.mode === "year" && (
+          <Picker
+            selectedValue={draft.year}
+            onValueChange={(y) => setDraft((p) => ({ ...p, year: y }))}
+            style={pickerStyle}
+            itemStyle={pickerItemStyle}
+          >
+            {years.map((y) => (
+              <Picker.Item key={y} label={`${y}`} value={y} color={CoralPalette.dark} />
+            ))}
+          </Picker>
+        )}
+      </View>
+
+      {/* Buttons */}
+      <View className="flex-row gap-3 -mt-6">
+        <TouchableOpacity
+          className="flex-1 rounded-2xl py-3 items-center"
+          style={{ backgroundColor: CoralPalette.greyLighter }}
+          onPress={onClose}
+        >
+          <Text className="text-base font-semibold text-black" style={FONT}>
+            Cancel
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="flex-1 rounded-2xl py-3 items-center"
+          style={{ backgroundColor: CoralPalette.primary }}
+          onPress={() => onConfirm(draft)}
+        >
+          <Text className="text-base font-bold text-white" style={FONT}>
+            Confirm
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </BaseModal>
   );
 }

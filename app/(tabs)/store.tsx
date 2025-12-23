@@ -1,30 +1,27 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Text,
   TouchableOpacity,
   View,
   Image,
-  StatusBar,
   ScrollView,
   RefreshControl,
   useWindowDimensions,
-  StyleSheet,
-  Modal,
+  type DimensionValue,
+  type ImageProps,
 } from "react-native";
+import Animated, { type AnimatedProps } from "react-native-reanimated";
+
+// Typed wrapper for shared element transitions (Reanimated 4.x)
+// sharedTransitionTag must be on Animated.Image directly, not a wrapper View
+const SharedImage = Animated.Image as React.ComponentType<
+  AnimatedProps<ImageProps> & { sharedTransitionTag?: string }
+>;
 import { useFocusEffect } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import Constants from "expo-constants";
 import { SheetManager } from "react-native-actions-sheet";
-import { X, Plus } from "lucide-react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  interpolate,
-  runOnJS,
-  Easing,
-} from "react-native-reanimated";
 
 import { Tile, type StoreCategory, type StoreItem } from "@/components/store/Tiles";
 import Filters, { CategoryValue } from "@/components/store/Filters";
@@ -33,6 +30,7 @@ import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
 import { StoreTileSkeleton, Skeleton } from "@/components/other/Skeleton";
+import StorePill, { type StoreTabValue } from "@/components/store/StorePill";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
@@ -56,13 +54,43 @@ interface FeaturedSet {
   items: StoreItem[];
 }
 
+// Custom image styles per featured set
+// Adjust these values to position/scale each set's artwork
+interface FeaturedImageStyle {
+  widthPercent: DimensionValue; // e.g. "110%"
+  heightMultiplier: number;     // multiplied by imageHeight
+  translateY: number;           // multiplied by imageHeight (negative = move up)
+  translateX?: number;          // optional horizontal offset
+}
+
+const FEATURED_IMAGE_STYLES: Record<string, FeaturedImageStyle> = {
+  chef_set: {
+    widthPercent: "120%",
+    heightMultiplier: 1.18,
+    translateY: -0.1,
+    translateX: -50,
+  },
+  composer_set: {
+    widthPercent: "120%",
+    heightMultiplier: 1.18,
+    translateY: -0.14,
+    translateX: -30,
+  },
+  // Add more sets here as needed
+};
+
+const DEFAULT_IMAGE_STYLE: FeaturedImageStyle = {
+  widthPercent: "110%",
+  heightMultiplier: 1.18,
+  translateY: -0.18,
+};
+
 type FeaturedTileProps = {
   featuredSet?: FeaturedSet;
   onPress: () => void;
-  tileRef: React.RefObject<View | null>;
 };
 
-const FeaturedTile = React.memo(function FeaturedTile({ featuredSet, onPress, tileRef }: FeaturedTileProps) {
+const FeaturedTile = React.memo(function FeaturedTile({ featuredSet, onPress }: FeaturedTileProps) {
   const { width: screenWidth } = useWindowDimensions();
   
   const containerWidth = screenWidth - 24 - 20;
@@ -70,9 +98,9 @@ const FeaturedTile = React.memo(function FeaturedTile({ featuredSet, onPress, ti
   const fixedHeight = imageHeight + 20 + 23 + 8;
 
   const artSource = featuredSet ? images[featuredSet.artKey as keyof typeof images] : null;
+  const imageStyle = featuredSet ? (FEATURED_IMAGE_STYLES[featuredSet.id] ?? DEFAULT_IMAGE_STYLE) : DEFAULT_IMAGE_STYLE;
 
   return (
-    <View ref={tileRef} collapsable={false}>
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onPress}
@@ -94,12 +122,16 @@ const FeaturedTile = React.memo(function FeaturedTile({ featuredSet, onPress, ti
       {featuredSet && artSource ? (
         <>
           <View style={{ borderRadius: 5, overflow: "hidden", height: imageHeight }}>
-            <Image 
-              source={artSource} 
+            <SharedImage 
+              source={artSource}
+              sharedTransitionTag={`featured-image-${featuredSet.id}`}
               style={{ 
-                width: "110%", 
-                height: imageHeight * 1.18,
-                transform: [{ translateY: -(imageHeight * 0.18) }]
+                width: imageStyle.widthPercent, 
+                height: imageHeight * imageStyle.heightMultiplier,
+                transform: [
+                  { translateY: imageHeight * imageStyle.translateY },
+                  ...(imageStyle.translateX ? [{ translateX: imageStyle.translateX }] : []),
+                ],
               }} 
               resizeMode="cover" 
             />
@@ -119,29 +151,16 @@ const FeaturedTile = React.memo(function FeaturedTile({ featuredSet, onPress, ti
         </>
       )}
     </TouchableOpacity>
-    </View>
   );
 });
 
 const Store = () => {
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const { userProfile, updateUserProfile } = useGlobalContext();
+  const [selectedTab, setSelectedTab] = useState<StoreTabValue>("featured");
   const [selectedCategory, setSelectedCategory] = useState<CategoryValue>("all");
   const [featuredSets, setFeaturedSets] = useState<FeaturedSet[]>([]);
-  const [expandedSet, setExpandedSet] = useState<FeaturedSet | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
-  // Refs and animation values
-  const tileRef = useRef<View>(null);
-  const scrollRef = useRef<ScrollView>(null);
-  
-  // Animation shared values
-  const animationProgress = useSharedValue(0);
-  const originX = useSharedValue(0);
-  const originY = useSharedValue(0);
-  const originW = useSharedValue(0);
-  const originH = useSharedValue(0);
 
   // Fetch featured sets
   useEffect(() => {
@@ -196,57 +215,6 @@ const Store = () => {
     if (selectedCategory === "all") return baseFiltered;
     return baseFiltered.filter((item) => item.category === selectedCategory);
   }, [catalog, selectedCategory]);
-
-  // --- Expand/Collapse Animation ---
-  const openFeaturedSet = useCallback((set: FeaturedSet) => {
-    // Reset animation to start position
-    animationProgress.value = 0;
-    
-    if (!tileRef.current) {
-      setExpandedSet(set);
-      animationProgress.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) });
-      return;
-    }
-
-    tileRef.current.measureInWindow((x, y, w, h) => {
-      originX.value = x;
-      originY.value = y;
-      originW.value = w;
-      originH.value = h;
-      setExpandedSet(set);
-      animationProgress.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) });
-    });
-  }, [animationProgress, originH, originW, originX, originY]);
-
-  const closeFeaturedSet = useCallback(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
-    animationProgress.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) }, (finished) => {
-      if (finished) runOnJS(setExpandedSet)(null);
-    });
-  }, [animationProgress]);
-
-  // --- Animated Styles ---
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: animationProgress.value,
-  }));
-
-  const expandedContainerStyle = useAnimatedStyle(() => {
-    const progress = animationProgress.value;
-    return {
-      position: "absolute",
-      left: interpolate(progress, [0, 1], [originX.value, 0]),
-      top: interpolate(progress, [0, 1], [originY.value, 0]),
-      width: interpolate(progress, [0, 1], [originW.value, screenWidth]),
-      height: interpolate(progress, [0, 1], [originH.value, screenHeight]),
-      borderRadius: interpolate(progress, [0, 1], [5, 0]),
-      overflow: "hidden",
-      backgroundColor: CoralPalette.greyLight,
-    };
-  }, [screenWidth, screenHeight]);
-
-  const contentOpacity = useAnimatedStyle(() => ({
-    opacity: interpolate(animationProgress.value, [0.5, 1], [0, 1]),
-  }));
 
   // --- Purchase Handlers ---
   const userId = userProfile?.userId;
@@ -347,43 +315,14 @@ const Store = () => {
     [handlePurchasePress, ownedIdSet]
   );
 
-  const featuredSet = featuredSets[0];
-  
-  const handleFeaturedPress = useCallback(() => {
-    if (featuredSet) openFeaturedSet(featuredSet);
-  }, [featuredSet, openFeaturedSet]);
-
-  const ListHeader = useMemo(
+  const CatalogHeader = useMemo(
     () => (
-      <View style={{ paddingHorizontal: 12 }}>
-        <Text style={{ fontSize: 22, fontWeight: "700", color: CoralPalette.dark, fontFamily: "Nunito", marginBottom: 2, marginTop: 4 }}>
-          Featured
-        </Text>
-        <Text style={[{ color: CoralPalette.mutedDark, fontSize: 14, fontWeight: "400", marginBottom: 8 }, FONT]}>
-          Discover limited-time sets that rotates monthly!
-        </Text>
-
-        <FeaturedTile featuredSet={featuredSet} onPress={handleFeaturedPress} tileRef={tileRef} />
-
-        <Text style={{ fontSize: 22, fontWeight: "700", color: CoralPalette.dark, fontFamily: "Nunito", marginTop: 18, marginBottom: 2 }}>
-          Catalog
-        </Text>
-        <Text style={[{ color: CoralPalette.mutedDark, fontSize: 14, fontWeight: "400", marginBottom: 8 }, FONT]}>
-          Browse our full collection of items
-        </Text>
-
-        <View style={{ marginBottom: 10 }}>
-          <Filters selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
-        </View>
+      <View style={{ marginBottom: 10 }}>
+        <Filters selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
       </View>
     ),
-    [featuredSet, handleFeaturedPress, selectedCategory]
+    [selectedCategory]
   );
-
-  const artSource = useMemo(() => {
-    if (!expandedSet?.artKey) return null;
-    return images[expandedSet.artKey as keyof typeof images] ?? null;
-  }, [expandedSet?.artKey]);
 
   const ListEmptyComponent = useMemo(() => {
     if (loading && catalog.length === 0) {
@@ -411,7 +350,7 @@ const Store = () => {
     ({ item }: { item: StoreItem }) => {
       const isOwned = ownedIdSet.has(item.id);
       return (
-        <View style={{ padding: 19 }}>
+        <View style={{ padding: 10 }}>
           <Tile item={{ ...item, owned: isOwned }} onPress={() => handleTilePress(item)} />
         </View>
       );
@@ -441,117 +380,78 @@ const Store = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: CoralPalette.greyLight }}>
-      <FlatList
-        data={filteredCatalog}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        contentContainerStyle={{ padding: 8, paddingBottom: 24 }}
-        columnWrapperStyle={{ justifyContent: "center" }}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={ListHeader}
-        ListEmptyComponent={ListEmptyComponent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-      />
+      {/* Pill switcher - connects seamlessly with header */}
+      <View style={{ backgroundColor: CoralPalette.primaryMuted, alignItems: "center", paddingBottom: 12 }}>
+        <StorePill selectedTab={selectedTab} onTabChange={setSelectedTab} width={screenWidth - 50} />
+      </View>
 
-      {/* Expanded Featured Set - Fullscreen Modal with Animation */}
-      <Modal
-        visible={expandedSet !== null}
-        transparent
-        statusBarTranslucent
-        animationType="none"
-        onRequestClose={closeFeaturedSet}
-      >
-        <View style={StyleSheet.absoluteFill}>
-          <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-          <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.4)" }, backdropStyle]} />
-          
-          <Animated.View style={expandedContainerStyle}>
-            <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} bounces={false}>
-              {/* Hero Image */}
-              <View style={{ width: screenWidth, height: screenWidth * 0.85 }}>
-                {artSource && (
-                  <Image source={artSource} style={{ width: "110%", height: "80%" }} resizeMode="cover" />
-                )}
-                
-                {/* Overlay controls */}
-                <Animated.View
-                  style={[
-                    contentOpacity,
-                    {
-                      position: "absolute",
-                      top: insets.top + 10,
-                      left: 0,
-                      right: 0,
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      paddingHorizontal: 16,
-                    },
-                  ]}
-                >
-                  <TouchableOpacity
-                    onPress={closeFeaturedSet}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: "rgba(0,0,0,0.4)",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    <X size={24} color={CoralPalette.white} />
-                  </TouchableOpacity>
+      {/* Featured tab - render but hide when not active */}
+      <View style={{ flex: 1, display: selectedTab === "featured" ? "flex" : "none" }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: 12, paddingBottom: 24 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        >
+          <Text style={[{ color: CoralPalette.mutedDark, fontSize: 12, fontWeight: "400", marginBottom: 10, marginLeft: 10 }, FONT]}>
+            Discover themed featured sets that contain special items!
+          </Text>
 
+          {featuredSets.length === 0 ? (
+            <View>
+              {[0, 1].map((index) => {
+                const skeletonContainerWidth = screenWidth - 24 - 20;
+                const skeletonImageHeight = skeletonContainerWidth * 0.53;
+                return (
                   <View
+                    key={index}
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      backgroundColor: "rgba(0,0,0,0.4)",
-                      borderRadius: 20,
-                      paddingHorizontal: 8,
-                      paddingVertical: 6,
+                      backgroundColor: CoralPalette.white,
+                      borderRadius: 5,
+                      borderColor: CoralPalette.lightGrey,
+                      borderWidth: 1,
+                      padding: 10,
+                      marginBottom: index === 0 ? 16 : 0,
                     }}
                   >
-                    <Image source={images.token} style={{ width: 20, height: 20 }} resizeMode="contain" />
-                    <Text style={[{ color: CoralPalette.white, fontSize: 16, fontWeight: "700", marginLeft: 6 }, FONT]}>
-                      {userProfile?.coins?.toLocaleString() ?? 0}
-                    </Text>
-                    <View style={{ marginLeft: 2 }}>
-                      <Plus size={18} color={CoralPalette.white} />
-                    </View>
+                    <Skeleton width="100%" height={skeletonImageHeight} radius={5} />
+                    <Skeleton width="60%" height={15} radius={4} style={{ marginTop: 8 }} />
                   </View>
-                </Animated.View>
+                );
+              })}
+            </View>
+          ) : (
+            featuredSets.map((set, index) => (
+              <View key={set.id} style={{ marginBottom: index < featuredSets.length - 1 ? 16 : 0 }}>
+                <FeaturedTile
+                  featuredSet={set}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/store/featured/[id]",
+                      params: { id: set.id, artKey: set.artKey },
+                    })
+                  }
+                />
               </View>
+            ))
+          )}
+        </ScrollView>
+      </View>
 
-              {/* Content */}
-              <Animated.View style={[contentOpacity, { paddingHorizontal: 20, paddingBottom: 100, marginTop: -55 }]}>
-                <Text style={[{ fontSize: 22, fontWeight: "600", color: CoralPalette.dark, marginBottom: 10 }, FONT]}>
-                  {expandedSet?.title}
-                </Text>
-
-                <Text style={[{ fontSize: 14, color: CoralPalette.mutedDark, lineHeight: 22, marginBottom: 24 }, FONT]}>
-                  {expandedSet?.description}
-                </Text>
-
-                <View style={{ alignItems: "center" }}>
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "flex-start", gap: 16, maxWidth: 346 }}>
-                    {expandedSet?.items.map((item) => {
-                      const isOwned = ownedIdSet.has(item.id);
-                      return (
-                        <View key={item.id}>
-                          <Tile item={{ ...item, owned: isOwned }} onPress={() => handleTilePress(item)} />
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              </Animated.View>
-            </ScrollView>
-          </Animated.View>
-        </View>
-      </Modal>
+      {/* Catalog tab - render but hide when not active */}
+      <View style={{ flex: 1, display: selectedTab === "catalog" ? "flex" : "none" }}>
+        <FlatList
+          data={filteredCatalog}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={{ padding: 8, paddingBottom: 24 }}
+          columnWrapperStyle={{ justifyContent: "center" }}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={CatalogHeader}
+          ListEmptyComponent={ListEmptyComponent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        />
+      </View>
     </View>
   );
 };

@@ -1,12 +1,13 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, Modal, Platform } from "react-native";
+import { View, Text, TouchableOpacity, Platform } from "react-native";
 import { VictoryAxis, VictoryBar, VictoryChart, VictoryLabel } from "victory-native";
 import { useGlobalContext } from "@/lib/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import { Picker } from "@react-native-picker/picker";
-import { useFocusEffect } from "expo-router";
 import { getApiBaseUrl } from "@/utils/api";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
+import { BarChart3, ChevronDown, Clock } from "lucide-react-native";
+import BaseModal from "@/components/common/BaseModal";
 
 // --- Types ---
 export type ChartDatum = { key: string; label: string; totalMinutes: number; totalSeconds?: number };
@@ -17,11 +18,11 @@ type FocusChartProps = { title?: string };
 const FONT = { fontFamily: "Nunito" };
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const CARD_SHADOW = {
-  shadowColor: "#191d31",
-  shadowOpacity: 0.25,
-  shadowOffset: { width: 3, height: 5},
-  shadowRadius: 2,
-  elevation: 10,
+  shadowColor: CoralPalette.primary,
+  shadowOpacity: 0.15,
+  shadowOffset: { width: 0, height: 4 },
+  shadowRadius: 12,
+  elevation: 8,
 };
 
 // Tick format lookup sets for O(1) performance
@@ -36,7 +37,7 @@ const getLabel = (v: ViewState) => {
 };
 
 // --- Main Component ---
-export default function FocusChart({ title = "Focused Time Distribution" }: FocusChartProps) {
+export default function FocusChart({ title = "Time Distribution" }: FocusChartProps) {
   const { appSettings, userProfile } = useGlobalContext();
   const userId = userProfile?.userId;
   const showHours = appSettings.displayFocusInHours;
@@ -132,13 +133,6 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Bump animation key when screen gains focus
-  useFocusEffect(
-    useCallback(() => {
-      setChartAnimKey((k) => k + 1);
-    }, [])
-  );
-
   // Chart Data Prep
   const victoryData = useMemo(
     () =>
@@ -225,7 +219,7 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
   const barStyleFunction = useCallback(({ datum }: any) => {
     return datum.rawSeconds > 0 
       ? (selectedBar?.x === datum.x ? CoralPalette.primaryMuted : CoralPalette.primary)
-      : CoralPalette.border;
+      : CoralPalette.greyLight;
   }, [selectedBar?.x]);
 
   // Memoize bar labels function
@@ -237,42 +231,115 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
 
   return (
     <View
-      className="relative my-4 p-5"
       style={[
-        { borderRadius: 5, backgroundColor: CoralPalette.white, borderColor: CoralPalette.lightGrey, borderWidth: 1 },
+        {
+          borderRadius: 20,
+          backgroundColor: CoralPalette.white,
+          borderColor: `${CoralPalette.primary}20`,
+          borderWidth: 1,
+          overflow: "hidden",
+        },
         CARD_SHADOW,
       ]}
     >
       {/* Header */}
-      <View className="mb-4 flex-row justify-between items-center">
-        <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}>{title}</Text>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: 18,
+          paddingBottom: 14,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: `${CoralPalette.primary}15`,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 12,
+            }}
+          >
+            <BarChart3 size={20} color={CoralPalette.primary} strokeWidth={2.5} />
+          </View>
+          <View>
+            <Text style={[{ color: CoralPalette.dark, fontSize: 16, fontWeight: "700" }, FONT]}>{title}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+              <Clock size={12} color={CoralPalette.mutedDark} strokeWidth={2} />
+              <Text style={[{ color: CoralPalette.mutedDark, fontSize: 12, fontWeight: "600", marginLeft: 4 }, FONT]}>
+                {formattedTime}
+              </Text>
+            </View>
+          </View>
+        </View>
         <TouchableOpacity
-          className="rounded-lg px-3 py-1"
-          style={{ backgroundColor: `${CoralPalette.primaryLight}55` }}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: `${CoralPalette.primary}12`,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: `${CoralPalette.primary}25`,
+          }}
           onPress={() => setModalVisible(true)}
         >
-          <Text className="text-sm font-medium" style={[{ color: CoralPalette.primary }, FONT]}>{getLabel(view)}</Text>
+          <Text style={[{ color: CoralPalette.primary, fontSize: 13, fontWeight: "700" }, FONT]}>{getLabel(view)}</Text>
+          <ChevronDown size={16} color={CoralPalette.primary} strokeWidth={2.5} style={{ marginLeft: 4 }} />
         </TouchableOpacity>
-      </View>
-      
-      <View className="-mt-3">
-        <Text style={[{ color: CoralPalette.mutedDark, fontSize: 12, fontWeight: "600" }, FONT]}>
-          Total Focused Time: {formattedTime}
-        </Text>
       </View>
 
       {/* Chart Area */}
-      <View className="relative" style={{ minHeight: 250 }} onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}>
-        {loading && chartPoints.length === 0 && (
-          <View className="absolute inset-0 z-20 items-center justify-center" style={{ backgroundColor: `${CoralPalette.white}80` }}>
-            <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>Loading...</Text>
-          </View>
-        )}
-        {!loading && !hasData && chartPoints.length === 0 && (
-          <View className="absolute inset-0 z-10 items-center justify-center">
-            <Text className="text-sm font-semibold" style={[{ color: CoralPalette.mutedDark }, FONT]}>No data to display</Text>
-          </View>
-        )}
+      <View style={{ padding: 16, paddingTop: 8 }}>
+        <View style={{ minHeight: 250, position: "relative" }} onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}>
+          {loading && chartPoints.length === 0 && (
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 20,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: `${CoralPalette.white}E6`,
+                borderRadius: 12,
+              }}
+            >
+              <Text style={[{ color: CoralPalette.mutedDark, fontSize: 14, fontWeight: "600" }, FONT]}>Loading...</Text>
+            </View>
+          )}
+          {!loading && !hasData && chartPoints.length === 0 && (
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 10,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: CoralPalette.greyLight,
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                }}
+              >
+                <Text style={[{ color: CoralPalette.mutedDark, fontSize: 14, fontWeight: "600" }, FONT]}>No data to display</Text>
+              </View>
+            </View>
+          )}
         
         {chartWidth > 0 && (
           <VictoryChart
@@ -333,9 +400,14 @@ export default function FocusChart({ title = "Focused Time Distribution" }: Focu
             />
           </VictoryChart>
         )}
+        </View>
       </View>
       
-      {error && <Text className="text-center text-xs mt-2 text-red-500" style={FONT}>{error}</Text>}
+      {error && (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+          <Text style={[{ color: "#ef4444", fontSize: 12, textAlign: "center" }, FONT]}>{error}</Text>
+        </View>
+      )}
 
       <FilterModal
         visible={modalVisible}
@@ -439,92 +511,99 @@ function FilterModal({ visible, initialView, onClose, onConfirm }: { visible: bo
   }, [tabLayouts]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 bg-black/40 justify-center items-center">
-        <View className="w-[90%] max-w-md p-7" style={{ borderRadius: 30, backgroundColor: CoralPalette.white }}>
-          {/* Tabs */}
-          <View 
-            ref={tabContainerRef}
-            className="flex-row p-1 mb-4 relative"
-            style={{ borderRadius: 5, backgroundColor: CoralPalette.greyVeryLight}}
-            onLayout={(e) => {
-              // Measure container and calculate tab width
-              const containerWidth = e.nativeEvent.layout.width;
-              const padding = 4; // p-1 = 4px
-              const tabWidth = (containerWidth - padding * 2) / 3;
-              setTabLayouts({
-                day: { x: padding, width: tabWidth },
-                month: { x: padding + tabWidth, width: tabWidth },
-                year: { x: padding + tabWidth * 2, width: tabWidth },
-              });
-            }}
+    <BaseModal
+      visible={visible}
+      onClose={onClose}
+      animationType="fade"
+      contentStyle={{
+        width: '90%',
+        maxWidth: 400,
+        borderRadius: 30,
+        backgroundColor: CoralPalette.white,
+        padding: 28,
+      }}
+    >
+      {/* Tabs */}
+      <View 
+        ref={tabContainerRef}
+        className="flex-row p-1 mb-4 relative"
+        style={{ borderRadius: 5, backgroundColor: CoralPalette.greyVeryLight}}
+        onLayout={(e) => {
+          // Measure container and calculate tab width
+          const containerWidth = e.nativeEvent.layout.width;
+          const padding = 4; // p-1 = 4px
+          const tabWidth = (containerWidth - padding * 2) / 3;
+          setTabLayouts({
+            day: { x: padding, width: tabWidth },
+            month: { x: padding + tabWidth, width: tabWidth },
+            year: { x: padding + tabWidth * 2, width: tabWidth },
+          });
+        }}
+      >
+        {/* Animated pill background */}
+        {tabLayouts['day'] && (
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                left: tabLayouts['day'].x,
+                top: 4,
+                bottom: 4,
+                backgroundColor: CoralPalette.primary,
+                borderRadius: 5,
+              },
+              animatedPillStyle,
+            ]}
+          
+        />
+        )}
+        
+        {(["day", "month", "year"] as const).map((m) => (
+          <TouchableOpacity
+            key={m}
+            className="flex-1 py-2 z-10"
+            onPress={() => setDraft(p => ({ ...p, mode: m }))}
+            style={{ borderRadius: 5 }}
           >
-            {/* Animated pill background */}
-            {tabLayouts['day'] && (
-              <Animated.View
-                style={[
-                  {
-                    position: 'absolute',
-                    left: tabLayouts['day'].x,
-                    top: 4,
-                    bottom: 4,
-                    backgroundColor: CoralPalette.primary,
-                    borderRadius: 5,
-                  },
-                  animatedPillStyle,
-                ]}
-              
-            />
-            )}
-            
-            {(["day", "month", "year"] as const).map((m) => (
-              <TouchableOpacity
-                key={m}
-                className="flex-1 py-2 z-10"
-                onPress={() => setDraft(p => ({ ...p, mode: m }))}
-                style={{ borderRadius: 5 }}
-              >
-                <Text className="text-center text-sm font-semibold" style={[{ color: draft.mode === m ? "#fff" : CoralPalette.dark }, FONT]}>
-                  {m.charAt(0).toUpperCase() + m.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text className="text-center text-xl font-bold py-2" style={[{ color: CoralPalette.dark }, FONT]}>
-            {getLabel(draft)}
-          </Text>
-
-          {/* Pickers */}
-          <View className="rounded-2xl overflow-hidden" style={{  backgroundColor: CoralPalette.white }}>
-            {draft.mode === "day" && (
-               <Picker selectedValue={draft.day} onValueChange={d => setDraft(p => ({...p, day: d}))} style={pickerStyle} itemStyle={pickerItemStyle}>
-                 {days.map(d => <Picker.Item key={d} label={d === todayDate && draft.month === todayMonth && draft.year === todayYear ? "Today" : `${d}`} value={d} color={CoralPalette.dark} />)}
-               </Picker>
-            )}
-            {draft.mode === "month" && (
-               <Picker selectedValue={draft.month} onValueChange={m => setDraft(p => ({...p, month: m}))} style={pickerStyle} itemStyle={pickerItemStyle}>
-                 {months.map(m => <Picker.Item key={m.value} label={m.label} value={m.value} color={CoralPalette.dark} />)}
-               </Picker>
-            )}
-            {draft.mode === "year" && (
-               <Picker selectedValue={draft.year} onValueChange={y => setDraft(p => ({...p, year: y}))} style={pickerStyle} itemStyle={pickerItemStyle}>
-                 {years.map(y => <Picker.Item key={y} label={`${y}`} value={y} color={CoralPalette.dark} />)}
-               </Picker>
-            )}
-          </View>
-
-          {/* Buttons */}
-          <View className="flex-row gap-3">
-            <TouchableOpacity className="flex-1 rounded-2xl py-3 items-center" style={{ backgroundColor: CoralPalette.greyLighter }} onPress={onClose}>
-              <Text className="text-base font-semibold text-black" style={FONT}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="flex-1 rounded-2xl py-3 items-center" style={{ backgroundColor: CoralPalette.primary }} onPress={() => onConfirm(draft)}>
-              <Text className="text-base font-bold text-white" style={FONT}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+            <Text className="text-center text-sm font-semibold" style={[{ color: draft.mode === m ? "#fff" : CoralPalette.dark }, FONT]}>
+              {m.charAt(0).toUpperCase() + m.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
-    </Modal>
+
+      <Text className="text-center text-xl font-bold py-2" style={[{ color: CoralPalette.dark }, FONT]}>
+        {getLabel(draft)}
+      </Text>
+
+      {/* Pickers */}
+      <View className="rounded-2xl overflow-hidden" style={{  backgroundColor: CoralPalette.white }}>
+        {draft.mode === "day" && (
+           <Picker selectedValue={draft.day} onValueChange={d => setDraft(p => ({...p, day: d}))} style={pickerStyle} itemStyle={pickerItemStyle}>
+             {days.map(d => <Picker.Item key={d} label={d === todayDate && draft.month === todayMonth && draft.year === todayYear ? "Today" : `${d}`} value={d} color={CoralPalette.dark} />)}
+           </Picker>
+        )}
+        {draft.mode === "month" && (
+           <Picker selectedValue={draft.month} onValueChange={m => setDraft(p => ({...p, month: m}))} style={pickerStyle} itemStyle={pickerItemStyle}>
+             {months.map(m => <Picker.Item key={m.value} label={m.label} value={m.value} color={CoralPalette.dark} />)}
+           </Picker>
+        )}
+        {draft.mode === "year" && (
+           <Picker selectedValue={draft.year} onValueChange={y => setDraft(p => ({...p, year: y}))} style={pickerStyle} itemStyle={pickerItemStyle}>
+             {years.map(y => <Picker.Item key={y} label={`${y}`} value={y} color={CoralPalette.dark} />)}
+           </Picker>
+        )}
+      </View>
+
+      {/* Buttons */}
+      <View className="flex-row gap-3">
+        <TouchableOpacity className="flex-1 rounded-2xl py-3 items-center" style={{ backgroundColor: CoralPalette.greyLighter }} onPress={onClose}>
+          <Text className="text-base font-semibold text-black" style={FONT}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity className="flex-1 rounded-2xl py-3 items-center" style={{ backgroundColor: CoralPalette.primary }} onPress={() => onConfirm(draft)}>
+          <Text className="text-base font-bold text-white" style={FONT}>Confirm</Text>
+        </TouchableOpacity>
+      </View>
+    </BaseModal>
   );
 }
