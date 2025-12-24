@@ -12,7 +12,7 @@ import ActionSheet, {
   SheetDefinition,
 } from "react-native-actions-sheet";
 import { CoralPalette } from "@/constants/colors";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { useStoreCatalog } from "@/hooks/useStore";
 import images from "@/constants/images";
 import CreateTagModal from "./CreateTagModal";

@@ -3,10 +3,10 @@ import { useNavigation, useSegments } from 'expo-router';
 import React, { useMemo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { Menu } from 'lucide-react-native';
-import { useNotifications } from '@/utils/useNotifications';
+import { useNotifications } from '@/hooks/useNotifications';
 import { CoralPalette } from '@/constants/colors';
 import * as Haptics from 'expo-haptics';
-import { useGlobalContext } from '@/lib/GlobalProvider';
+import { useGlobalContext } from '@/providers/GlobalProvider';
 
 export const MenuButton = () => {
   const navigation = useNavigation();

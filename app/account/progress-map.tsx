@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { ChevronLeft, Check } from "lucide-react-native";
 import { router } from "expo-router";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
 import { PET_UNLOCK_LEVELS } from "@/utils/petUnlocks";

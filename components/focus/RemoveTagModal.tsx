@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { View, Text, TouchableOpacity, Animated } from "react-native";
 import { CoralPalette } from "@/constants/colors";
 import * as Haptics from 'expo-haptics';
-import { useGlobalContext } from '@/lib/GlobalProvider';
+import { useGlobalContext } from '@/providers/GlobalProvider';
 import BaseModal from "@/components/common/BaseModal";
 
 type Props = {

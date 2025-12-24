@@ -6,7 +6,7 @@ import { SessionActivity } from "@/hooks/useFocus";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
 import * as Haptics from 'expo-haptics';
-import { useGlobalContext } from '@/lib/GlobalProvider';
+import { useGlobalContext } from '@/providers/GlobalProvider';
 import BaseModal from "@/components/common/BaseModal";
 
 type Props = {

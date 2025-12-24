@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
-import { getApiBaseUrl } from "@/utils/api";
+import { getApiBaseUrl } from "@/lib/api";
 
 type StreakResponse = {
   success: boolean;

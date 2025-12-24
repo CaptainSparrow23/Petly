@@ -1,7 +1,7 @@
 // hooks/useSessionUploader.ts
 // Responsible solely for POSTing finished sessions to the backend and guarding against duplicate uploads.
 import { useCallback, useRef, useState } from "react";
-import { getApiBaseUrl } from "@/utils/api";
+import { getApiBaseUrl } from "@/lib/api";
 
 export type SessionActivity = string; // Can be any tag label like "Focus", "Work", "Study", "Rest", etc.
 

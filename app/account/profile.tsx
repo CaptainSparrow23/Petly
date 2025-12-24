@@ -17,7 +17,7 @@ import {
   Clock
 } from "lucide-react-native";
 import { router } from "expo-router";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { ProfilePicture } from "@/components/other/ProfilePicture";
 import { CoralPalette } from "@/constants/colors";
 import { usePets } from "@/hooks/usePets";

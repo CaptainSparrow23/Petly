@@ -1,4 +1,4 @@
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { useInsights } from "@/hooks/useInsights";
 
 const getTodayString = (): string => new Date().toISOString().split('T')[0];

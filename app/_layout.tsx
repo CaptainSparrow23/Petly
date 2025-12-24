@@ -1,4 +1,6 @@
-import GlobalProvider from "@/lib/GlobalProvider";
+import GlobalProvider from "@/providers/GlobalProvider";
+import { AuthProvider } from "@/providers/AuthProvider";
+import { SubscriptionProvider } from "@/providers/SubscriptionProvider";
 import { Stack } from "expo-router";
 import 'react-native-gesture-handler';
 import "./global.css";
@@ -47,69 +49,73 @@ export default function RootLayout() {
   }
 
   return (
-    <GlobalProvider>
-      <SheetProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            presentation: "card",
-            gestureEnabled: false,
-          }}
-        >
-          <Stack.Screen
-            name="(tabs)"
-            options={{
-              animation: "none",
-              gestureEnabled: false,
-              headerShown: false,
-              title: "",
-            }}
-          />
-          <Stack.Screen
-            name="(auth)"
-            options={{
-              animation: "none",
-              gestureEnabled: false,
-            }}
-          />
-          <Stack.Screen
-            name="settings"
-            options={{
-              animation: "slide_from_right",
-              gestureEnabled: true,
-              gestureDirection: "horizontal",
-              fullScreenGestureEnabled: true,
-            }}
-          />
-          <Stack.Screen
-            name="account"
-            options={{
-              animation: "slide_from_right",
-              gestureEnabled: false,
-              gestureDirection: "horizontal",
-              fullScreenGestureEnabled: false,
-            }}
-          />
-          <Stack.Screen
-            name="friends"
-            options={{
-              animation: "slide_from_right",
-              gestureEnabled: true,
-              gestureDirection: "horizontal",
-              fullScreenGestureEnabled: true,
-            }}
-          />
-          <Stack.Screen
-            name="store"
-            options={{
-              animation: "slide_from_right",
-              gestureEnabled: true,
-              gestureDirection: "horizontal",
-              fullScreenGestureEnabled: true,
-            }}
-          />
-        </Stack>
-      </SheetProvider>
-    </GlobalProvider>
+    <AuthProvider>
+      <SubscriptionProvider>
+        <GlobalProvider>
+          <SheetProvider>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                presentation: "card",
+                gestureEnabled: false,
+              }}
+            >
+              <Stack.Screen
+                name="(tabs)"
+                options={{
+                  animation: "none",
+                  gestureEnabled: false,
+                  headerShown: false,
+                  title: "",
+                }}
+              />
+              <Stack.Screen
+                name="(auth)"
+                options={{
+                  animation: "none",
+                  gestureEnabled: false,
+                }}
+              />
+              <Stack.Screen
+                name="settings"
+                options={{
+                  animation: "slide_from_right",
+                  gestureEnabled: true,
+                  gestureDirection: "horizontal",
+                  fullScreenGestureEnabled: true,
+                }}
+              />
+              <Stack.Screen
+                name="account"
+                options={{
+                  animation: "slide_from_right",
+                  gestureEnabled: false,
+                  gestureDirection: "horizontal",
+                  fullScreenGestureEnabled: false,
+                }}
+              />
+              <Stack.Screen
+                name="friends"
+                options={{
+                  animation: "slide_from_right",
+                  gestureEnabled: true,
+                  gestureDirection: "horizontal",
+                  fullScreenGestureEnabled: true,
+                }}
+              />
+              <Stack.Screen
+                name="store"
+                options={{
+                  animation: "slide_from_right",
+                  gestureEnabled: true,
+                  gestureDirection: "horizontal",
+                  fullScreenGestureEnabled: true,
+                }}
+              />
+            </Stack>
+          </SheetProvider>
+        </GlobalProvider>
+      </SubscriptionProvider>
+    </AuthProvider>
   );
 }

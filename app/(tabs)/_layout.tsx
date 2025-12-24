@@ -1,6 +1,6 @@
-import { useGlobalContext } from '@/lib/GlobalProvider';
+import { useGlobalContext } from '@/providers/GlobalProvider';
 import { ProfilePicture } from '@/components/other/ProfilePicture';
-import { DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
+import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import { Cat, Home, Settings, Store, UsersRound, BarChart3, LogOut } from 'lucide-react-native';
@@ -163,7 +163,7 @@ const CustomDrawerContent = (props: any) => {
             if (appSettings.vibrations) {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
             }
-            router.push('/account/profile');
+            router.push('/paywall');
           }}
           activeOpacity={0.7}
         >

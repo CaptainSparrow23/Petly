@@ -13,8 +13,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useGlobalContext } from "@/lib/GlobalProvider";
-import { auth } from "@/utils/firebase";
+import { useGlobalContext } from "@/providers/GlobalProvider";
+import { auth } from "@/lib/firebase";
 import Constants from "expo-constants";
 import { Check } from "lucide-react-native";
 import images from "@/constants/images";

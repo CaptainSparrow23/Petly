@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { View, Text, TouchableOpacity, Platform } from "react-native";
 import { VictoryAxis, VictoryBar, VictoryChart, VictoryLabel } from "victory-native";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import { Picker } from "@react-native-picker/picker";
-import { getApiBaseUrl } from "@/utils/api";
+import { getApiBaseUrl } from "@/lib/api";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from "react-native-reanimated";
 import { BarChart3, ChevronDown, Clock } from "lucide-react-native";
 import BaseModal from "@/components/common/BaseModal";

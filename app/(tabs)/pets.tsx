@@ -17,7 +17,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import images from "@/constants/images";
 import { ImageSourcePropType, ImageStyle, ViewStyle } from "react-native";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { Check, X, HeartHandshake, Shirt, Image as ImageIcon} from "lucide-react-native";
 import { usePets } from "@/hooks/usePets";
 import PetAnimation from "@/components/focus/PetAnimation";
@@ -48,8 +48,8 @@ const BACKGROUND_CONFIGS: Record<string, BackgroundConfig> = {
   background_room: {
     source: images.background_room,
     containerStyle: { flex: 1, height: '125%' },
-    imageStyle: { transform: [{ translateY: -110 }] },
-    thumbnailStyle: { transform: [{ translateY: 0 }] },
+    imageStyle: { transform: [{ translateY: -115 }] },
+    thumbnailStyle: { transform: [{ translateY: 20 }] },
     label: 'Room',
   },
   background_beach: {
@@ -63,21 +63,21 @@ const BACKGROUND_CONFIGS: Record<string, BackgroundConfig> = {
     source: images.background_park,
     containerStyle: { flex: 1, height: '100%' },
     imageStyle: { transform: [{ translateY: -140 }] },
-    thumbnailStyle: { transform: [{ translateY: -30 }] },
+    thumbnailStyle: { height: "10%", transform: [{ translateY: 0 }] },
     label: 'Park',
   },
   background_winter: {
     source: images.background_winter,
-    containerStyle: { flex: 1, height: '125%' },
-    imageStyle: { transform: [{ translateY: -130 }] },
-    thumbnailStyle: { transform: [{ translateY: 0 }] },
+    containerStyle: { flex: 1, height: '90%' },
+    imageStyle: { transform: [{ translateY: 0 }] },
+    thumbnailStyle: { transform: [{ translateY: 20 }] },
     label: 'Winter',
   },
   background_kitchen: {
     source: images.background_kitchen,
     containerStyle: { flex: 1, height: '100%' },
     imageStyle: { transform: [{ translateY: -200 }] },
-    thumbnailStyle: { transform: [{ translateY: -40 }] },
+    thumbnailStyle: { transform: [{ translateY: 0 }] },
     label: 'Kitchen',
   },
 };
@@ -608,7 +608,7 @@ const Profile = () => {
                         height: 120,
                         borderRadius: 60,
                         backgroundColor: 'rgba(0,0,0,0.35)',
-                        transform: [{ scaleX: 0.9 }, { scaleY: 0.22 }],
+                        transform: [{ scaleX: 0.9 }, { scaleY: 0.20 }],
                         zIndex: 1,
                       }}
                     />
@@ -635,7 +635,7 @@ const Profile = () => {
         <Animated.View
           style={{
             position: "absolute",
-            top: '56%',
+            top: '52%',
             left: 0,
             right: 0,
             bottom: 0,
@@ -668,7 +668,7 @@ const Profile = () => {
             className="rounded-t-3xl shadow-lg pt-4"
             style={{
               position: "absolute",
-              top: "56%",
+              top: "52%",
               left: 0,
               right: 0,
               bottom: -100,
@@ -750,7 +750,10 @@ const Profile = () => {
                 >
                   <Image
                     source={config.source}
-                    style={{ width: '100%', height: '100%' }}
+                    style={[
+                      { width: '100%', height: '100%' },
+                      config.thumbnailStyle,
+                    ]}
                     resizeMode="cover"
                   />
                   {/* Selected checkmark */}

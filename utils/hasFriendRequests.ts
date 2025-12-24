@@ -1,5 +1,5 @@
-import { useGlobalContext } from "@/lib/GlobalProvider";
-import { useFriendRequestsListener } from "@/utils/useFriendRequestsListener";
+import { useGlobalContext } from "@/providers/GlobalProvider";
+import { useFriendRequestsListener } from "@/hooks/useFriendRequestsListener";
 
 /**
  * Hook to check if user has any pending friend requests

@@ -55,7 +55,9 @@
       "backendUrl": "https://petly-gsxb.onrender.com",
       "googleWebClientId": "992118540403-l5kre9ulblv1i7uu5kmkhrbgvp470esv.apps.googleusercontent.com",
       "googleIosClientId": "992118540403-mle506j12qb2feirctju62q5ra74qa8n.apps.googleusercontent.com",
-      "googleAndroidClientId": ""
+      "googleAndroidClientId": "",
+      "revenuecatIosApiKey": "test_KuPOveTeRTrnrbzwHvToUeBLKQh",
+      "revenuecatAndroidApiKey": "test_KuPOveTeRTrnrbzwHvToUeBLKQh"
     }
   }
 }
