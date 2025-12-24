@@ -44,13 +44,8 @@ export async function signInWithGoogle(): Promise<UserCredential> {
   }
 
   const userInfo = await GoogleSignin.signIn();
-  const { idToken: signInIdToken, accessToken: signInAccessToken } =
-    "idToken" in userInfo
-      ? (userInfo as { idToken?: string | null; accessToken?: string | null })
-      : {};
 
-  let idToken = signInIdToken ?? undefined;
-  let accessToken = signInAccessToken ?? undefined;
+  let { idToken, accessToken } = userInfo;
 
   if (!idToken) {
     try {
