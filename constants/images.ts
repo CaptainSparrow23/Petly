@@ -89,6 +89,9 @@ import map_background from "@/assets/images/map_background.png";
 import store_background from "@/assets/images/store_background.png";
 import friends from "@/assets/images/friends.png";
 import tick from "@/assets/images/tick.png";
+import nothing from "@/assets/images/nothing.png";
+import male from "@/assets/images/male.png";
+import female from "@/assets/images/female.png";
 
 export default { 
   catFamily, 
@@ -166,4 +169,7 @@ export default {
   store_background,
   friends,
   tick,
+  nothing,
+  male,
+  female,
 };

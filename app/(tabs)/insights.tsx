@@ -20,7 +20,7 @@ import {
 } from "@/components/insights/InsightSharedComponents";
 
 // Hooks and utilities
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { useInsights } from "@/hooks/useInsights";
 import { usePets } from "@/hooks/usePets";
 import { CoralPalette } from "@/constants/colors";

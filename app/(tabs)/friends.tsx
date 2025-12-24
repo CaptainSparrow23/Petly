@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Check, Mail, Plus, UsersRound, X } from "lucide-react-native";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Constants from "expo-constants";
 import Svg, { Path } from "react-native-svg";

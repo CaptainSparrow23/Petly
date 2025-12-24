@@ -26,7 +26,7 @@ import { SheetManager } from "react-native-actions-sheet";
 import { Tile, type StoreCategory, type StoreItem } from "@/components/store/Tiles";
 import Filters, { CategoryValue } from "@/components/store/Filters";
 import { useStoreCatalog } from "@/hooks/useStore";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
 import { StoreTileSkeleton, Skeleton } from "@/components/other/Skeleton";

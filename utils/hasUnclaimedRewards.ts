@@ -1,4 +1,4 @@
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 
 /**
  * Hook to check if user has any unclaimed level rewards

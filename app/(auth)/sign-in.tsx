@@ -1,5 +1,5 @@
 import images from "@/constants/images";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {

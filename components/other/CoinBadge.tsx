@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
 import { router } from "expo-router";
@@ -8,14 +8,22 @@ import { Plus } from "lucide-react-native";
 
 const FONT = { fontFamily: "Nunito" };
 
-export default function CoinBadge() {
+type CoinBadgeProps = {
+  variant?: "floating" | "inline";
+};
+
+export default function CoinBadge({ variant = "floating" }: CoinBadgeProps) {
   const { userProfile } = useGlobalContext();
+  const containerClassName =
+    variant === "floating"
+      ? "absolute top-3 right-0 z-20 mr-2 flex-row items-center rounded-full"
+      : "flex-row items-center rounded-full";
 
   return (
     <TouchableOpacity
       onPress={() => router.push("/store/buy-coins" as any)}
       activeOpacity={0.7}
-      className="absolute top-3 right-0 z-20 mr-2 flex-row items-center rounded-full"
+      className={containerClassName}
       style={{
         backgroundColor: CoralPalette.greyVeryLight,
         borderColor: CoralPalette.border,

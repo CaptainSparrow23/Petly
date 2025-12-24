@@ -7,7 +7,7 @@ import {
   signOut,
   UserCredential,
 } from "firebase/auth";
-import { auth } from "@/utils/firebase";
+import { auth } from "@/lib/firebase";
 
 const webClientId = Constants.expoConfig?.extra?.googleWebClientId;
 const iosClientId = Constants.expoConfig?.extra?.googleIosClientId;

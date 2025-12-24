@@ -10,7 +10,7 @@ import {
   FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { useFocusEffect } from "@react-navigation/native";
 import { ChevronLeft, Edit2, User, Award } from "lucide-react-native";
 import { router } from "expo-router";

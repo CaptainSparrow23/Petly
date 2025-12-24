@@ -13,7 +13,7 @@ import {
   PurchaseSuccessCard,
 } from "./Sheets";
 import type { StoreItem } from "./Tiles";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 
 type PreviewPayload = {
   pet: StoreItem | null;

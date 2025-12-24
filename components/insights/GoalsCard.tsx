@@ -9,7 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
 import { Check, Gift } from 'lucide-react-native';
-import { useGlobalContext } from '@/lib/GlobalProvider';
+import { useGlobalContext } from '@/providers/GlobalProvider';
 import { CoralPalette } from '@/constants/colors';
 import Constants from 'expo-constants';
 

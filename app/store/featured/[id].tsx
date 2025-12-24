@@ -24,7 +24,7 @@ import { Plus, ChevronLeft } from "lucide-react-native";
 import Constants from "expo-constants";
 
 import { Tile, type StoreCategory, type StoreItem } from "@/components/store/Tiles";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
 

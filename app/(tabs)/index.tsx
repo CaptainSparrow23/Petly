@@ -18,7 +18,7 @@ import { SheetManager } from "react-native-actions-sheet";
 import ConfirmStopModal from "../../components/focus/ConfirmStopModal";
 import TimeTracker from "../../components/focus/TimeTracker";
 import PetAnimation from "../../components/focus/PetAnimation";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { useLocalSearchParams } from "expo-router";
 
 import { useSessionUploader, SessionActivity } from "@/hooks/useFocus";
@@ -28,7 +28,7 @@ import { CoralPalette } from "@/constants/colors";
 import { 
   scheduleSessionCompleteNotification, 
   cancelSessionCompleteNotification 
-} from "@/utils/notifications";
+} from "@/lib/notifications";
 import * as Haptics from 'expo-haptics';
 
 /**

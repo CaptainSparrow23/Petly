@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useEffect, useState, useCallback } from "react"
 import { View, Text } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "@react-navigation/native";
-import { useGlobalContext } from "@/lib/GlobalProvider";
+import { useGlobalContext } from "@/providers/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import Rive, { Fit, RiveRef } from "rive-react-native";
 import { petAnimations } from "@/constants/animations";
