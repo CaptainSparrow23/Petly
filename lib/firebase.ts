@@ -3,8 +3,10 @@ import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getReactNativePersistence, initializeAuth, getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 
+const firebaseApiKey = process.env.EXPO_PUBLIC_FIREBASE_API_KEY ?? "";
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBaCaFs8SOWhIvXsRCBrmDAdipOl-Euteg",
+  apiKey: firebaseApiKey,
   authDomain: "petly-4af67.firebaseapp.com",
   projectId: "petly-4af67",
   storageBucket: "petly-4af67.firebasestorage.app",
