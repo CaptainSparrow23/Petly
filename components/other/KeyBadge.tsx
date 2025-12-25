@@ -1,18 +1,18 @@
 import React from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
+import { router } from "expo-router";
+import { Plus } from "lucide-react-native";
 import { useGlobalContext } from "@/providers/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
-import { router } from "expo-router";
-import { Plus } from "lucide-react-native";
 
 const FONT = { fontFamily: "Nunito" };
 
-type CoinBadgeProps = {
+type KeyBadgeProps = {
   variant?: "floating" | "inline";
 };
 
-export default function CoinBadge({ variant = "floating" }: CoinBadgeProps) {
+export default function KeyBadge({ variant = "floating" }: KeyBadgeProps) {
   const { userProfile } = useGlobalContext();
   const containerClassName =
     variant === "floating"
@@ -21,7 +21,7 @@ export default function CoinBadge({ variant = "floating" }: CoinBadgeProps) {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push("/(modals)/buy-coins" as any)}
+      onPress={() => {}}
       activeOpacity={0.7}
       className={containerClassName}
       style={{
@@ -30,15 +30,16 @@ export default function CoinBadge({ variant = "floating" }: CoinBadgeProps) {
         borderWidth: 1,
       }}
     >
-      <View className="mr-1 h-8 w-8 items-center justify-center">
-        <Image source={images.token} style={{ width: 27, height: 27 }} resizeMode="contain" />
+      <View className="mr-1 h-9 w-9 items-center justify-center">
+        <Image source={images.key} style={{ width: 20, height: 20, padding: 1 }} resizeMode="contain" />
       </View>
       <Text className="text-sm font-semibold" style={[{ color: CoralPalette.dark }, FONT]}>
-        {(userProfile?.coins ?? 0).toLocaleString()}
+        {(userProfile?.petKey ?? 0).toLocaleString()}
       </Text>
-      <View className="ml-1 mr-2">
-        <Plus size={12} color={CoralPalette.mutedDark} strokeWidth={2.5} />
+      <View className="ml-2 mr-2">
+        <Plus size={16} color={CoralPalette.mutedDark} strokeWidth={2.5} />
       </View>
     </TouchableOpacity>
   );
 }
+

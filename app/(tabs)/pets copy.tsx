@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, FlatList, Image, ScrollView, Text, TouchableOpacity, View, ViewStyle } from "react-native";
+import { ActivityIndicator, Animated, FlatList, Image, Modal, ScrollView, Text, TouchableOpacity, View, ViewStyle } from "react-native";
 import { useGlobalContext } from "@/providers/GlobalProvider";
 import { usePets } from "@/hooks/usePets";
 import { CoralPalette } from "@/constants/colors";
@@ -9,6 +9,11 @@ import Divider from "@/components/common/Divider";
 import { getPetMood, getPetMoodLabel } from "@/utils/petMood";
 import images from "@/constants/images";
 import Constants from "expo-constants";
+import { router, useNavigation } from "expo-router";
+import { Check, ChevronRight, CircleArrowRight, CircleQuestionMark, Info, X } from "lucide-react-native";
+import CoinBadge from "@/components/other/CoinBadge";
+import KeyBadge from "@/components/other/KeyBadge";
+import { CompanionsPageSkeleton } from "@/components/other/Skeleton";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 
@@ -42,21 +47,13 @@ const PET_RIVE_STYLES: Record<string, { containerStyle: ViewStyle; animationStyl
   },
 };
 
-const ACCESSORY_NAMES: Record<string, string> = {
-  hat_chef: "Chef Hat",
-  hat_composer: "Composer Hat",
-  hat_cowboy: "Cowboy Hat",
-  hat_crown: "Royal Crown",
-  hat_santa: "Santa Hat",
-  collar_bandana: "Bandana",
-  collar_bowtie: "Bow Tie",
-  collar_chef: "Chef Collar",
-  collar_composer: "Composer Scarf",
-  collar_scarf: "Cozy Scarf",
+const PET_STAMPS: Record<string, string> = {
+  pet_smurf: "stamp_london",
+  pet_chedrick: "stamp_germany",
+  pet_pebbles: "stamp_france",
+  pet_gooner: "stamp_hongkong",
+  pet_kitty: "stamp_japan",
 };
-
-const formatAccessoryName = (id: string) =>
-  ACCESSORY_NAMES[id] ?? id.replace(/^(hat_|collar_)/, "").replace(/_/g, " ");
 
 const formatDuration = (totalSeconds?: number) => {
   if (!totalSeconds || totalSeconds <= 0) return "0m";
@@ -178,6 +175,8 @@ const PetTile = ({
 
 const PetsCopy = () => {
   const { userProfile, showBanner, updateUserProfile } = useGlobalContext();
+  const navigation = useNavigation();
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
   const [focusedHat, setFocusedHat] = useState<string | null>(userProfile?.selectedHat ?? null);
   const [focusedCollar, setFocusedCollar] = useState<string | null>(userProfile?.selectedCollar ?? null);
   const [focusedGadget, setFocusedGadget] = useState<string | null>(userProfile?.selectedGadget ?? "gadget_laptop");
@@ -188,7 +187,6 @@ const PetsCopy = () => {
   const [aboutHeight, setAboutHeight] = useState(0);
   const [accessoriesHeight, setAccessoriesHeight] = useState(0);
   const [hasMeasuredPanels, setHasMeasuredPanels] = useState(false);
-  const didInitRef = useRef(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const heightAnim = useRef(new Animated.Value(0)).current;
 
@@ -314,6 +312,7 @@ const PetsCopy = () => {
         selectedCollar: focusedCollar,
         selectedGadget: focusedGadget,
       });
+      showBanner("Changes saved", "success");
     }
   }, [
     changeFlags,
@@ -331,13 +330,29 @@ const PetsCopy = () => {
   ]);
 
   useEffect(() => {
-    if (!didInitRef.current) {
-      didInitRef.current = true;
-      return;
-    }
-    if (!hasUnsavedChange) return;
-    void handleSaveSelection();
-  }, [handleSaveSelection, hasUnsavedChange]);
+    navigation.setOptions({
+      headerRight: () => {
+        if (hasUnsavedChange) {
+          return (
+            <TouchableOpacity
+              onPress={() => void handleSaveSelection()}
+              activeOpacity={0.8}
+              disabled={isSaving || isSavingAccessories}
+              style={{ paddingHorizontal: 12, paddingVertical: 10, marginRight: 10 }}
+            >
+              <Check size={26} color={CoralPalette.greenLight} strokeWidth={3} />
+            </TouchableOpacity>
+          );
+        }
+
+        return (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          
+          </View>
+        );
+      },
+    });
+  }, [handleSaveSelection, hasUnsavedChange, isSaving, isSavingAccessories, navigation]);
 
   useEffect(() => {
     Animated.timing(slideAnim, {
@@ -371,7 +386,13 @@ const PetsCopy = () => {
   const selectedPetId = focusedPet || userProfile?.selectedPet || "";
   const selectedPet = pets.find((pet) => pet.id === selectedPetId) ?? pets[0];
   const petFriendship = userProfile?.petFriendships?.[selectedPetId];
-  const moodLabel = getPetMoodLabel(getPetMood(petFriendship?.updatedAt ?? null));
+  const mood = getPetMood(petFriendship?.updatedAt ?? null);
+  const moodLabel = getPetMoodLabel(mood);
+  const moodColor =
+    mood === 3 ? CoralPalette.green : mood === 2 ? CoralPalette.yellow : "#FF3B30";
+  const togetherSinceRaw: string | null | undefined =
+    petFriendship?.createdAt ?? petFriendship?.updatedAt ?? null;
+  const togetherSince = togetherSinceRaw ? String(togetherSinceRaw).slice(0, 10) : "—";
   const catalogPet = storeCatalog.find((item) => item.id === selectedPetId && item.category === "Pet");
   const pronouns = getPronouns(catalogPet?.gender);
   const genderKey = catalogPet?.gender?.toLowerCase();
@@ -379,6 +400,18 @@ const PetsCopy = () => {
     genderKey === "male" ? images.male : genderKey === "female" ? images.female : null;
   const totalPets = storeCatalog.filter((item) => item.category === "Pet").length || pets.length;
   const ownedPetsCount = userProfile?.ownedPets?.length ?? 0;
+
+  const stampLayers = useMemo(() => {
+    const entries = Object.entries(PET_STAMPS);
+    if (!entries.length) return [];
+    return entries
+      .map(([petId, stampKey]) => ({
+        petId,
+        stampKey,
+        source: images[stampKey as keyof typeof images] ?? null,
+      }))
+      .filter((layer) => !!layer.source);
+  }, []);
 
   const hatOptions = useMemo(
     () => [null, ...(userProfile?.ownedHats || [])],
@@ -390,11 +423,7 @@ const PetsCopy = () => {
   );
 
   if (petsLoading) {
-    return (
-        <View className="flex-1 items-center justify-center" style={{ backgroundColor: CoralPalette.beigeLight }}>
-        <ActivityIndicator size="large" color={CoralPalette.primary} />
-      </View>
-    );
+    return <CompanionsPageSkeleton />;
   }
 
   if (error) {
@@ -410,31 +439,176 @@ const PetsCopy = () => {
     );
   }
 
-  return (
-    <ScrollView style={{ flex: 1, backgroundColor: CoralPalette.beigeSoft }}>
-      <View style={{ padding: 16, marginTop: 8 }}>
-        <View
-          style={{
-            backgroundColor: CoralPalette.white,
-            borderRadius: 10,
-            padding: 18,
-            shadowColor: "#000",
-            shadowOpacity: 0.08,
-            shadowOffset: { width: 0, height: 4 },
-            shadowRadius: 8,
-            elevation: 4,
-          }}
-        >
+	  return (
+	    <View style={{ flex: 1, backgroundColor: CoralPalette.beigeSoft }}>
+	      <Modal
+	        visible={infoModalVisible}
+	        transparent
+	        animationType="fade"
+	        onRequestClose={() => setInfoModalVisible(false)}
+	      >
+	        <TouchableOpacity
+	          activeOpacity={1}
+	          onPress={() => setInfoModalVisible(false)}
+	          style={{
+	            flex: 1,
+	            backgroundColor: "rgba(0,0,0,0.45)",
+	            alignItems: "center",
+	            justifyContent: "center",
+	            padding: 18,
+	          }}
+	        >
+	          <TouchableOpacity
+	            activeOpacity={1}
+	            onPress={(e) => e.stopPropagation()}
+	            style={{
+	              width: "100%",
+	              maxWidth: 250,
+	              backgroundColor: CoralPalette.white,
+	              borderRadius: 14,
+	              padding: 15,
+	     
+	              elevation: 10,
+	            }}
+	          >
+	           
+
+	            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+	          
+	                <Info size={20} color={CoralPalette.mutedDark} />
+	         
+	              <Text style={[FONT, { fontSize: 16, fontWeight: "800", color: CoralPalette.dark }]}>
+	                Companions
+	              </Text>
+                 <TouchableOpacity
+	              onPress={() => setInfoModalVisible(false)}
+	   
+
+	            >
+	              <X size={20} color={CoralPalette.mutedDark} />
+	            </TouchableOpacity>
+	            </View>
+              <View style={{ marginTop: 12, marginLeft: 8 }}>
+              <Text style={[FONT, { marginBottom: 8,fontWeight: "700", color: CoralPalette.beigeDarker,  }]}>
+                Mood: 
+
+	            <Text style={[FONT, { marginLeft: 10, fontWeight: "500", color: CoralPalette.mutedDark }]}>
+	              {' '}Regular hangouts make your companions feel loved!
+	            </Text>
+              </Text>
+              <Text style={[FONT, { marginBottom: 8, fontWeight: "700", color: CoralPalette.beigeDarker,  }]}>
+                Together Since: 
+              <Text style={[FONT, { marginLeft: 10, fontWeight: "500", color: CoralPalette.mutedDark }]}>
+               {' '}The date you two first met!
+              </Text>
+              </Text>
+              <Text style={[FONT, { marginBottom: 8, fontWeight: "700", color: CoralPalette.beigeDarker,  }]}>
+                Friendship Level: 
+              <Text style={[FONT, { marginLeft: 10, fontWeight: "500", color: CoralPalette.mutedDark }]}>
+               {' '}Reach level 10 you might recieve something special from your companion!
+              </Text>
+              </Text>
+              </View>
+	          </TouchableOpacity>
+	        </TouchableOpacity>
+	      </Modal>
+
+	      <ScrollView style={{ flex: 1 }}>
+	        <View style={{ padding: 16, marginTop: 0 }}>
+	        <View
+	          style={{
+	            backgroundColor: CoralPalette.white,
+	            borderRadius: 10,
+	            padding: 18,
+	            shadowColor: "#000",
+	            shadowOpacity: 0.08,
+	            shadowOffset: { width: 0, height: 4 },
+	            shadowRadius: 8,
+	            elevation: 4,
+	          }}
+	        >
+		          <TouchableOpacity
+		            onPress={() => setInfoModalVisible(true)}
+		            activeOpacity={0.85}
+		            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+		            style={{
+	              position: "absolute",
+	              top: 2,
+	              right: 2,
+	              width: 50,
+	              height: 50,
+	              borderRadius: 20,
+	              alignItems: "center",
+	              justifyContent: "center",
+	              backgroundColor: "transparent",
+	              zIndex: 50,
+	            }}
+		          >
+		            <Info size={25} color={CoralPalette.mutedDark} />
+		          </TouchableOpacity>
+	          <Image
+	            source={images.postmark}
+	            resizeMode="contain"
+	            style={{
+	              position: "absolute",
+              top: 55,
+              right: 25,
+              width: 130,
+              height: 130,
+              opacity: 0.15,
+            }}
+           
+          />
           <View
+            pointerEvents="none"
             style={{
               position: "absolute",
-              top: -13,
-              left: 0,
-              right: 0,
-              alignItems: "center",
+              top: 20,
+              right: 20,
+              width: 110,
+              height: 110,
             }}
           >
-            <View
+            {stampLayers.map((layer) => (
+              <Image
+                key={layer.petId}
+                source={layer.source}
+                resizeMode="contain"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  width: 110,
+                  height: 110,
+                  opacity: layer.petId === selectedPetId ? 0.07 : 0,
+                }}
+              />
+            ))}
+            {!PET_STAMPS[selectedPetId] ? (
+              <Image
+                source={images.stamp_london}
+                resizeMode="contain"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  width: 110,
+                  height: 110,
+                  opacity: selectedPetId ? 0.07 : 0,
+                }}
+              />
+            ) : null}
+          </View>
+          <View
+            // style={{
+            //   position: "absolute",
+            //   top: 0,
+            //   left: 0,
+            //   right: 0,
+            //   alignItems: "center",
+            // }}
+          >
+            {/* <View
               style={{
                 width: 60,
                 height: 25,
@@ -446,14 +620,14 @@ const PetsCopy = () => {
                 shadowRadius: 4,
                 elevation: 3,
               }}
-            />
+            /> */}
           </View>
-          <View style={{ flexDirection: "row", marginTop: 10 }}>
+          <View style={{ flexDirection: "row", marginTop: 0 }}>
             <View
               style={{
                 width: 160,
                 height: 180,
-                borderRadius: 26,
+                borderRadius: 10,
                 backgroundColor: CoralPalette.beigePaper,
                 alignItems: "center",
                 justifyContent: "center",
@@ -565,6 +739,14 @@ const PetsCopy = () => {
                       if (height && height !== aboutHeight) setAboutHeight(height);
                     }}
                   >
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                      <Text style={[{ color: CoralPalette.beigeDarker, fontWeight: "600", fontSize: 15, marginBottom: 6 }, FONT]}>
+                        Mood
+                      </Text>
+                      <Text style={[{ color: moodColor, fontWeight: "700", marginRight: 10 }, FONT]}>
+                        {moodLabel}
+                      </Text>
+                    </View>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
                       <Text style={[{ color: CoralPalette.beigeDarker, fontWeight: "600", fontSize: 15 }, FONT]}>
                         Friendship level
@@ -585,14 +767,8 @@ const PetsCopy = () => {
                       <Text style={[{ color: CoralPalette.beigeDarker, fontWeight: "600", fontSize: 15  }, FONT]}>
                         Together since
                       </Text>
-                      <Text style={[{ color: CoralPalette.dark, fontWeight: "700", marginRight: 10 }, FONT]} />
-                    </View>
-                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                      <Text style={[{ color: CoralPalette.beigeDarker, fontWeight: "600", fontSize: 15 }, FONT]}>
-                        Mood
-                      </Text>
                       <Text style={[{ color: CoralPalette.dark, fontWeight: "700", marginRight: 10 }, FONT]}>
-                        {moodLabel}
+                        {togetherSince}
                       </Text>
                     </View>
                   </View>
@@ -749,9 +925,18 @@ const PetsCopy = () => {
                 ))}
               </View>
             </View>
-            <Text style={[{ marginLeft: 12, marginTop: 10, fontSize: 18, fontWeight: "800", color: CoralPalette.beigeDarker }, FONT]}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Text style={[{ marginLeft: 8, marginTop: 10, fontSize: 18, fontWeight: "800", color: CoralPalette.beigeDarker }, FONT]}>
               My Companions
             </Text>
+            <TouchableOpacity
+              onPress={() => router.push("/petStore")}
+              activeOpacity={0.8}
+              style={{  marginTop: 5 }}
+            >
+              <ChevronRight size={20} color={CoralPalette.beigeDarker} />
+            </TouchableOpacity>
+            </View>
             <FlatList
               data={pets}
               horizontal
@@ -783,7 +968,7 @@ const PetsCopy = () => {
             />
           </View>
           <View
-            style={{
+            style={{flexDirection: "row",
               backgroundColor: CoralPalette.clipboardWoodWarm,
               borderBottomLeftRadius: 10,
               borderBottomRightRadius: 10,
@@ -791,16 +976,30 @@ const PetsCopy = () => {
               alignItems: "center",
               marginTop: -10,
               zIndex: -1,
+              justifyContent: "center"
             }}
           >
-            <Text style={[{ marginTop: 10, color: CoralPalette.beigeSoft, fontSize: 17, fontWeight: "800" }, FONT]}>
+            <View style={{marginLeft: 20, marginTop: 10, alignItems: "center", justifyContent: "center", flexDirection: "row" }}>
+            <Text style={[{  color: CoralPalette.beigeSoft, fontSize: 17, fontWeight: "800" }, FONT]}>
               {ownedPetsCount} / {totalPets}
             </Text>
+            <TouchableOpacity
+              onPress={() => router.push("/petStore")}
+              activeOpacity={0.8}
+              style={{ marginLeft: 0, marginRight: 0}}
+              
+            >
+              <View style={{ marginLeft: 6, alignItems: "center", justifyContent: "center" }}>
+              <CircleArrowRight size={18} color={CoralPalette.clipboardWoodWarm} fill={CoralPalette.beigeSoft} />
+            </View>
+            </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </ScrollView>
-  );
+	        </View>
+	      </ScrollView>
+	    </View>
+	  );
 };
 
 export default PetsCopy;

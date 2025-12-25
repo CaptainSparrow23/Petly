@@ -95,7 +95,7 @@ const GoalCard = ({
   subtitle,
   targetMinutes,
   currentMinutes,
-  rewardXp,
+  rewardCoins,
   isClaimable,
   isClaimed,
   isReached,
@@ -104,13 +104,12 @@ const GoalCard = ({
   cardBgColor,
   onClaim,
   claiming,
-  showHours,
 }: {
   title: string;
   subtitle: string;
   targetMinutes: number;
   currentMinutes: number;
-  rewardXp: number;
+  rewardCoins: number;
   isClaimable: boolean;
   isClaimed: boolean;
   isReached: boolean;
@@ -119,7 +118,6 @@ const GoalCard = ({
   cardBgColor: string;
   onClaim: () => void;
   claiming: boolean;
-  showHours: boolean;
 }) => {
   const progressValue = useSharedValue(0);
   const progress = Math.min(100, Math.round((currentMinutes / targetMinutes) * 100));
@@ -143,14 +141,6 @@ const GoalCard = ({
     }, [animateProgress])
   );
 
-  const formatTarget = () => {
-    if (showHours) {
-      const hours = targetMinutes / 60;
-      return hours >= 1 ? `${hours.toFixed(hours % 1 === 0 ? 0 : 1)}h` : `${targetMinutes}m`;
-    }
-    return `${targetMinutes}m`;
-  };
-
   const CIRCLE_SIZE = 110;
   const STROKE_WIDTH = 12;
 
@@ -159,7 +149,7 @@ const GoalCard = ({
       style={{
         flex: 1,
         backgroundColor: cardBgColor,
-        borderRadius: 20,
+        borderRadius: 10,
         padding: 18,
         alignItems: 'center',
         position: 'relative',
@@ -317,7 +307,7 @@ const GoalCard = ({
         </View>
       </View>
 
-      {/* XP Reward */}
+      {/* Coin Reward */}
       <View
         style={{
           marginTop: 14,
@@ -345,7 +335,7 @@ const GoalCard = ({
               FONT,
             ]}
           >
-            +{rewardXp} XP
+            +{rewardCoins} coins
           </Text>
         </View>
       </View>
@@ -357,16 +347,14 @@ export default function GoalsCard({
   todayTotalMinutes = 0,
   currentWeekTotal = 0,
 }: GoalsCardProps) {
-  const { appSettings, updateUserProfile, userProfile, showBanner, refetchUserProfile } =
-    useGlobalContext();
+  const { updateUserProfile, userProfile, showBanner, refetchUserProfile } = useGlobalContext();
   const [claimingDaily, setClaimingDaily] = useState(false);
   const [claimingWeekly, setClaimingWeekly] = useState(false);
 
   const dailyGoal = 60;
   const weeklyGoal = 300;
-  const dailyRewardXp = 25;
-  const weeklyRewardXp = 50;
-  const showHours = appSettings.displayFocusInHours;
+  const dailyRewardCoins = 25;
+  const weeklyRewardCoins = 50;
 
   // Check if goals are reached
   const dailyGoalReached = todayTotalMinutes >= dailyGoal;
@@ -384,7 +372,7 @@ export default function GoalsCard({
 
   const claimGoalReward = async (
     goalType: 'daily' | 'weekly'
-  ): Promise<{ success: boolean; xp?: number }> => {
+  ): Promise<{ success: boolean; coins?: number }> => {
     if (!userProfile?.userId || !API_BASE_URL) {
       return { success: false };
     }
@@ -395,8 +383,14 @@ export default function GoalsCard({
         body: JSON.stringify({ goalType }),
       });
       const data = await response.json();
-      if (data.success && data.data?.xpAwarded !== undefined) {
-        return { success: true, xp: data.data.xpAwarded as number };
+      if (data.success && data.data) {
+        const coinsAwarded =
+          typeof data.data.coinsAwarded === 'number'
+            ? (data.data.coinsAwarded as number)
+            : typeof data.data.rewardAmount === 'number'
+              ? (data.data.rewardAmount as number)
+              : undefined;
+        return { success: true, coins: coinsAwarded };
       }
       return { success: false };
     } catch {
@@ -411,13 +405,15 @@ export default function GoalsCard({
     try {
       const result = await claimGoalReward('daily');
       if (result.success) {
+        const coinsAwarded = result.coins ?? dailyRewardCoins;
         updateUserProfile({
           lastDailyGoalClaim: todayStr,
+          coins: (userProfile?.coins ?? 0) + coinsAwarded,
         });
         refetchUserProfile?.();
         showBanner({
           title: 'Daily goal claimed!',
-          message: `+${dailyRewardXp} XP`,
+          message: `+${coinsAwarded} coins`,
           preset: 'done',
           haptic: 'success',
         });
@@ -441,13 +437,15 @@ export default function GoalsCard({
     try {
       const result = await claimGoalReward('weekly');
       if (result.success) {
+        const coinsAwarded = result.coins ?? weeklyRewardCoins;
         updateUserProfile({
           lastWeeklyGoalClaim: weekStr,
+          coins: (userProfile?.coins ?? 0) + coinsAwarded,
         });
         refetchUserProfile?.();
         showBanner({
           title: 'Weekly goal claimed!',
-          message: `+${weeklyRewardXp} XP`,
+          message: `+${coinsAwarded} coins`,
           preset: 'done',
           haptic: 'success',
         });
@@ -472,7 +470,7 @@ export default function GoalsCard({
         subtitle="Focus 1 hour today"
         targetMinutes={dailyGoal}
         currentMinutes={todayTotalMinutes}
-        rewardXp={dailyRewardXp}
+        rewardCoins={dailyRewardCoins}
         isClaimable={dailyClaimable}
         isClaimed={dailyClaimed}
         isReached={dailyGoalReached}
@@ -481,7 +479,6 @@ export default function GoalsCard({
         cardBgColor="#FAFFFE"
         onClaim={handleClaimDaily}
         claiming={claimingDaily}
-        showHours={showHours}
       />
 
       {/* Weekly Goal Card - Purple theme */}
@@ -490,7 +487,7 @@ export default function GoalsCard({
         subtitle="Focus 5 hours this week"
         targetMinutes={weeklyGoal}
         currentMinutes={currentWeekTotal}
-        rewardXp={weeklyRewardXp}
+        rewardCoins={weeklyRewardCoins}
         isClaimable={weeklyClaimable}
         isClaimed={weeklyClaimed}
         isReached={weeklyGoalReached}
@@ -499,7 +496,6 @@ export default function GoalsCard({
         cardBgColor="#FDFAFF"
         onClaim={handleClaimWeekly}
         claiming={claimingWeekly}
-        showHours={showHours}
       />
     </View>
   );

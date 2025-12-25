@@ -4,7 +4,6 @@ export default function StoreLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="featured/[id]" />
-      <Stack.Screen name="buy-coins" />
     </Stack>
   );
 }

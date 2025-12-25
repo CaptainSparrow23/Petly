@@ -233,7 +233,7 @@ export default function FocusChart({ title = "Time Distribution" }: FocusChartPr
     <View
       style={[
         {
-          borderRadius: 20,
+          borderRadius: 10,
           backgroundColor: CoralPalette.white,
           borderColor: `${CoralPalette.primary}20`,
           borderWidth: 1,

@@ -65,6 +65,9 @@ const FriendshipModal = ({ visible, onClose, userProfile, pets }: FriendshipModa
   const totalHours = Math.floor(totalMinutes / 60);
   const remainingMinutes = totalMinutes % 60;
   const timeDisplay = totalHours > 0 ? `${totalHours} h ${remainingMinutes} m` : `${remainingMinutes} m`;
+  const togetherSinceRaw: string | null | undefined =
+    friendshipData?.createdAt ?? friendshipData?.updatedAt ?? null;
+  const togetherSince = togetherSinceRaw ? String(togetherSinceRaw).slice(0, 10) : "—";
 
   const [mounted, setMounted] = React.useState(visible);
   const visibleRef = useRef(visible);
@@ -164,7 +167,7 @@ const FriendshipModal = ({ visible, onClose, userProfile, pets }: FriendshipModa
                       <StatRow
                         icon={<Calendar size={18} color={CoralPalette.green} />}
                         label="Together since"
-                        value="—"
+                        value={togetherSince}
                       />
                     </View>
                   </View>

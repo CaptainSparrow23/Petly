@@ -74,7 +74,7 @@ export default function TodayActivityChart({
     <View
       style={{
         backgroundColor: CoralPalette.white,
-        borderRadius: 20,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: `${CoralPalette.yellow}25`,
         overflow: "hidden",

@@ -3,11 +3,12 @@ import { ProfilePicture } from '@/components/other/ProfilePicture';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
-import { Cat, Home, Settings, Store, UsersRound, BarChart3, LogOut } from 'lucide-react-native';
+import { Cat, Home, Settings, UsersRound, BarChart3, LogOut, ShoppingBag, PawPrint } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Text, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
 import { CoralPalette } from '@/constants/colors';
 import CoinBadge from '@/components/other/CoinBadge';
+import KeyBadge from '@/components/other/KeyBadge';
 import { useHasUnclaimedRewards } from '@/utils/hasUnclaimedRewards';
 import { useHasFriendRequests } from '@/utils/hasFriendRequests';
 import { useHasClaimableGoals } from '@/utils/hasClaimableGoals';
@@ -97,6 +98,19 @@ const MyPetsDrawerLabel = ({ color }: { color: string }) => (
     }}
   >
     My Pets
+  </Text>
+);
+
+const CompanionsDrawerLabel = ({ color }: { color: string }) => (
+  <Text
+    style={{
+      fontFamily: "Nunito",
+      fontSize: 16,
+      fontWeight: '700',
+      color: color,
+    }}
+  >
+    Companions
   </Text>
 );
 
@@ -279,12 +293,19 @@ const CustomDrawerContent = (props: any) => {
 // Removed FocusHeaderCoins
 
 const DrawerLayout = () => {
+  const HeaderBadges = () => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginRight: 8, marginTop: 4 }}>
+     
+      <CoinBadge variant="inline" />
+    </View>
+  );
+
   return (
     <Drawer
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: true,
-        headerTitleStyle: { fontWeight: '800', color: CoralPalette.white, fontFamily: "Nunito" },
+        headerTitleStyle: { marginTop: 5, fontSize: 18, fontWeight: '800', color: CoralPalette.white, fontFamily: "Nunito" },
         headerTitleContainerStyle: { marginBottom: 10 },
         headerLeftContainerStyle: { marginLeft: 10, marginBottom: 10 },
         headerRightContainerStyle: { marginBottom: 10, marginRight: 10 },
@@ -310,7 +331,7 @@ const DrawerLayout = () => {
           // headerRight removed (coins)
           drawerLabel: ({ color }) => <FocusDrawerLabel color={color} />,
           drawerIcon: ({ color, size }) => <Home color={color} size={size} />,
-          headerRight: () => <CoinBadge />
+          headerRight: () => <HeaderBadges />
         }}
       />
         <Drawer.Screen
@@ -319,16 +340,17 @@ const DrawerLayout = () => {
             title: 'Insights',
             drawerLabel: ({ color }) => <InsightsDrawerLabel color={color} />,
             drawerIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
-            headerRight: () => <CoinBadge />
+            headerRight: () => <HeaderBadges />
           }}
         />
+   
       <Drawer.Screen
-        name="pets"
+        name="pets copy"
         options={{
-          title: 'My Pets',
-          drawerLabel: ({ color }) => <MyPetsDrawerLabel color={color} />,
-          drawerIcon: ({ color, size }) => <Cat color={color} size={size} />,
-          headerRight: () => <CoinBadge />
+          title: 'Companions',
+          drawerLabel: ({ color }) => <CompanionsDrawerLabel color={color} />,
+          drawerIcon: ({ color, size }) => <PawPrint color={color} size={size} />,
+          
         }}
       />
       <Drawer.Screen
@@ -336,8 +358,8 @@ const DrawerLayout = () => {
         options={{
           title: 'Store',
           drawerLabel: ({ color }) => <StoreDrawerLabel color={color} />,
-          drawerIcon: ({ color, size }) => <Store color={color} size={size} />,
-          headerRight: () => <CoinBadge />,
+          drawerIcon: ({ color, size }) => <ShoppingBag color={color} size={size} />,
+          headerRight: () => <HeaderBadges />,
         }}
       />
       <Drawer.Screen

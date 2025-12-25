@@ -92,7 +92,7 @@ export default function RemoveTagModal({ visible, onClose, onConfirm, tagName }:
           fontFamily: 'Nunito',
         }}
       >
-        Remove the tag "{tagName}" ?
+        Remove the tag {`"${tagName}"`}?
       </Text>
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, width: '100%' }}>
         <Animated.View style={{ transform: [{ scale: noButtonScale }], flex: 1 }}>

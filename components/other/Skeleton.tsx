@@ -313,6 +313,97 @@ export const TodayFocusCardSkeleton: React.FC = () => (
 );
 
 /**
+ * Skeleton for Companions page (pets copy)
+ */
+export const CompanionsPageSkeleton: React.FC = () => (
+  <ScrollView style={{ flex: 1, backgroundColor: CoralPalette.beigeSoft }}>
+    <View style={{ padding: 16 }}>
+      {/* Main card */}
+      <View
+        style={{
+          backgroundColor: CoralPalette.white,
+          borderRadius: 10,
+          padding: 18,
+          shadowColor: "#000",
+          shadowOpacity: 0.08,
+          shadowOffset: { width: 0, height: 4 },
+          shadowRadius: 8,
+          elevation: 4,
+        }}
+      >
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <View
+            style={{
+              width: 160,
+              height: 180,
+              borderRadius: 10,
+              backgroundColor: CoralPalette.beigePaper,
+              overflow: "hidden",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Skeleton width={120} height={120} radius={12} />
+          </View>
+          <View style={{ flex: 1, justifyContent: "center" }}>
+            <Skeleton width="70%" height={18} radius={6} />
+            <Skeleton width="45%" height={14} radius={6} style={{ marginTop: 10 }} />
+            <Skeleton width="55%" height={14} radius={6} style={{ marginTop: 8 }} />
+            <Skeleton width="40%" height={14} radius={6} style={{ marginTop: 8 }} />
+          </View>
+        </View>
+
+        {/* Stats panel */}
+        <View style={{ marginTop: 16, backgroundColor: CoralPalette.white, borderRadius: 16, padding: 12 }}>
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <View
+              key={idx}
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: idx === 3 ? 0 : 10,
+              }}
+            >
+              <Skeleton width={120} height={14} radius={6} />
+              <Skeleton width={60} height={14} radius={6} />
+            </View>
+          ))}
+        </View>
+
+        {/* My Companions section */}
+        <View style={{ marginTop: 18 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Skeleton width={140} height={18} radius={6} />
+            <Skeleton width={22} height={22} radius={11} />
+          </View>
+          <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <View
+                key={idx}
+                style={{
+                  width: 110,
+                  height: 110,
+                  borderRadius: 10,
+                  borderWidth: 3,
+                  borderColor: CoralPalette.beigePaper,
+                  padding: 12,
+                  backgroundColor: CoralPalette.beigePaper,
+                  alignItems: "center",
+                }}
+              >
+                <Skeleton width={60} height={60} radius={8} style={{ backgroundColor: CoralPalette.greyLighter }} />
+                <Skeleton width="100%" height={8} radius={6} style={{ marginTop: 10 }} />
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+    </View>
+  </ScrollView>
+);
+
+/**
  * Skeleton for Streak card on insights page
  */
 export const StreakCardSkeleton: React.FC = () => (

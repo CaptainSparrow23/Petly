@@ -204,7 +204,10 @@ export default function FeaturedSetPage() {
 
   const handlePurchasePress = useCallback(
     (item: StoreItem) => {
-      if (item.category === "Pet") return;
+      if (item.category === "Pet") {
+        router.push("/petStore" as any);
+        return;
+      }
       void SheetManager.show("store-confirmation", {
         payload: {
           petName: item.name,
@@ -391,8 +394,8 @@ export default function FeaturedSetPage() {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         numColumns={2}
-        contentContainerStyle={{ paddingBottom: 24 }}
-        columnWrapperStyle={{ flex:1,  justifyContent: "center" }}
+        contentContainerStyle={{ paddingBottom: 0 }}
+        columnWrapperStyle={{ flex:1, paddingHorizontal: 15,  }}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={ListHeader}
       />

@@ -292,7 +292,7 @@ export default function TagDistributionChart({ title = "Tag Distribution" }: Tag
     <View
       style={[
         {
-          borderRadius: 20,
+          borderRadius: 10,
           backgroundColor: CoralPalette.white,
           borderColor: `${CoralPalette.primary}20`,
           borderWidth: 1,
