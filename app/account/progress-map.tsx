@@ -16,7 +16,6 @@ import { router } from "expo-router";
 import { useGlobalContext } from "@/providers/GlobalProvider";
 import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
-import { PET_UNLOCK_LEVELS } from "@/utils/petUnlocks";
 import unlockAnimation from "@/assets/animations/unlock.riv";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -47,8 +46,6 @@ const NODE_POINTS: Array<{ level: number; x: number; y: number }> = [
 
 interface RewardNode {
   level: number;
-  type: "pet" | "regular";
-  petId?: string;
   icon?: any;
 }
 
@@ -87,25 +84,6 @@ export default function ProgressMap() {
   const levelProgress =
     displayXpTotal > 0 ? (displayXpIntoLevel / displayXpTotal) * 100 : 0;
 
-  // Get next pet unlock
-  const nextPetUnlock = useMemo(() => {
-    const unlockLevels = [1, 3, 5, 7, 9];
-    const petNames: Record<number, string> = {
-      1: "Smurf",
-      3: "Pebbles",
-      5: "Chedrick",
-      7: "Gooner",
-      9: "Kitty",
-    };
-
-    for (const unlockLevel of unlockLevels) {
-      if (level < unlockLevel) {
-        return { level: unlockLevel, name: petNames[unlockLevel] };
-      }
-    }
-    return null; // Max level reached
-  }, [level]);
-
   // 16:9 vertical-ish container based on screen width
   const MAP_ASPECT = 17 / 9; // height / width
   const mapWidth = SCREEN_WIDTH;
@@ -127,57 +105,11 @@ export default function ProgressMap() {
     const nodes: RewardNode[] = [];
     
     for (let level = 1; level <= 9; level++) {
-      // Level 1: smurf (pet)
-      if (level === 1) {
-        const petImage = images.pet_smurf;
-        nodes.push({
-          level,
-          type: "pet",
-          petId: "pet_smurf",
-          icon: petImage,
-        });
-        continue;
-      }
-      
       // Level 2: laptop (gadget)
       if (level === 2) {
         nodes.push({
           level,
-          type: "regular",
           icon: images.gadget_laptop,
-        });
-        continue;
-      }
-      
-      // Level 3: pebbles (pet)
-      if (level === 3) {
-        const petImage = images.pet_pebbles;
-        nodes.push({
-          level,
-          type: "pet",
-          petId: "pet_pebbles",
-          icon: petImage,
-        });
-        continue;
-      }
-      
-      // Level 4: empty
-      if (level === 4) {
-        nodes.push({
-          level,
-          type: "regular",
-        });
-        continue;
-      }
-      
-      // Level 5: chedrick (pet)
-      if (level === 5) {
-        const petImage = images.pet_chedrick;
-        nodes.push({
-          level,
-          type: "pet",
-          petId: "pet_chedrick",
-          icon: petImage,
         });
         continue;
       }
@@ -186,20 +118,7 @@ export default function ProgressMap() {
       if (level === 6) {
         nodes.push({
           level,
-          type: "regular",
           icon: images.gadget_pot_and_stove,
-        });
-        continue;
-      }
-      
-      // Level 7: gooner (pet)
-      if (level === 7) {
-        const petImage = images.pet_gooner;
-        nodes.push({
-          level,
-          type: "pet",
-          petId: "pet_gooner",
-          icon: petImage,
         });
         continue;
       }
@@ -208,23 +127,12 @@ export default function ProgressMap() {
       if (level === 8) {
         nodes.push({
           level,
-          type: "regular",
           icon: images.gadget_cello_artisan,
         });
         continue;
       }
-      
-      // Level 9: kitty (pet)
-      if (level === 9) {
-        const petImage = images.pet_kitty;
-        nodes.push({
-          level,
-          type: "pet",
-          petId: "pet_kitty",
-          icon: petImage,
-        });
-        continue;
-      }
+
+      nodes.push({ level });
     }
     
     return nodes;
@@ -252,6 +160,7 @@ export default function ProgressMap() {
   const riveInputInitialized = useRef<Record<number, boolean>>({});
   // Per-level scale for reward icon so we can pop it in after unlock
   const iconScaleByLevel = useRef<Record<number, Animated.Value>>({});
+  const nodeScaleByLevel = useRef<Record<number, Animated.Value>>({});
   
   // Initial pop-out animation for nodes on mount
   const nodePopScaleByLevel = useRef<Record<number, Animated.Value>>({});
@@ -614,7 +523,10 @@ export default function ProgressMap() {
             const isUnlocked = currentLevel >= node.level;
             const nodeSize = 65; // All nodes same size
             const borderWidth = 5;
-            const scaleAnim = useRef(new Animated.Value(1)).current;
+            if (!nodeScaleByLevel.current[node.level]) {
+              nodeScaleByLevel.current[node.level] = new Animated.Value(1);
+            }
+            const scaleAnim = nodeScaleByLevel.current[node.level];
 
             // A node is “completed” only when the user has explicitly claimed the reward.
             const isCompleted = !!claimedLevels[node.level];
@@ -913,7 +825,7 @@ export default function ProgressMap() {
                 <Text
                   style={[{ paddingLeft: 2, color: CoralPalette.mutedDark, fontSize: 10 }, FONT]}
                 >
-                  Rank up to unlock new pets and gadgets
+                  Rank up to unlock new rewards
                 </Text>
               </View>
               <View className="flex-row items-center">
@@ -946,14 +858,6 @@ export default function ProgressMap() {
               />
             </View>
             <View className="flex-row mt-2 items-center justify-between">
-              {nextPetUnlock && (
-                <Text
-                  className="text-xs mt-2"
-                  style={[{ paddingLeft: 2, color: CoralPalette.greenDark }, FONT]}
-                >
-                  Unlock {nextPetUnlock.name} at level {nextPetUnlock.level}
-                </Text>
-              )}
               <Text
                 className="text-sm"
                 style={[{ color: CoralPalette.mutedDark }, FONT]}

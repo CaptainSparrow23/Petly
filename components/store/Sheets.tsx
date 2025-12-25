@@ -5,7 +5,6 @@ import { CoralPalette } from "@/constants/colors";
 import images from "@/constants/images";
 import PetAnimation from "@/components/focus/PetAnimation";
 import { getPetAnimationConfig } from "@/constants/animations";
-import { getPetUnlockLevel } from "@/utils/petUnlocks";
 
 // Background configuration for sheets with individual styling
 type SheetBackgroundConfig = {
@@ -79,7 +78,6 @@ type PetPreviewCardProps = {
   onPurchase: () => void;
   isPurchasing: boolean;
   purchaseError?: string | null;
-  userLevel?: number;
 };
 
 export const PetPreviewCard = ({
@@ -89,12 +87,9 @@ export const PetPreviewCard = ({
   onPurchase,
   isPurchasing,
   purchaseError,
-  userLevel = 1,
 }: PetPreviewCardProps) => {
   const bgConfig = SHEET_BACKGROUNDS[selectedBackground] ?? DEFAULT_BACKGROUND_CONFIG;
   const isPet = pet?.category === "Pet";
-  const unlockLevel = isPet && pet ? getPetUnlockLevel(pet.id) : null;
-  const isLocked = isPet && unlockLevel !== null && userLevel < unlockLevel && !pet?.owned;
 
   const getAccessoryProps = () => {
     if (!pet) return { selectedHat: null, selectedCollar: null };
@@ -190,20 +185,35 @@ export const PetPreviewCard = ({
             )}
 
             {/* Purchase Button or Lock Status */}
-            {isPet && unlockLevel !== null ? (
-              <View
+            {isPet ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={onPurchase}
+                disabled={!pet || isPurchasing || pet.owned}
                 style={{
                   marginTop: 20,
                   paddingVertical: 14,
                   borderRadius: 12,
-                  backgroundColor: isLocked ? CoralPalette.greyLight : CoralPalette.greenLight,
+                  backgroundColor: pet.owned ? CoralPalette.greyLight : CoralPalette.primary,
+                  flexDirection: "row",
                   alignItems: "center",
+                  justifyContent: "center",
+                  opacity: pet && !isPurchasing ? 1 : 0.6,
                 }}
               >
-                <Text style={[FONT, { fontSize: 16, fontWeight: "700", color: isLocked ? CoralPalette.mutedDark : CoralPalette.green }]}>
-                  {isLocked ? `🔒 Unlocks at Level ${unlockLevel}` : "✓ Unlocked"}
-                </Text>
-              </View>
+                {pet.owned ? (
+                  <Text style={[FONT, { fontSize: 16, fontWeight: "700", color: CoralPalette.mutedDark }]}>
+                    ✓ Owned
+                  </Text>
+                ) : (
+                  <>
+                    <Image source={images.key} style={{ width: 18, height: 18, marginRight: 8 }} resizeMode="contain" />
+                    <Text style={[FONT, { fontSize: 16, fontWeight: "800", color: CoralPalette.white }]}>
+                      {isPurchasing ? "Loading..." : "View in Pet Store"}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 activeOpacity={0.85}

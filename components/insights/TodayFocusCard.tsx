@@ -136,13 +136,15 @@ export default function TodayFocusCard() {
   );
   
   const statusMessage = useMemo(() => {
-    if (totalSeconds < 1800) return "Let's get focused! 💪";
-    if (totalSeconds < 3600) return "Good progress! Keep going 🚀";
-    if (totalSeconds < 7200) return "You're on fire today! 🔥";
-    if (totalSeconds < 10800) return "Amazing dedication! ⭐";
-    if (totalSeconds < 14400) return "Productivity champion! 🏆";
-    return "Incredible work! Take a break 🌟";
-  }, [totalSeconds]);
+    const name = userProfile?.firstName || userProfile?.displayName || "";
+    const nameSuffix = name ? ` ${name}` : "";
+    if (totalSeconds < 1800) return `Get back to work${nameSuffix}!`; //30 mins
+    if (totalSeconds < 3600) return "Good shift today";   // 1 hour
+    if (totalSeconds < 7200) return "Wow great effort ~";  // 2 hours
+    if (totalSeconds < 10800) return "Amazing dedication ! ⭐"; // 3 hours
+    if (totalSeconds < 14400) return "You workaholic ! 🏆"; // 4 hours
+    return "You deserve a break champ !!! 🌟";
+  }, [totalSeconds, userProfile?.displayName, userProfile?.firstName]);
 
   const moodValue = useMemo(() => {
     if (totalSeconds < 1800) return 1;
@@ -201,7 +203,7 @@ export default function TodayFocusCard() {
   return (
     <View
       style={{
-        borderRadius: 16,
+        borderRadius: 10,
         overflow: "hidden",
         shadowColor: CoralPalette.primary,
         shadowOpacity: 0.3,
@@ -247,7 +249,7 @@ export default function TodayFocusCard() {
         {/* Content */}
         <View style={{ zIndex: 1 }}>
           <Text style={[{ color: "rgba(255,255,255,0.9)", fontSize: 14, fontWeight: "600", letterSpacing: 0.5 }, FONT]}>
-            TODAY'S FOCUS
+            TODAY{"'"}S FOCUS
           </Text>
           <Text style={[{ fontSize: 36, fontWeight: "800", color: "#fff", marginTop: 4 }, FONT]}>
             {durationLabel}

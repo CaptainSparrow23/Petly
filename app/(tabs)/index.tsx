@@ -672,19 +672,19 @@ export default function IndexScreen() {
           onPress={() => setMode("countdown")}
           onPressIn={() => handleModePressIn("countdown")}
           disabled={running}
-          className="w-12 items-center py-3.5"
-          style={{ backgroundColor: mode === "countdown" ? CoralPalette.primary : CoralPalette.greyVeryLight, opacity: running ? 0.6 : 1 }}
+          className="w-12 items-center py-3"
+          style={{ backgroundColor: mode === "countdown" ? CoralPalette.primaryLight : CoralPalette.greyVeryLight, opacity: running ? 0.6 : 1 }}
         >
-          <Hourglass size={16} color={mode === "countdown" ? "#ffffff" : CoralPalette.primary} />
+          <Hourglass size={16} color={mode === "countdown" ? "#ffffff" : CoralPalette.primaryMuted} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setMode("timer")}
           onPressIn={() => handleModePressIn("timer")}
           disabled={running}
-          className="w-12 items-center py-3.5"
-          style={{ backgroundColor: mode === "timer" ? CoralPalette.primary : CoralPalette.greyVeryLight, opacity: running ? 0.6 : 1 }}
+          className="w-12 items-center py-3"
+          style={{ backgroundColor: mode === "timer" ? CoralPalette.primaryLight : CoralPalette.greyVeryLight, opacity: running ? 0.6 : 1 }}
         >
-          <Timer size={16} color={mode === "timer" ? "#ffffff" : CoralPalette.primary} />
+          <Timer size={16} color={mode === "timer" ? "#ffffff" : CoralPalette.primaryMuted} />
         </TouchableOpacity>
       </View>
 
@@ -784,14 +784,16 @@ export default function IndexScreen() {
             }}
             onPressOut={handleButtonPressOut}
             disabled={!running && countdownInvalid}
-            className="w-40 items-center py-3 mb-5 rounded-xl"
+            className="items-center  mb-8 rounded-lg"
             style={{
+              width: 100,
+              paddingVertical: 6,
               backgroundColor: CoralPalette.primary,
               opacity: running ? 0.9 : countdownInvalid ? 0.6 : 1,
               shadowColor: CoralPalette.primaryDark,
-              shadowOffset: { width: 0, height: 2 },
+              shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 1,
-              shadowRadius: 1,
+              shadowRadius: 0,
               elevation: 0,
             }}
             activeOpacity={1}

@@ -53,10 +53,21 @@ const computeLevelMeta = (totalXPRaw: unknown, maxLevel: number = 9) => {
     };
 };
 
+const getFirstName = (displayName?: unknown): string | null => {
+    if (typeof displayName !== "string") return null;
+    const trimmed = displayName.trim();
+    if (!trimmed) return null;
+    const [first] = trimmed.split(/\s+/);
+    return first || null;
+};
+
+const PET_FRIENDSHIP_MAX_LEVEL = 10;
+
 interface UserProfile {
     userId: string;
     username: string | null;
     displayName: string | null;
+    firstName: string | null;
     email: string | null;
     profileId: number | null;
     allowFriendRequests: boolean;
@@ -64,6 +75,7 @@ interface UserProfile {
     timeActiveTodayMinutes: number;
     minutesByHour: number[]; // 24-element array for hourly chart
     coins: number;
+    petKey: number;
     totalXP: number;
     level: number;
     xpForCurrentLevel: number;
@@ -76,6 +88,7 @@ interface UserProfile {
             totalXP: number;
             totalFocusSeconds?: number;
             updatedAt?: string | null;
+            createdAt?: string | null;
             level: number;
             xpForCurrentLevel: number;
             xpForNextLevel: number;
@@ -226,9 +239,10 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     console.log("🔍 Raw petFriendships from backend:", JSON.stringify(profile.petFriendships));
                     Object.entries(profile.petFriendships as Record<string, any>).forEach(([petId, val]) => {
                         petFriendships[petId] = {
-                            ...computeLevelMeta((val as any)?.totalXP, 4),
+                            ...computeLevelMeta((val as any)?.totalXP, PET_FRIENDSHIP_MAX_LEVEL),
                             totalFocusSeconds: toNumber((val as any)?.totalFocusSeconds, 0),
                             updatedAt: (val as any)?.updatedAt ?? null,
+                            createdAt: (val as any)?.createdAt ?? null,
                         };
                     });
                 }
@@ -239,6 +253,8 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
                     timeActiveTodayMinutes,
                     minutesByHour: Array.isArray(profile.minutesByHour) ? profile.minutesByHour : Array(24).fill(0),
                     coins: toNumber(profile.coins),
+                    petKey: toNumber((profile as any).petKey, 1),
+                    firstName: getFirstName(profile.displayName),
                     ...computeLevelMeta(profile.totalXP),
                     petFriendships,
                     ownedPets: Array.isArray(profile.ownedPets) ? profile.ownedPets : ["pet_smurf"],
@@ -328,11 +344,11 @@ const GlobalProvider = ({ children }: { children: React.ReactNode }) => {
             const levelMeta = patch.totalXP !== undefined ? computeLevelMeta(patch.totalXP) : null;
 
             let petFriendships = merged.petFriendships;
-            if (patch.petFriendships) {
-                petFriendships = { ...merged.petFriendships };
-                Object.entries(patch.petFriendships).forEach(([petId, val]) => {
-                    petFriendships![petId] = {
-                        ...computeLevelMeta((val as any)?.totalXP),
+                if (patch.petFriendships) {
+                    petFriendships = { ...merged.petFriendships };
+                    Object.entries(patch.petFriendships).forEach(([petId, val]) => {
+                        petFriendships![petId] = {
+                        ...computeLevelMeta((val as any)?.totalXP, PET_FRIENDSHIP_MAX_LEVEL),
                     };
                 });
             }

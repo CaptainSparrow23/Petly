@@ -288,7 +288,10 @@ const Store = () => {
 
   const handlePurchasePress = useCallback(
     (item: StoreItem) => {
-      if (item.category === "Pet") return;
+      if (item.category === "Pet") {
+        router.push("/petStore");
+        return;
+      }
       void SheetManager.show("store-confirmation", {
         payload: {
           petName: item.name,
@@ -379,7 +382,7 @@ const Store = () => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: CoralPalette.greyLight }}>
+    <View style={{ flex: 1, backgroundColor: CoralPalette.greyLighter }}>
       {/* Pill switcher - connects seamlessly with header */}
       <View style={{ backgroundColor: CoralPalette.primaryMuted, alignItems: "center", paddingBottom: 12 }}>
         <StorePill selectedTab={selectedTab} onTabChange={setSelectedTab} width={screenWidth - 50} />

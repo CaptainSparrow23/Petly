@@ -244,7 +244,7 @@ export default function InsightsScreen() {
       <View
         style={{
           backgroundColor: CoralPalette.white,
-          borderRadius: 20,
+          borderRadius: 10,
           padding: 6,
           borderColor: `${CoralPalette.primary}20`,
           borderWidth: 1,
@@ -298,7 +298,7 @@ export default function InsightsScreen() {
       <View
         style={[
           {
-            borderRadius: 20,
+            borderRadius: 10,
             backgroundColor: CoralPalette.white,
             borderColor: `${CoralPalette.primary}20`,
             borderWidth: 1,

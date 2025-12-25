@@ -59,6 +59,7 @@ export default function RootLayout() {
                 presentation: "card",
                 gestureEnabled: false,
               }}
+              detachInactiveScreens={false}
             >
               <Stack.Screen
                 name="(tabs)"
@@ -110,6 +111,16 @@ export default function RootLayout() {
                   gestureEnabled: true,
                   gestureDirection: "horizontal",
                   fullScreenGestureEnabled: true,
+                }}
+              />
+              <Stack.Screen
+                name="(modals)"
+                options={{
+                  presentation: "transparentModal",
+                  animation: "none",
+                  gestureEnabled: false,
+                  detachPreviousScreen: false,
+                  contentStyle: { backgroundColor: "transparent" },
                 }}
               />
             </Stack>

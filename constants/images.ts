@@ -92,6 +92,18 @@ import tick from "@/assets/images/tick.png";
 import nothing from "@/assets/images/nothing.png";
 import male from "@/assets/images/male.png";
 import female from "@/assets/images/female.png";
+import stamp_japan from "@/assets/images/stamp_japan.png";
+import stamp_london from "@/assets/images/stamp_london.png";
+import stamp_hongkong from "@/assets/images/stamp_hongkong.png";
+import stamp_germany from "@/assets/images/stamp_germany.png";
+import stamp_france from "@/assets/images/stamp_france.png";
+import postmark from "@/assets/images/postmark.png";
+import key from "@/assets/images/key.png";
+import token_pile from "@/assets/images/token_pile.png";
+import token_bag from "@/assets/images/token_bag.png";
+import token_chest from "@/assets/images/token_chest.png";
+import token_vault from "@/assets/images/token_vault.png";
+import token_background from "@/assets/images/token_background.png";
 
 export default { 
   catFamily, 
@@ -172,4 +184,16 @@ export default {
   nothing,
   male,
   female,
+  stamp_japan,
+  stamp_london,
+  stamp_hongkong,
+  stamp_germany,
+  stamp_france,
+  postmark,
+  key,
+  token_pile,
+  token_bag,
+  token_chest,
+  token_vault,
+  token_background
 };

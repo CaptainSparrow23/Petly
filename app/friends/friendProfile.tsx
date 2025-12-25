@@ -8,6 +8,7 @@ import Svg, { Path } from "react-native-svg";
 import { ProfilePicture } from "@/components/other/ProfilePicture";
 import { CoralPalette } from "@/constants/colors";
 import { useGlobalContext } from "@/providers/GlobalProvider";
+import { Skeleton } from "@/components/other/Skeleton";
 
 const API_BASE_URL = Constants.expoConfig?.extra?.backendUrl as string;
 const FONT = { fontFamily: "Nunito" };
@@ -102,6 +103,7 @@ const DropdownBadge = ({
 export default function FriendProfile() {
   const { userId } = useLocalSearchParams<{ userId?: string }>();
   const [profile, setProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const [removing, setRemoving] = useState(false);
   const { userProfile, showBanner } = useGlobalContext();
 
@@ -113,6 +115,7 @@ export default function FriendProfile() {
       return;
     }
     try {
+      setLoadingProfile(true);
       const url = `${API_BASE_URL}/api/get_user_profile/${userId}`;
       console.log("[FriendProfile] Fetching:", url);
       const res = await fetch(url);
@@ -124,6 +127,8 @@ export default function FriendProfile() {
       setProfile(json.data);
     } catch (err) {
       console.error("[FriendProfile] Error:", err);
+    } finally {
+      setLoadingProfile(false);
     }
   }, [userId]);
 
@@ -164,9 +169,13 @@ export default function FriendProfile() {
   }, [showBanner, userId, userProfile?.userId]);
 
   const totalFocusHours = ((profile?.totalFocusSeconds ?? 0) / 3600).toFixed(0);
+  const resolvedProfileId =
+    typeof profile?.profileId === "number" && Number.isFinite(profile.profileId)
+      ? (profile.profileId as number)
+      : 1;
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.greyLighter }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: CoralPalette.primaryMuted }}>
       {/* Header with primaryMuted background */}
       <View style={{ backgroundColor: CoralPalette.primaryMuted }}>
         <View className="flex-row items-center justify-between px-4 py-4">
@@ -198,6 +207,7 @@ export default function FriendProfile() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: CoralPalette.greyLighter }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
       >
         {/* Profile Card */}
@@ -223,7 +233,11 @@ export default function FriendProfile() {
                 className="rounded-full overflow-hidden border-4"
                 style={{ width: 100, height: 100, borderColor: CoralPalette.white }}
               >
-                <ProfilePicture profileId={profile?.profileId || 1} size={100} />
+                {loadingProfile && !profile ? (
+                  <Skeleton width={100} height={100} radius={50} style={{ backgroundColor: CoralPalette.greyLight }} />
+                ) : (
+                  <ProfilePicture profileId={resolvedProfileId} size={100} />
+                )}
               </View>
             </View>
             <Text className="mt-3 text-xl font-bold" style={[{ color: CoralPalette.dark }, FONT]}>

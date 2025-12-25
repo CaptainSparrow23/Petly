@@ -52,7 +52,6 @@ const PreviewSheet = ({
           onPurchase={handlePurchase ?? (() => undefined)}
           isPurchasing={false}
           purchaseError={null}
-          userLevel={userProfile?.level ?? 1}
         />
       </View>
     </ActionSheet>
